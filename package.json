@@ -1,0 +1,43 @@
+{
+  "name": "tab",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Post-paid billing and a credit facility for autonomous agents, built natively for Creditcoin.",
+  "license": "MIT",
+  "packageManager": "pnpm@9.15.3",
+  "engines": {
+    "node": ">=20.10.0",
+    "pnpm": ">=9.15.3"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "lint": "node scripts/check-dep-direction.mjs && node scripts/env-check.mjs && turbo run lint",
+    "lint:deps": "node scripts/check-dep-direction.mjs",
+    "env:check": "node scripts/env-check.mjs",
+    "env:list": "node scripts/env-check.mjs --list",
+    "vocab:check": "node scripts/vocab-check.mjs",
+    "vocab:denylist": "node scripts/vocab-check.mjs --materialise",
+    "hooks:install": "git config core.hooksPath .githooks"
+  },
+  "dependencies": {
+    "@gluwa/usc-sdk": "0.18.0",
+    "ethers": "^6"
+  },
+  "devDependencies": {
+    "@gluwa/usc-contracts": "0.1.2",
+    "@openzeppelin/contracts": "5.4.0",
+    "@tabai/sdk": "workspace:*",
+    "tsx": "4.19.2",
+    "turbo": "2.10.12",
+    "typescript": "5.8.3"
+  },
+  "pnpm": {
+    "overrides": {
+      "@gluwa/usc-sdk": "0.18.0",
+      "@gluwa/usc-contracts": "0.1.2",
+      "@openzeppelin/contracts": "5.4.0"
+    }
+  }
+}
