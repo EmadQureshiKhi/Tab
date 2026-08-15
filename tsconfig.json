@@ -1,0 +1,14 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/shared" },
+    { "path": "packages/sdk" },
+    { "path": "apps/app" },
+    { "path": "apps/docs" },
+    { "path": "apps/registry" },
+    { "path": "apps/gateway" },
+    { "path": "apps/watcher" },
+    { "path": "services/proof-service" },
+    { "path": "examples/agent-demo" }
+  ]
+}
