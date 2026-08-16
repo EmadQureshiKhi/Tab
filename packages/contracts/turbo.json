@@ -1,0 +1,10 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "test": {
+      "dependsOn": ["@tabai/shared#build"],
+      "inputs": ["src/**", "test/**", "tools/**", "foundry.toml", "lib/**"],
+      "outputs": []
+    }
+  }
+}

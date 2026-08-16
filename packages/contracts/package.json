@@ -1,0 +1,15 @@
+{
+  "name": "@tabai/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Foundry project holding every Creditcoin contract and the source-chain settlement contract. Solidity toolchain only, so it carries no TypeScript tasks.",
+  "scripts": {
+    "build": "node tools/forge.mjs build",
+    "test": "node tools/replay-key-fixture.mjs --check && node tools/forge.mjs test",
+    "test:forge": "node tools/forge.mjs test",
+    "coverage": "node tools/forge.mjs coverage --profile coverage --no-match-coverage node_modules --report lcov",
+    "fixture:replay-key": "node tools/replay-key-fixture.mjs",
+    "fixture:replay-key:check": "node tools/replay-key-fixture.mjs --check",
+    "fmt": "node tools/forge.mjs fmt --check"
+  }
+}

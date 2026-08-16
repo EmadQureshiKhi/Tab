@@ -1,0 +1,133 @@
+[profile.default]
+src = "src"
+test = "test"
+script = "script"
+out = "out"
+cache_path = "cache"
+libs = ["lib", "../../node_modules"]
+
+# Requirement 26.2: every contract compiles with Solidity ^0.8.23.
+solc_version = "0.8.23"
+evm_version = "shanghai"
+optimizer = true
+optimizer_runs = 200
+via_ir = false
+verbosity = 2
+
+# Requirement 26.3.
+bypass_prevrandao = true
+
+# Read-only, and narrowed to the one directory holding generated test fixtures.
+# `test/property/ReplayKeyDifferential.t.sol` reads the replay-key vectors from
+# there; no test writes to disk, so no write access is granted anywhere.
+fs_permissions = [{access = "read", path = "./test/fixtures"}]
+
+# Requirement 26.5: `EvmV1Decoder` resolves from the workspace package at
+# `contracts/decoding/EvmV1Decoder.sol`. The paths below point at the workspace
+# root `node_modules`, which the package manager links into its content-addressed
+# store, so no dependency source is copied into this repository.
+#
+# `forge-std` is pinned to tag v1.9.7 (commit
+# 77041d2ce690e692d6e03cc812b57d1ddaa4d505) as a git submodule declared in the
+# repository-root `.gitmodules`. A fresh clone restores the exact same tree with
+# `git submodule update --init --recursive`.
+remappings = [
+    "@gluwa/usc-contracts/=../../node_modules/@gluwa/usc-contracts/",
+    "@openzeppelin/contracts/=../../node_modules/@openzeppelin/contracts/",
+    "forge-std/=lib/forge-std/src/",
+]
+
+# Property-based test configuration (design section 15.2).
+[profile.default.fuzz]
+runs = 256
+max_test_rejects = 100000
+
+[profile.default.invariant]
+runs = 256
+depth = 64
+fail_on_revert = false
+
+# ---------------------------------------------------------------------------
+# Coverage profile. Named `coverage`; the default profile is untouched by it.
+#
+# Task 10.10's per-contract line-coverage gate must invoke exactly this, from
+# `packages/contracts`:
+#
+#     forge coverage --profile coverage --no-match-coverage node_modules --report lcov
+#
+# or `pnpm --filter @tabai/contracts coverage`, which is the same command. The
+# report lands at `packages/contracts/lcov.info`, already gitignored. Verified
+# from a cold cache (no `out/`, no `cache/`) on forge 1.8.1.
+#
+# `--no-match-coverage` is not optional. `EvmV1Decoder` is a pinned third-party
+# dependency reached through a workspace remapping rather than through `lib/`,
+# so Foundry does not classify it as a dependency and reports it by default,
+# where its 0-of-243 lines would drag the total down. The equivalent config key
+# `[profile.coverage.coverage] skip_files` is accepted by `forge config` but has
+# no effect on the emitted report in 1.8.1, so the flag has to be passed.
+#
+# Why the profile exists at all. `forge coverage` wants source maps it can
+# trust, so it force-disables the optimizer and the Yul pipeline for the whole
+# run and discards every attempt to turn either back on: `via_ir = true` in a
+# profile is ignored, `--via-ir` on the command line is ignored, and
+# `--ir-minimum` is the only switch that reaches the Yul pipeline. Two separate
+# things then fail to compile, and both had to be dealt with:
+#
+#   - Unoptimised legacy code generation runs out of stack inside
+#     `src/ServiceRegistry.sol`. Reproduced on solc 0.8.23, 0.8.30, and 0.8.35;
+#     it is not a compiler-version matter.
+#   - `--ir-minimum` does not rescue it, because with only the unused pruner
+#     enabled the Yul stack-limit evader has nothing to work with: the pinned
+#     `EvmV1Decoder` carries one un-annotated assembly block, so no memory
+#     guard is emitted for it, and that run dies on its EIP-7702 `Type4Fields`
+#     decoding instead.
+#
+# So the escape is scoped rather than global. Every source keeps the unoptimised
+# legacy pipeline and its faithful line attribution, and `ServiceRegistry` alone
+# is lifted into a second solc invocation, through the compilation restriction
+# below, where the Yul pipeline resolves its stack pressure. `EvmV1Decoder`
+# compiles perfectly well unoptimised and needs no special handling, so nothing
+# about the decoder affects attribution for our own sources.
+#
+# Two notes for 10.10 and for whoever adds `TabBook` and `SettlementVerifier`:
+#
+#   - Attribution for `ServiceRegistry` is good but not perfect: a handful of
+#     `if (cond) revert ...;` and `if (cond) {` lines read as unhit even though
+#     the condition demonstrably executes. The error is one-directional — it
+#     understates coverage, never overstates it — so a gate cannot be fooled
+#     into passing, though it can fail a little early. Measured alternatives
+#     were worse: the legacy pipeline with the optimizer on reports 77/82 and
+#     the Yul pipeline with the optimizer on reports 59/82, against 78/82 here.
+#     Branch counts for this one file are heavily understated; gate on line
+#     coverage only, which is what both thresholds already say.
+#   - If a newly added contract breaks the coverage compile with `Stack too
+#     deep`, add its path as another `compilation_restrictions` entry rather
+#     than widening the settings for everything. Keeping files on the
+#     unoptimised legacy pipeline is what keeps their line data honest.
+[profile.coverage]
+
+# The settings a restricted file is compiled with. Deliberately the smallest
+# departure from unoptimised legacy codegen that compiles: the Yul pipeline with
+# the optimizer left off. Turning the optimizer on as well is what wrecks line
+# attribution, so it stays off.
+[[profile.coverage.additional_compiler_profiles]]
+name = "via-ir-unoptimised"
+via_ir = true
+optimizer = false
+
+[[profile.coverage.compilation_restrictions]]
+paths = "src/ServiceRegistry.sol"
+via_ir = true
+
+[profile.coverage.coverage]
+# Test contracts are the instrument, not the subject.
+exclude_tests = true
+
+[fmt]
+line_length = 110
+tab_width = 4
+bracket_spacing = false
+int_types = "long"
+
+[rpc_endpoints]
+creditcoin = "${CREDITCOIN_RPC_URL}"
