@@ -1,0 +1,553 @@
+name: CI
+
+# The job graph of design section 16.5. `vocabulary-gate` runs first because it
+# is cheap and because a naming failure invalidates the artefacts of every later
+# job. `deploy-gate` requires every job above it and is the single required
+# status check; nothing deploys until it passes.
+#
+# Every third-party action is pinned to a full commit SHA with the release it
+# corresponds to named alongside. A mutable tag on a CI action is a
+# supply-chain hole, and this project's own threat model would flag it.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Read is enough for every job here. Nothing in this pipeline writes to the
+# repository, publishes a package, or comments on a pull request.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # The one place the runtime version is written. Node 20.20.2 is the newest
+  # release of the 20 line, which is the line `engines.node` (">=20.10.0")
+  # names. Pinned to the patch so two runs are two runs of the same thing.
+  NODE_VERSION: "20.20.2"
+  # Foundry 1.8.1, the current stable release, pinned for the same reason. Named
+  # without a `FOUNDRY_` prefix on purpose: that prefix is Foundry's own
+  # configuration namespace and this is an input to the installer, not to forge.
+  TOOLCHAIN_VERSION: "v1.8.1"
+  TURBO_TELEMETRY_DISABLED: "1"
+  DO_NOT_TRACK: "1"
+
+jobs:
+  # --------------------------------------------------------------------------
+  # 1. The vocabulary gate. First, cheap, blocking.
+  #
+  # Two steps, in this order. The denylist is itself a secret and is never
+  # committed, so it is materialised from the repository secret of the same name
+  # at job start and dies with the runner. The gate exits 2 when the denylist is
+  # missing or empty, which means a misconfigured secret fails this job loudly
+  # rather than passing vacuously. There is deliberately no `continue-on-error`
+  # anywhere near it, and no debug output around it either: the materialise step
+  # prints a term count and never a term.
+  #
+  # A pull request from a fork has no access to the secret and will fail here.
+  # That is the correct outcome for a gate whose whole value is that it cannot be
+  # skipped.
+  #
+  # Checkout depth 1 is deliberate: `scripts/vocab-check.mjs` scans the working
+  # tree, not history, so deeper history buys the gate nothing.
+  # --------------------------------------------------------------------------
+  vocabulary-gate:
+    name: vocabulary-gate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up the workspace
+        uses: ./.github/actions/setup-workspace
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          install: "false"
+
+      - name: Materialise the denylist from the repository secret
+        env:
+          VOCAB_DENYLIST: ${{ secrets.VOCAB_DENYLIST }}
+        run: node scripts/vocab-check.mjs --materialise
+
+      - name: Scan the tree
+        run: pnpm vocab:check
+
+  # --------------------------------------------------------------------------
+  # 2. The Foundry project.
+  #
+  # `forge-std` is a git submodule pinned to v1.9.7 and declared in the
+  # repository-root `.gitmodules`, so the checkout takes `submodules: recursive`
+  # or `forge build` fails on a fresh clone. The Solidity remappings resolve
+  # through the workspace `node_modules`, so the dependencies are installed
+  # before `forge build` runs.
+  # --------------------------------------------------------------------------
+  contracts:
+    name: contracts
+    needs: [vocabulary-gate]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out the repository and its submodules
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          submodules: recursive
+
+      - name: Set up the workspace
+        uses: ./.github/actions/setup-workspace
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Assert the pinned submodule is present
+        run: test -f packages/contracts/lib/forge-std/src/Test.sol
+
+      - name: Install the pinned Foundry toolchain
+        uses: foundry-rs/foundry-toolchain@82dee4ba654bd2146511f85f0d013af94670c4de # v1.4.0
+        with:
+          version: ${{ env.TOOLCHAIN_VERSION }}
+
+      - name: Report the toolchain version
+        working-directory: packages/contracts
+        run: forge --version
+
+      - name: Check formatting
+        working-directory: packages/contracts
+        run: forge fmt --check
+
+      - name: Build
+        working-directory: packages/contracts
+        run: forge build
+
+      # The property suites are excluded here because `property-tests` owns them
+      # and is separately required. One suite, one job, no duplicate runs.
+      - name: Run the Solidity suites
+        working-directory: packages/contracts
+        run: forge test --no-match-path "test/property/*" -vv
+
+      # The per-contract coverage floors of R27.1, enforced rather than read off
+      # a terminal by hand. Two tiers, both on lines only: 90 percent on the four
+      # money-handling contracts, 75 percent on the two that are predominantly
+      # setters and timelock bookkeeping. The script records the reason for each
+      # tier and prints every contract's measured figure beside its floor.
+      #
+      # It lives in this job rather than in one of its own because this job
+      # already carries the Foundry toolchain and the installed workspace, and
+      # because `contracts` is already in `deploy-gate`'s `needs` — so the floors
+      # gate the pipeline the moment this step exists, with no second checkout
+      # and no second toolchain install.
+      #
+      # Measuring re-executes the suites under the `coverage` profile, which is
+      # unavoidable: coverage is a by-product of running them. That is why this
+      # step sits last in the job, after the cheaper `forge test` above has
+      # already had its say.
+      #
+      # One command: `--run` measures and then gates. The measuring flags live in
+      # `packages/contracts/package.json` and are not repeated here, because
+      # plain `forge coverage` fails with a decoder stack overflow and a second
+      # copy of the working flags is a copy that will drift.
+      #
+      # Exits 2, not 0, when it cannot run at all — no report, an unparseable
+      # one, or a floored contract missing from it. A gate that reports success
+      # because it could not find its subject is worse than no gate.
+      - name: Enforce the per-contract line-coverage floors
+        run: pnpm coverage
+
+  # --------------------------------------------------------------------------
+  # 3. TypeScript, no emit, across every workspace.
+  # --------------------------------------------------------------------------
+  typecheck:
+    name: typecheck
+    needs: [vocabulary-gate]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up the workspace
+        uses: ./.github/actions/setup-workspace
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Typecheck every workspace
+        run: pnpm typecheck
+
+  # --------------------------------------------------------------------------
+  # 4. Lint. The root `lint` script chains three checks: the one-way
+  # dependency-direction rule, the environment-variable completeness check
+  # (R28.6), and then the per-workspace lint tasks.
+  #
+  # The deployment-record gate runs here too, as its own step ahead of that
+  # chain. It belongs in this job because it needs nothing but Node and the two
+  # tracked files it compares — no toolchain, no dependencies, no network — and
+  # it sits beside the environment-variable check because both exist to keep
+  # `.env.example` honest. It is a separate step rather than a fourth link in the
+  # `lint` chain so that it reports on its own: a chain fails at its first
+  # failing link, and a gate that only speaks once two other checks have passed
+  # is a gate hiding behind them.
+  # --------------------------------------------------------------------------
+  lint:
+    name: lint
+    needs: [vocabulary-gate]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up the workspace
+        uses: ./.github/actions/setup-workspace
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      # `deployments.json` and `.env.example` name the same eleven addresses
+      # through different keys, joined on the `envKey` field the record carries.
+      # A key in one and not the other is how a deployment record goes stale
+      # without anyone noticing, and nothing else in this pipeline can see it:
+      # both files stay individually well-formed while describing two different
+      # deployments. The script also refuses to pass when `.env.example` declares
+      # an address variable it has never been told how to treat, so a new address
+      # forces the decision rather than slipping through unjoined.
+      #
+      # There is no `.env` on this runner, so the value half is skipped and the
+      # step says so. That is deliberate — the real addresses live in the
+      # gitignored `.env`, the template holds zero-address placeholders, and a
+      # gate that failed for the absence of a secret file would either be
+      # switched off or would pressure somebody into committing one.
+      - name: Assert the deployment record and the environment template agree
+        run: pnpm deployments:check
+
+      - name: Lint the workspace
+        run: pnpm lint
+
+  # --------------------------------------------------------------------------
+  # 5. The workspace unit suites.
+  #
+  # An addition to the job list in design section 16.5, which names no home for
+  # the workspace unit suites: `contracts` covers Solidity, `property-tests`
+  # covers the generated-input suites, and the workspace `test` task would
+  # otherwise never run under CI at all. Declared as its own job rather than
+  # hidden inside another, so the required-check list says what it does.
+  #
+  # The Foundry workspace is filtered out because its own `test` script calls
+  # `forge`, and `contracts` above already runs that with the Solidity toolchain
+  # installed. Filtering here keeps that toolchain out of this job rather than
+  # installing it twice to run the same suites twice.
+  #
+  # `packages/shared` and `apps/app` run their suites through
+  # `node --test test/*.test.mjs`. Turbo hands that to `sh` on this runner, which
+  # expands the glob before Node sees it, so the pattern resolves the same way it
+  # does for a developer at a shell.
+  # --------------------------------------------------------------------------
+  unit-tests:
+    name: unit-tests
+    needs: [vocabulary-gate]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up the workspace
+        uses: ./.github/actions/setup-workspace
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Run the workspace unit suites
+        run: pnpm exec turbo run test --filter='!@tabai/contracts'
+
+  # --------------------------------------------------------------------------
+  # 6. Secret scan.
+  #
+  # Two passes and one assertion:
+  #
+  #   - the full history, which needs `fetch-depth: 0`, because a secret removed
+  #     in the tip commit is still a leaked secret;
+  #   - the working tree, which catches anything staged but not yet recorded;
+  #   - `.github/scripts/tracked-ignore-check.mjs`, which fails when any tracked
+  #     path matches the local-only ignore rules (R28.5). A detector will not
+  #     catch that: a scratch directory can enter history carrying nothing a rule
+  #     recognises and still be exactly what the ignore rules exist to prevent.
+  #
+  # The scanner is installed from its release archive pinned by version and
+  # verified against a recorded SHA-256, rather than run through a third-party
+  # action. Both passes use `--redact`, so a finding is reported by rule, path,
+  # and commit without the matched value reaching the log. No dependencies are
+  # installed in this job, so the tree the working-tree pass walks is the
+  # repository and nothing else.
+  # --------------------------------------------------------------------------
+  secret-scan:
+    name: secret-scan
+    needs: [vocabulary-gate]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      SCANNER_VERSION: "8.30.0"
+      SCANNER_SHA256: "79a3ab579b53f71efd634f3aaf7e04a0fa0cf206b7ed434638d1547a2470a66e"
+    steps:
+      # Depth 0 for the history pass. Submodules stay out: their contents belong
+      # to another project and the tracked-path assertion reads the index, not
+      # the checked-out files.
+      - name: Check out the repository with its full history
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Install the pinned scanner
+        run: |
+          set -euo pipefail
+          archive="gitleaks_${SCANNER_VERSION}_linux_x64.tar.gz"
+          url="https://github.com/gitleaks/gitleaks/releases/download/v${SCANNER_VERSION}/${archive}"
+          workdir="$(mktemp -d)"
+          curl --fail --location --silent --show-error --output "${workdir}/${archive}" "$url"
+          echo "${SCANNER_SHA256}  ${workdir}/${archive}" | sha256sum --check --strict
+          tar --extract --gzip --file "${workdir}/${archive}" --directory "$workdir" gitleaks
+          install -m 0755 "${workdir}/gitleaks" /usr/local/bin/gitleaks
+          gitleaks version
+
+      - name: Scan the full history
+        run: gitleaks git . --no-banner --redact --exit-code 1 --log-opts="--all"
+
+      - name: Scan the working tree
+        run: gitleaks dir . --no-banner --redact --exit-code 1
+
+      - name: Assert no tracked path matches the local-only ignore rules
+        run: node .github/scripts/tracked-ignore-check.mjs
+
+  # --------------------------------------------------------------------------
+  # 7. Dependency audit.
+  #
+  # Two halves. `pnpm audit --audit-level=high` is the advisory half. The pinning
+  # assertion is the requirement half: R26.4 names three exact versions, while
+  # `ethers` is deliberately declared as the `^6` range, so the rule is not
+  # "everything is exact". The assertion reads `pnpm-lock.yaml` to establish that
+  # `ethers` resolves to exactly one version across the whole workspace, because
+  # the manifest cannot tell you what a transitive edge resolved to.
+  #
+  # The audit runs after the assertion. Pinning is a property of this repository
+  # and holds offline; the advisory feed is a network call that can be down.
+  # --------------------------------------------------------------------------
+  dep-audit:
+    name: dep-audit
+    needs: [vocabulary-gate]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up the workspace
+        uses: ./.github/actions/setup-workspace
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          install: "false"
+
+      - name: Assert the pinned versions and the single resolved signing library
+        run: node .github/scripts/dep-audit.mjs
+
+      - name: Audit the advisory feed
+        run: pnpm audit --audit-level=high
+
+  # --------------------------------------------------------------------------
+  # 8. Property-based suites. Both halves are real checks.
+  #
+  # The Solidity half runs `packages/contracts/test/property/` under the fuzz and
+  # invariant profiles configured in `packages/contracts/foundry.toml` at 256 runs,
+  # depth 64.
+  #
+  # The generated-input TypeScript half was a declared placeholder until wave 20, when
+  # Properties 13 and 14 landed in `apps/watcher`. Its guard is gone and the job now
+  # runs `turbo run test:property` for real. Only the browser suite is still a
+  # placeholder, and `deploy-gate` publishes that one row.
+  # --------------------------------------------------------------------------
+  property-tests:
+    name: property-tests
+    needs: [contracts, typecheck]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out the repository and its submodules
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          submodules: recursive
+
+      - name: Set up the workspace
+        uses: ./.github/actions/setup-workspace
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install the pinned Foundry toolchain
+        uses: foundry-rs/foundry-toolchain@82dee4ba654bd2146511f85f0d013af94670c4de # v1.4.0
+        with:
+          version: ${{ env.TOOLCHAIN_VERSION }}
+
+      # The default profile already carries the fuzz and invariant settings, so
+      # this needs no profile switch — only the path filter.
+      - name: Run the Solidity property suites
+        working-directory: packages/contracts
+        run: forge test --match-path "test/property/*" -vv
+
+      # Properties 13 and 14 live in `apps/watcher` and also run under `unit-tests`,
+      # because they are `.test.mjs` files inside that package's own glob. They are run
+      # again here, alone, so that a failure names the property rather than arriving
+      # inside a suite of 282. The guard that stood here is gone: the suites exist.
+      - name: Run the generated-input suites
+        run: pnpm exec turbo run test:property
+
+  # --------------------------------------------------------------------------
+  # 9. Browser suites. Declared placeholder, same mechanism.
+  # --------------------------------------------------------------------------
+  e2e:
+    name: e2e
+    needs: [typecheck, lint]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up the workspace
+        uses: ./.github/actions/setup-workspace
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          install: "false"
+
+      - name: Install the workspace from the committed lockfile
+        run: pnpm install --frozen-lockfile
+
+      - name: Install the browser
+        run: pnpm --filter @tabai/app exec playwright install --with-deps chromium
+
+      - name: Build the dashboard
+        run: pnpm build && pnpm --filter @tabai/app build:site
+
+      # `playwright test` directly, not `pnpm e2e`. The wrapper script exists for a
+      # development machine running an Ubuntu release Playwright ships no browser for,
+      # where the browser and its libraries have to be supplied from outside without
+      # root. This runner is a supported host, so the normal path is the honest one and
+      # exercising it here is what would catch the wrapper hiding a real breakage.
+      - name: Run the browser suite
+        run: pnpm --filter @tabai/app exec playwright test
+
+  # --------------------------------------------------------------------------
+  # 10. The one-command read-only verification path (R28.2, R28.3). Declared
+  # placeholder, same mechanism.
+  #
+  # This job references no secret at all, which is what makes R28.3 — the path
+  # completes without a private key and without funded accounts — a tested claim
+  # rather than an assertion. Keep it that way: adding a secret here removes the
+  # only thing this job proves.
+  # --------------------------------------------------------------------------
+  reproduce:
+    name: reproduce
+    needs: [contracts, typecheck]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out the repository and its submodules
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          submodules: recursive
+
+      - name: Set up the workspace
+        uses: ./.github/actions/setup-workspace
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          install: "false"
+
+      - name: Install the workspace from the committed lockfile
+        run: pnpm install --frozen-lockfile
+
+      - name: Install the pinned Foundry toolchain
+        uses: foundry-rs/foundry-toolchain@82dee4ba654bd2146511f85f0d013af94670c4de # v1.4.0
+        with:
+          version: ${{ env.TOOLCHAIN_VERSION }}
+
+      # No secret is supplied to this job on purpose. The script also strips every
+      # secret-shaped variable out of its own environment before the first chain read,
+      # so the run proves the path is keyless rather than merely asserting it. A job
+      # that passed only because CI happened to withhold a key would prove nothing
+      # about a reader who has one.
+      - name: Run the read-only verification path with no secret available
+        run: pnpm tab:verify --no-build
+
+  # --------------------------------------------------------------------------
+  # 11. The gate. The single required status check.
+  #
+  # It runs with `always()` so a failed or skipped dependency reaches it instead
+  # of skipping it silently — a gate that disappears when something upstream
+  # breaks is not a gate. It then asserts every dependency reported `success`,
+  # and publishes the placeholder ledger so each run states in plain text how
+  # many of its required checks ran nothing.
+  # --------------------------------------------------------------------------
+  deploy-gate:
+    name: deploy-gate
+    if: always()
+    needs:
+      - vocabulary-gate
+      - contracts
+      - typecheck
+      - lint
+      - unit-tests
+      - secret-scan
+      - dep-audit
+      - property-tests
+      - e2e
+      - reproduce
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      # Each row names a suite, not a job, because one job can carry a real half
+      # and a pending half. `property-tests` does exactly that today. `reproduce` was
+      # a row here until task 27 landed; it now runs a real check on every push, so
+      # listing it would report a placeholder that no longer exists.
+      # The ledger that stood here listed the suites behind this gate that ran nothing.
+      # There are none left: the generated-input, browser and keyless-verification jobs
+      # were all declared placeholders and all three became real checks in wave 20. A
+      # ledger with no rows says less than its absence does, so it is gone rather than
+      # kept as an empty table. Re-add it the moment a placeholder is declared again.
+
+      - name: Assert every required check succeeded
+        env:
+          RESULTS: |
+            vocabulary-gate=${{ needs.vocabulary-gate.result }}
+            contracts=${{ needs.contracts.result }}
+            typecheck=${{ needs.typecheck.result }}
+            lint=${{ needs.lint.result }}
+            unit-tests=${{ needs.unit-tests.result }}
+            secret-scan=${{ needs.secret-scan.result }}
+            dep-audit=${{ needs.dep-audit.result }}
+            property-tests=${{ needs.property-tests.result }}
+            e2e=${{ needs.e2e.result }}
+            reproduce=${{ needs.reproduce.result }}
+        run: |
+          set -euo pipefail
+          failed=0
+          while IFS='=' read -r job result; do
+            [ -n "$job" ] || continue
+            if [ "$result" = "success" ]; then
+              echo "  ok   $job"
+            else
+              echo "  FAIL $job ($result)"
+              failed=$((failed + 1))
+            fi
+          done <<< "$RESULTS"
+          if [ "$failed" -gt 0 ]; then
+            echo "deploy-gate: ${failed} required check(s) did not succeed. Nothing deploys."
+            exit 1
+          fi
+          echo "deploy-gate: every required check succeeded."

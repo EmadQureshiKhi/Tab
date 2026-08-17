@@ -1,0 +1,49 @@
+name: "Set up the workspace"
+description: >-
+  Install the pinned package manager, the pinned Node runtime, and the workspace
+  dependencies from the committed lockfile. The calling job checks the repository
+  out first, because a local composite action cannot run before its own files
+  are on disk.
+
+inputs:
+  node-version:
+    description: >-
+      The exact Node runtime the job runs on. Pinned rather than a range: two
+      jobs on two runtimes is two answers, and the pipeline gets to have one.
+    required: false
+    default: "20.20.2"
+  install:
+    description: >-
+      Whether to install the workspace dependencies. Set to "false" for a job
+      that reads the tree without building it.
+    required: false
+    default: "true"
+
+runs:
+  using: composite
+  steps:
+    # pnpm 9.15.3, read from the `packageManager` field of the root manifest so
+    # the version lives in exactly one place.
+    - name: Install the pinned package manager
+      uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+
+    - name: Install the pinned Node runtime
+      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: pnpm
+
+    # The pinned runtime and the manifest's `engines.node` floor can drift apart
+    # silently. This says so out loud instead.
+    - name: Assert the runtime satisfies the declared engine floor
+      shell: bash
+      run: |
+        set -euo pipefail
+        node --version
+        pnpm --version
+        node "$GITHUB_ACTION_PATH/assert-engine-floor.mjs"
+
+    - name: Install the workspace from the committed lockfile
+      if: inputs.install == 'true'
+      shell: bash
+      run: pnpm install --frozen-lockfile
