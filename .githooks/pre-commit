@@ -1,0 +1,28 @@
+#!/bin/sh
+#
+# Vocabulary gate, local mirror of the CI job.
+#
+# Runs `scripts/vocab-check.mjs` over staged paths only, so a commit stays fast
+# and a violation is caught before it enters history rather than after.
+#
+# One-time setup, from the repository root:
+#
+#   git config core.hooksPath .githooks
+#
+# or equivalently: pnpm hooks:install
+#
+# The denylist itself is never committed. Keep a local `.vocabulary-denylist`
+# file — one term per line — or export VOCAB_DENYLIST and this script writes
+# that file for you. With neither in place the gate refuses to pass and the
+# commit is blocked, which is deliberate.
+#
+# Requirements: 28.5, 28.6
+
+set -e
+
+if ! command -v node > /dev/null 2>&1; then
+  echo "pre-commit: node is not on PATH, so the vocabulary gate cannot run." >&2
+  exit 1
+fi
+
+exec node scripts/vocab-check.mjs --staged
