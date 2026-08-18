@@ -1,0 +1,456 @@
+{
+  "probedAt": "2026-08-30T12:37:18.857Z",
+  "task": "tab 1.2 — verify attestation liveness through the ChainInfo Precompile",
+  "endpoints": {
+    "creditcoinRpc": "https://rpc.cc3-testnet.creditcoin.network",
+    "proofBuilder": "https://prover.cc3-testnet.creditcoin.network",
+    "chainInfoPrecompile": "0x0000000000000000000000000000000000000fd3",
+    "publicSourceRpcs": {
+      "1": {
+        "name": "Ethereum Mainnet",
+        "urls": [
+          "https://ethereum-rpc.publicnode.com",
+          "https://eth.llamarpc.com"
+        ]
+      },
+      "56": {
+        "name": "BNB Smart Chain",
+        "urls": [
+          "https://bsc-rpc.publicnode.com"
+        ]
+      },
+      "137": {
+        "name": "Polygon PoS",
+        "urls": [
+          "https://polygon-bor-rpc.publicnode.com"
+        ]
+      },
+      "11155111": {
+        "name": "Ethereum Sepolia",
+        "urls": [
+          "https://ethereum-sepolia-rpc.publicnode.com",
+          "https://rpc.sepolia.org"
+        ]
+      }
+    }
+  },
+  "intervalSampleMs": 150000,
+  "creditcoin": {
+    "reachable": true,
+    "chainId": 102031,
+    "latestBlock": 5400321,
+    "finalizedBlock": 5400319,
+    "finalizedBlockTimestampIso": "2026-08-30T12:36:45.000Z"
+  },
+  "sdkGetSupportedChains": {
+    "ok": true,
+    "count": 2
+  },
+  "verifiedAbiProbes": {
+    "get_supported_chains": {
+      "signature": "get_supported_chains() returns ((uint64,uint64,bytes,uint8)[])",
+      "selector": "0x69e18c3c",
+      "calldata": "0x69e18c3c",
+      "rawReturnData": "0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000008457468657265756d00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000aa36a70000000000000000000000000000000000000000000000000000000000000080000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000105365706f6c696120657468657265756d00000000000000000000000000000000",
+      "reverted": false,
+      "emptyReturn": false,
+      "decoded": [
+        [
+          [
+            "3",
+            "1",
+            "0x457468657265756d",
+            "1"
+          ],
+          [
+            "1",
+            "11155111",
+            "0x5365706f6c696120657468657265756d",
+            "1"
+          ]
+        ]
+      ],
+      "decodeSucceeded": true,
+      "exists": true
+    },
+    "get_latest_attestation_height_and_hash_chainKey1": {
+      "signature": "get_latest_attestation_height_and_hash(uint64) returns ((uint64,bytes32,bool,bool))",
+      "selector": "0x809112da",
+      "calldata": "0x809112da0000000000000000000000000000000000000000000000000000000000000001",
+      "rawReturnData": "0x0000000000000000000000000000000000000000000000000000000000b0fbeefe84ad44740663209d64d3a91237b7d6a36100c19777c09797c779779061b38500000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001",
+      "reverted": false,
+      "emptyReturn": false,
+      "decoded": [
+        [
+          "11598830",
+          "0xfe84ad44740663209d64d3a91237b7d6a36100c19777c09797c779779061b385",
+          true,
+          true
+        ]
+      ],
+      "decodeSucceeded": true,
+      "exists": true
+    },
+    "is_height_attested_chainKey1_height1": {
+      "signature": "is_height_attested(uint64,uint64) returns (bool)",
+      "selector": "0x9c68eccf",
+      "calldata": "0x9c68eccf00000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001",
+      "rawReturnData": "0x0000000000000000000000000000000000000000000000000000000000000001",
+      "reverted": false,
+      "emptyReturn": false,
+      "decoded": [
+        true
+      ],
+      "decodeSucceeded": true,
+      "exists": true
+    }
+  },
+  "designAssumedSignatureProbes": {
+    "supportedChains() returns (uint64[])": {
+      "signature": "supportedChains() returns (uint64[])",
+      "selector": "0x816949b5",
+      "calldata": "0x816949b5",
+      "reverted": true,
+      "exists": false,
+      "error": "Error: execution reverted: \"Unknown selector\" (action=\"call\", data=\"0x08c379a000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000010556e6b6e6f776e2073656c6563746f7200000000000000000000000000000000\", reason=\"Unknown selector\", transaction={ \"data\": \"0x816949b5\", \"to\": \"0x0000000000000000000000000000000000000fD3\" }, invocation=null, revert={ \"args\": [ \"Unknown selector\" ], \"name\": \"Error\", \"signature\": \"Error(string)\" }, code=CALL_EXCEPTION, version=6.17.0)"
+    },
+    "latestAttestedHeight(uint64) returns (uint64)": {
+      "signature": "latestAttestedHeight(uint64) returns (uint64)",
+      "selector": "0xcd7c4760",
+      "calldata": "0xcd7c47600000000000000000000000000000000000000000000000000000000000000001",
+      "reverted": true,
+      "exists": false,
+      "error": "Error: execution reverted: \"Unknown selector\" (action=\"call\", data=\"0x08c379a000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000010556e6b6e6f776e2073656c6563746f7200000000000000000000000000000000\", reason=\"Unknown selector\", transaction={ \"data\": \"0xcd7c47600000000000000000000000000000000000000000000000000000000000000001\", \"to\": \"0x0000000000000000000000000000000000000fD3\" }, invocation=null, revert={ \"args\": [ \"Unknown selector\" ], \"name\": \"Error\", \"signature\": \"Error(string)\" }, code=CALL_EXCEPTION, version=6.17.0)"
+    },
+    "attestedBlockDigest(uint64,uint64) returns (bytes32)": {
+      "signature": "attestedBlockDigest(uint64,uint64) returns (bytes32)",
+      "selector": "0xd2f4ed07",
+      "calldata": "0xd2f4ed0700000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001",
+      "reverted": true,
+      "exists": false,
+      "error": "Error: execution reverted: \"Unknown selector\" (action=\"call\", data=\"0x08c379a000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000010556e6b6e6f776e2073656c6563746f7200000000000000000000000000000000\", reason=\"Unknown selector\", transaction={ \"data\": \"0xd2f4ed0700000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001\", \"to\": \"0x0000000000000000000000000000000000000fD3\" }, invocation=null, revert={ \"args\": [ \"Unknown selector\" ], \"name\": \"Error\", \"signature\": \"Error(string)\" }, code=CALL_EXCEPTION, version=6.17.0)"
+    }
+  },
+  "samples": {
+    "firstSampleAt": "2026-08-30T12:37:22.146Z",
+    "secondSampleAt": "2026-08-30T12:40:00.203Z",
+    "elapsedMs": 158057
+  },
+  "chains": [
+    {
+      "chainKey": 3,
+      "chainId": 1,
+      "chainName": {
+        "raw": "0x457468657265756d",
+        "byteLength": 8,
+        "utf8": "Ethereum",
+        "allZero": false
+      },
+      "chainEncoding": 1,
+      "knownAs": "Ethereum Mainnet",
+      "latestAttestation": {
+        "height": 25868090,
+        "hash": "0x6c98dd10d6d8b1d666176913eff6bb0085d3a4afd75a60e63f005b0fb6537f47",
+        "isAttestation": true,
+        "exists": true
+      },
+      "latestCheckpointRaw": {
+        "signature": "get_latest_checkpoint_height_and_hash(uint64) returns ((uint64,bytes32,bool,bool))",
+        "selector": "0xd773a786",
+        "calldata": "0xd773a7860000000000000000000000000000000000000000000000000000000000000003",
+        "rawReturnData": "0x00000000000000000000000000000000000000000000000000000000018ab67c1e9a47e2e995104af540828d132143021847b447b52a3495b930e2a01abe008700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001",
+        "reverted": false,
+        "emptyReturn": false,
+        "decoded": [
+          [
+            "25867900",
+            "0x1e9a47e2e995104af540828d132143021847b447b52a3495b930e2a01abe0087",
+            false,
+            true
+          ]
+        ],
+        "decodeSucceeded": true,
+        "exists": true
+      },
+      "attestationGenesisHeight": 0,
+      "sourceChainHead": {
+        "reachable": true,
+        "endpoint": "https://ethereum-rpc.publicnode.com",
+        "reportedChainId": 1,
+        "headHeight": 25868130,
+        "failedEndpoints": []
+      },
+      "proofBuilderAttestedHeight": {
+        "url": "https://prover.cc3-testnet.creditcoin.network/api/v1/attested-height/3",
+        "httpStatus": 200,
+        "body": "{\"attestedHeight\":25868090}"
+      },
+      "attestedHeightGap": 40,
+      "continuityBoundsAtAttestedTip": {
+        "parentHeight": 25868080,
+        "parentHash": "0x31e2383d5745a3fd9ea20cfba71c076b7075ee132aabbd0f2ceaee57cc93fbd2",
+        "parentIsAttestation": true,
+        "childHeight": 25868090,
+        "childHash": "0x6c98dd10d6d8b1d666176913eff6bb0085d3a4afd75a60e63f005b0fb6537f47",
+        "childIsAttestation": true,
+        "isAttested": true
+      },
+      "digestAtHeightProbes": {
+        "getCheckpointForHeight_atAttestedTip": {
+          "hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+          "exists": false
+        },
+        "getAttestationHeightForDigest_roundTrip": {
+          "height": 25868090,
+          "exists": true
+        },
+        "isHeightAttested_atAttestedTip": {
+          "signature": "is_height_attested(uint64,uint64) returns (bool)",
+          "selector": "0x9c68eccf",
+          "calldata": "0x9c68eccf000000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000018ab73a",
+          "rawReturnData": "0x0000000000000000000000000000000000000000000000000000000000000001",
+          "reverted": false,
+          "emptyReturn": false,
+          "decoded": [
+            true
+          ],
+          "decodeSucceeded": true,
+          "exists": true
+        },
+        "isHeightAttested_oneAboveAttestedTip": {
+          "signature": "is_height_attested(uint64,uint64) returns (bool)",
+          "selector": "0x9c68eccf",
+          "calldata": "0x9c68eccf000000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000018ab73b",
+          "rawReturnData": "0x0000000000000000000000000000000000000000000000000000000000000000",
+          "reverted": false,
+          "emptyReturn": false,
+          "decoded": [
+            false
+          ],
+          "decodeSucceeded": true,
+          "exists": true
+        },
+        "findHighestAttestedBefore_atAttestedTip": {
+          "signature": "find_highest_attested_before(uint64,uint64) returns ((uint64,bytes32,bool,bool))",
+          "selector": "0x981266c7",
+          "calldata": "0x981266c7000000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000018ab73a",
+          "rawReturnData": "0x00000000000000000000000000000000000000000000000000000000018ab73031e2383d5745a3fd9ea20cfba71c076b7075ee132aabbd0f2ceaee57cc93fbd200000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001",
+          "reverted": false,
+          "emptyReturn": false,
+          "decoded": [
+            [
+              "25868080",
+              "0x31e2383d5745a3fd9ea20cfba71c076b7075ee132aabbd0f2ceaee57cc93fbd2",
+              true,
+              true
+            ]
+          ],
+          "decodeSucceeded": true,
+          "exists": true
+        },
+        "findLowestAttestedAfter_atAttestedTip": {
+          "signature": "find_lowest_attested_after(uint64,uint64) returns ((uint64,bytes32,bool,bool))",
+          "selector": "0x38bd95a7",
+          "calldata": "0x38bd95a7000000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000018ab73a",
+          "rawReturnData": "0x00000000000000000000000000000000000000000000000000000000018ab73a6c98dd10d6d8b1d666176913eff6bb0085d3a4afd75a60e63f005b0fb6537f4700000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001",
+          "reverted": false,
+          "emptyReturn": false,
+          "decoded": [
+            [
+              "25868090",
+              "0x6c98dd10d6d8b1d666176913eff6bb0085d3a4afd75a60e63f005b0fb6537f47",
+              true,
+              true
+            ]
+          ],
+          "decodeSucceeded": true,
+          "exists": true
+        }
+      },
+      "latestAttestationSecondSample": {
+        "height": 25868100,
+        "hash": "0xb2a5cba08d258f682085ca2edd29b0a4184cef9763d8c7a27e49f125f0f6e74c",
+        "isAttestation": true,
+        "exists": true
+      },
+      "attestationInterval": {
+        "elapsedMs": 158057,
+        "heightsAdvancedBy": 10,
+        "advanced": true,
+        "note": "attested tip advanced 10 source-chain blocks over 158s"
+      }
+    },
+    {
+      "chainKey": 1,
+      "chainId": 11155111,
+      "chainName": {
+        "raw": "0x5365706f6c696120657468657265756d",
+        "byteLength": 16,
+        "utf8": "Sepolia ethereum",
+        "allZero": false
+      },
+      "chainEncoding": 1,
+      "knownAs": "Ethereum Sepolia",
+      "latestAttestation": {
+        "height": 11598820,
+        "hash": "0xcaf085cd462b8d5d85e34f8dcb10f18d25952b95134fd177c6abffd9b3c0466e",
+        "isAttestation": true,
+        "exists": true
+      },
+      "latestCheckpointRaw": {
+        "signature": "get_latest_checkpoint_height_and_hash(uint64) returns ((uint64,bytes32,bool,bool))",
+        "selector": "0xd773a786",
+        "calldata": "0xd773a7860000000000000000000000000000000000000000000000000000000000000001",
+        "rawReturnData": "0x0000000000000000000000000000000000000000000000000000000000b0fb6cc1cc73b16465f445c72b76dc4eabe0f32ec6e6dbd5ead4d45e9a1b1dbf243f3700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001",
+        "reverted": false,
+        "emptyReturn": false,
+        "decoded": [
+          [
+            "11598700",
+            "0xc1cc73b16465f445c72b76dc4eabe0f32ec6e6dbd5ead4d45e9a1b1dbf243f37",
+            false,
+            true
+          ]
+        ],
+        "decodeSucceeded": true,
+        "exists": true
+      },
+      "attestationGenesisHeight": 0,
+      "sourceChainHead": {
+        "reachable": true,
+        "endpoint": "https://ethereum-sepolia-rpc.publicnode.com",
+        "reportedChainId": 11155111,
+        "headHeight": 11598863,
+        "failedEndpoints": []
+      },
+      "proofBuilderAttestedHeight": {
+        "url": "https://prover.cc3-testnet.creditcoin.network/api/v1/attested-height/1",
+        "httpStatus": 200,
+        "body": "{\"attestedHeight\":11598820}"
+      },
+      "attestedHeightGap": 43,
+      "continuityBoundsAtAttestedTip": {
+        "parentHeight": 11598810,
+        "parentHash": "0x53a559bec286ae6195b45a9db692287dbac778635c66b936099afa11cba69e2a",
+        "parentIsAttestation": true,
+        "childHeight": 11598820,
+        "childHash": "0xcaf085cd462b8d5d85e34f8dcb10f18d25952b95134fd177c6abffd9b3c0466e",
+        "childIsAttestation": true,
+        "isAttested": true
+      },
+      "digestAtHeightProbes": {
+        "getCheckpointForHeight_atAttestedTip": {
+          "hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+          "exists": false
+        },
+        "getAttestationHeightForDigest_roundTrip": {
+          "height": 11598820,
+          "exists": true
+        },
+        "isHeightAttested_atAttestedTip": {
+          "signature": "is_height_attested(uint64,uint64) returns (bool)",
+          "selector": "0x9c68eccf",
+          "calldata": "0x9c68eccf00000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000b0fbe4",
+          "rawReturnData": "0x0000000000000000000000000000000000000000000000000000000000000001",
+          "reverted": false,
+          "emptyReturn": false,
+          "decoded": [
+            true
+          ],
+          "decodeSucceeded": true,
+          "exists": true
+        },
+        "isHeightAttested_oneAboveAttestedTip": {
+          "signature": "is_height_attested(uint64,uint64) returns (bool)",
+          "selector": "0x9c68eccf",
+          "calldata": "0x9c68eccf00000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000b0fbe5",
+          "rawReturnData": "0x0000000000000000000000000000000000000000000000000000000000000001",
+          "reverted": false,
+          "emptyReturn": false,
+          "decoded": [
+            true
+          ],
+          "decodeSucceeded": true,
+          "exists": true
+        },
+        "findHighestAttestedBefore_atAttestedTip": {
+          "signature": "find_highest_attested_before(uint64,uint64) returns ((uint64,bytes32,bool,bool))",
+          "selector": "0x981266c7",
+          "calldata": "0x981266c700000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000b0fbe4",
+          "rawReturnData": "0x0000000000000000000000000000000000000000000000000000000000b0fbda53a559bec286ae6195b45a9db692287dbac778635c66b936099afa11cba69e2a00000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001",
+          "reverted": false,
+          "emptyReturn": false,
+          "decoded": [
+            [
+              "11598810",
+              "0x53a559bec286ae6195b45a9db692287dbac778635c66b936099afa11cba69e2a",
+              true,
+              true
+            ]
+          ],
+          "decodeSucceeded": true,
+          "exists": true
+        },
+        "findLowestAttestedAfter_atAttestedTip": {
+          "signature": "find_lowest_attested_after(uint64,uint64) returns ((uint64,bytes32,bool,bool))",
+          "selector": "0x38bd95a7",
+          "calldata": "0x38bd95a700000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000b0fbe4",
+          "rawReturnData": "0x0000000000000000000000000000000000000000000000000000000000b0fbe4caf085cd462b8d5d85e34f8dcb10f18d25952b95134fd177c6abffd9b3c0466e00000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001",
+          "reverted": false,
+          "emptyReturn": false,
+          "decoded": [
+            [
+              "11598820",
+              "0xcaf085cd462b8d5d85e34f8dcb10f18d25952b95134fd177c6abffd9b3c0466e",
+              true,
+              true
+            ]
+          ],
+          "decodeSucceeded": true,
+          "exists": true
+        }
+      },
+      "latestAttestationSecondSample": {
+        "height": 11598830,
+        "hash": "0xfe84ad44740663209d64d3a91237b7d6a36100c19777c09797c779779061b385",
+        "isAttestation": true,
+        "exists": true
+      },
+      "attestationInterval": {
+        "elapsedMs": 158057,
+        "heightsAdvancedBy": 10,
+        "advanced": true,
+        "note": "attested tip advanced 10 source-chain blocks over 158s"
+      }
+    }
+  ],
+  "verdict": {
+    "chainKey1": {
+      "chainKey": 1,
+      "present": true,
+      "chainId": 11155111,
+      "knownAs": "Ethereum Sepolia",
+      "attestationExists": true,
+      "latestAttestedHeight": 11598820,
+      "latestAttestedDigest": "0xcaf085cd462b8d5d85e34f8dcb10f18d25952b95134fd177c6abffd9b3c0466e",
+      "sourceChainHead": 11598863,
+      "attestedHeightGap": 43,
+      "advancedDuringProbe": true,
+      "attesting": true
+    },
+    "chainKey3": {
+      "chainKey": 3,
+      "present": true,
+      "chainId": 1,
+      "knownAs": "Ethereum Mainnet",
+      "attestationExists": true,
+      "latestAttestedHeight": 25868090,
+      "latestAttestedDigest": "0x6c98dd10d6d8b1d666176913eff6bb0085d3a4afd75a60e63f005b0fb6537f47",
+      "sourceChainHead": 25868130,
+      "attestedHeightGap": 40,
+      "advancedDuringProbe": true,
+      "attesting": true
+    },
+    "note": "\"attesting\" requires both an existing attestation and an observed advance of the attested tip during the probe window."
+  }
+}
