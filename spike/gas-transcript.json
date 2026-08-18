@@ -1,0 +1,1927 @@
+{
+  "probedAt": "2026-08-30T20:53:11.035Z",
+  "task": "tab 1.4 — verify batch gas headroom against the block gas limit",
+  "question": "Do ten sequential verifyAndEmit calls sharing one Continuity Proof fit inside a single Creditcoin transaction once the calldata and the caller-side work are counted, and how much of a block do they take?",
+  "shapesUnderTest": [
+    "control — one single-transaction verifyAndEmit with its own Continuity Proof, reproducing spike 1.3.",
+    "requirement 9.1 and 9.2 as written — ten sequential single-transaction verifyAndEmit calls against ONE shared Continuity Proof.",
+    "ten sequential single-transaction verifyAndEmit calls, each carrying its own Continuity Proof.",
+    "one array-shaped verifyAndEmit over ten proofs against ONE shared Continuity Proof."
+  ],
+  "endpoints": {
+    "creditcoinRpc": "https://rpc.cc3-testnet.creditcoin.network",
+    "creditcoinChainId": 102031,
+    "proofBuilder": "https://prover.cc3-testnet.creditcoin.network",
+    "ethereumMainnetRpcCandidates": [
+      "https://eth.drpc.org",
+      "https://ethereum-rpc.publicnode.com",
+      "https://eth-mainnet.public.blastapi.io",
+      "https://1rpc.io/eth"
+    ],
+    "chainInfoPrecompile": "0x0000000000000000000000000000000000000fd3",
+    "blockProverPrecompile": "0x0000000000000000000000000000000000000FD2",
+    "mainnetUsdc": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+  },
+  "settings": {
+    "batchSize": 10,
+    "batchMaxSpanBlocks": 1000,
+    "heightMarginBelowFrontier": 120,
+    "maxBlocksScanned": 14,
+    "attestationStride": 10,
+    "jsonRpcBatchMaxCount": 1
+  },
+  "inheritedFromSpike13": {
+    "verifyAndEmitGasForOneProof": 6745,
+    "totalGasForOneProbeTransaction": 131264,
+    "encodedTransactionBytes": 2752,
+    "note": "Reproduced here as a control rather than assumed."
+  },
+  "creditcoin": {
+    "chainId": 102031,
+    "latestBlock": 5402298,
+    "latestBlockGasLimit": "75000000",
+    "latestBlockGasUsed": "447828",
+    "gasPriceWei": "500000000"
+  },
+  "submitter": {
+    "address": "0xb67c73fd513adF5d270d1102F04eb8327F218FE7",
+    "balanceWei": "9999998323704000000000",
+    "nonce": 6
+  },
+  "attestationFrontier": {
+    "chainKey": 3,
+    "read": {
+      "signature": "get_latest_attestation_height_and_hash(uint64) returns ((uint64,bytes32,bool,bool))",
+      "selector": "0x809112da",
+      "decoded": [
+        [
+          "25870560",
+          "0x0ec7c5df52e2e5605c41c76695ac3cee775aed4aa30b3497dae62e33b74baf1b",
+          true,
+          true
+        ]
+      ],
+      "reverted": false
+    },
+    "value": {
+      "height": 25870560,
+      "digest": "0x0ec7c5df52e2e5605c41c76695ac3cee775aed4aa30b3497dae62e33b74baf1b",
+      "isAttestation": true,
+      "exists": true
+    }
+  },
+  "mainnetEndpointAttempts": [
+    {
+      "endpoint": "https://eth.drpc.org",
+      "reachable": true,
+      "headHeight": 25870602,
+      "supportsBlockReceipts": true
+    }
+  ],
+  "mainnetEndpointUsed": "https://eth.drpc.org",
+  "targetSearch": {
+    "startHeight": 25870440,
+    "blocksInspected": [
+      {
+        "height": 25870440,
+        "transactions": 256,
+        "qualifyingTransfers": 90
+      },
+      {
+        "height": 25870439,
+        "transactions": 367,
+        "qualifyingTransfers": 160
+      },
+      {
+        "height": 25870438,
+        "transactions": 245,
+        "qualifyingTransfers": 100
+      },
+      {
+        "height": 25870437,
+        "transactions": 168,
+        "qualifyingTransfers": 23
+      },
+      {
+        "height": 25870436,
+        "transactions": 116,
+        "qualifyingTransfers": 9
+      },
+      {
+        "height": 25870435,
+        "transactions": 224,
+        "qualifyingTransfers": 70
+      },
+      {
+        "height": 25870434,
+        "transactions": 333,
+        "qualifyingTransfers": 65
+      },
+      {
+        "height": 25870433,
+        "transactions": 220,
+        "qualifyingTransfers": 64
+      },
+      {
+        "height": 25870432,
+        "transactions": 258,
+        "qualifyingTransfers": 49
+      },
+      {
+        "height": 25870431,
+        "transactions": 399,
+        "qualifyingTransfers": 176
+      },
+      {
+        "height": 25870430,
+        "transactions": 194,
+        "qualifyingTransfers": 94
+      },
+      {
+        "height": 25870429,
+        "transactions": 264,
+        "qualifyingTransfers": 128
+      },
+      {
+        "height": 25870428,
+        "transactions": 220,
+        "qualifyingTransfers": 76
+      },
+      {
+        "height": 25870427,
+        "transactions": 210,
+        "qualifyingTransfers": 33
+      }
+    ],
+    "heightsWithQualifyingTransfers": [
+      25870427,
+      25870428,
+      25870429,
+      25870430,
+      25870431,
+      25870432,
+      25870433,
+      25870434,
+      25870435,
+      25870436,
+      25870437,
+      25870438,
+      25870439,
+      25870440
+    ],
+    "planWithinOneAttestationWindow": {
+      "heights": [
+        25870431,
+        25870432,
+        25870433,
+        25870434,
+        25870435,
+        25870436,
+        25870437,
+        25870438,
+        25870439,
+        25870440
+      ],
+      "reason": "a run of consecutive heights that crosses an attestation endpoint, so the shared proof spans two attestation windows",
+      "targets": 10
+    },
+    "planCrossingAnAttestationEndpoint": {
+      "heights": [
+        25870427,
+        25870428,
+        25870429,
+        25870430,
+        25870431,
+        25870432,
+        25870433,
+        25870434,
+        25870435,
+        25870436
+      ],
+      "reason": "a run of consecutive heights that crosses an attestation endpoint, so the shared proof spans two attestation windows",
+      "targets": 10
+    }
+  },
+  "planChosen": {
+    "heights": [
+      25870427,
+      25870428,
+      25870429,
+      25870430,
+      25870431,
+      25870432,
+      25870433,
+      25870434,
+      25870435,
+      25870436
+    ],
+    "reason": "a run of consecutive heights that crosses an attestation endpoint, so the shared proof spans two attestation windows",
+    "blockSpan": 9,
+    "withinRequirement94Span": true,
+    "targets": [
+      {
+        "height": 25870427,
+        "blockHash": "0x68f039c73b5338132dfd109db274b487c00cfe564248368116a5043bf9e78dbf",
+        "txHash": "0x3de63fb4420c4b3e95c1b60fb35fa9d762dab19cf35af52bc533bca499ce2248",
+        "txIndex": 15,
+        "txFrom": "0x58f298e3bf930886ab7639f4d71f892d5f1f0214",
+        "logIndexInTx": 0,
+        "blockWideLogIndex": 60,
+        "topic1Payer": "0x58f298e3bf930886ab7639f4d71f892d5f1f0214",
+        "topic2Recipient": "0x37a4d3d81edde5c3e9f15f62f638a98074412f9c",
+        "amountBaseUnits": "1131256639",
+        "logCountInTx": 1,
+        "payerDiffersFromTxFrom": false
+      },
+      {
+        "height": 25870428,
+        "blockHash": "0xbc0fe6588c1e61ea3d298f6aa0c435376adde98365f69f28597ba696335ce355",
+        "txHash": "0x70067b45c098c7e7d146294c17191e085f90aa37c25cc10a30f62f98601ada75",
+        "txIndex": 15,
+        "txFrom": "0x05ff6964d21e5dae3b1010d5ae0465b3c450f381",
+        "logIndexInTx": 0,
+        "blockWideLogIndex": 111,
+        "topic1Payer": "0x2744dfd9898f0babbc570cc594bbbc84b487a22b",
+        "topic2Recipient": "0x9bdc0fbbcb4e2575d14e13a9804a07ae21d17ed3",
+        "amountBaseUnits": "1000000",
+        "logCountInTx": 1,
+        "payerDiffersFromTxFrom": true
+      },
+      {
+        "height": 25870429,
+        "blockHash": "0xe91313f2faff8e83fc12bbff02b9e4a3d94670e2b40c5c5b482fc4c7ead8c1c7",
+        "txHash": "0x065e26dcad0867430b3eb8c3478ef52cdfdfd6b877231ce684243ff03dfa9fda",
+        "txIndex": 26,
+        "txFrom": "0xf589119c1664c251e399a9184836bdbfafe205a8",
+        "logIndexInTx": 0,
+        "blockWideLogIndex": 56,
+        "topic1Payer": "0xf589119c1664c251e399a9184836bdbfafe205a8",
+        "topic2Recipient": "0x260b364fe0d3d37e6fd3cda0fa50926a06c54cea",
+        "amountBaseUnits": "163434375",
+        "logCountInTx": 1,
+        "payerDiffersFromTxFrom": false
+      },
+      {
+        "height": 25870430,
+        "blockHash": "0xeadccf6ca045690ded723a4f7643656fbf556008fa05d5396b10a8c84f8ba167",
+        "txHash": "0x8d33c188634cecf1901d80fa7505f13f1f11baaf4942cd22fbadaeb6b763df2e",
+        "txIndex": 16,
+        "txFrom": "0x05ff6964d21e5dae3b1010d5ae0465b3c450f381",
+        "logIndexInTx": 0,
+        "blockWideLogIndex": 73,
+        "topic1Payer": "0x2744dfd9898f0babbc570cc594bbbc84b487a22b",
+        "topic2Recipient": "0x7ec1f9b35f0e162899310bd5238f4b3f10ee1e48",
+        "amountBaseUnits": "85968233911",
+        "logCountInTx": 1,
+        "payerDiffersFromTxFrom": true
+      },
+      {
+        "height": 25870431,
+        "blockHash": "0x700096ce9ff6862db3e04895ddd7a4ae97769d647efa17e52709419fde1a90da",
+        "txHash": "0x1be36f2262b9c05ae83c142108ba4cb7adb4c8afa25613698ea3c24a7b18f7c3",
+        "txIndex": 12,
+        "txFrom": "0x05ff6964d21e5dae3b1010d5ae0465b3c450f381",
+        "logIndexInTx": 0,
+        "blockWideLogIndex": 80,
+        "topic1Payer": "0x2744dfd9898f0babbc570cc594bbbc84b487a22b",
+        "topic2Recipient": "0xdaf26c147d149eb640c44b5658cd8c7c79af7400",
+        "amountBaseUnits": "162712172",
+        "logCountInTx": 1,
+        "payerDiffersFromTxFrom": true
+      },
+      {
+        "height": 25870432,
+        "blockHash": "0x8a96c80beb1b4f7e38de03702405721dcb2303ca17cb3a23f46805ee8ed4f7ca",
+        "txHash": "0xd5c0f9c6605fdfea3c378601cd56b11bb00eabbb3b7cf6e7521fc84e9d8d2d9c",
+        "txIndex": 20,
+        "txFrom": "0x28c6c06298d514db089934071355e5743bf21d60",
+        "logIndexInTx": 0,
+        "blockWideLogIndex": 209,
+        "topic1Payer": "0xee7ae85f2fe2239e27d9c1e23fffe168d63b4055",
+        "topic2Recipient": "0x80bfbcf274fc512fde985ee817eec5432bb9e7cc",
+        "amountBaseUnits": "2019400000",
+        "logCountInTx": 1,
+        "payerDiffersFromTxFrom": true
+      },
+      {
+        "height": 25870433,
+        "blockHash": "0xd9c53fc20f2b59463fe6366ec7eec635ff2a9819967ffcb481ea378ec22a2468",
+        "txHash": "0x6b13a084f9a8b9d86e56c320edd4ab1624fe23f8e95d874326212c8833de3ff0",
+        "txIndex": 18,
+        "txFrom": "0x55fe002aeff02f77364de339a1292923a15844b8",
+        "logIndexInTx": 0,
+        "blockWideLogIndex": 368,
+        "topic1Payer": "0x937f958f6b5d12ac71f8a1feee780b46da9b1e81",
+        "topic2Recipient": "0x55fe002aeff02f77364de339a1292923a15844b8",
+        "amountBaseUnits": "1067380000",
+        "logCountInTx": 1,
+        "payerDiffersFromTxFrom": true
+      },
+      {
+        "height": 25870434,
+        "blockHash": "0x68cf7d0c24e19fcb90ec41279267d1dcd39ce612f5408b3285878583d87b5744",
+        "txHash": "0xfc16f72f9aa97faaf53b0262276e77502e91d23bb4357e16250c59cd5ed66501",
+        "txIndex": 14,
+        "txFrom": "0xedec506ed27489b970df7fce5dab06d81fe0e4c4",
+        "logIndexInTx": 0,
+        "blockWideLogIndex": 64,
+        "topic1Payer": "0xedec506ed27489b970df7fce5dab06d81fe0e4c4",
+        "topic2Recipient": "0x260b364fe0d3d37e6fd3cda0fa50926a06c54cea",
+        "amountBaseUnits": "3000000000",
+        "logCountInTx": 1,
+        "payerDiffersFromTxFrom": false
+      },
+      {
+        "height": 25870435,
+        "blockHash": "0x086e8140f83b2ad3d93b970966fc059043566e5374d92458551e8ae2c7fd33c5",
+        "txHash": "0x9d08c9872b3146ea8f8753095b6cd425cc4ab5402895e5e65dce92f8fdff814c",
+        "txIndex": 39,
+        "txFrom": "0x05ff6964d21e5dae3b1010d5ae0465b3c450f381",
+        "logIndexInTx": 0,
+        "blockWideLogIndex": 153,
+        "topic1Payer": "0x367c732f75395b2ce003333a9cf95b055d1d47d8",
+        "topic2Recipient": "0x05ff6964d21e5dae3b1010d5ae0465b3c450f381",
+        "amountBaseUnits": "31039999",
+        "logCountInTx": 1,
+        "payerDiffersFromTxFrom": true
+      },
+      {
+        "height": 25870436,
+        "blockHash": "0x953005601c852fb0dc70a848623b1d56fc245ab42b7d22cd043a088b7880ca74",
+        "txHash": "0xd335b2f65cd0ef75215a960c5d49c4d34a047e283e7666cb75feb9a4c71315e2",
+        "txIndex": 24,
+        "txFrom": "0x74dec05e5b894b0efec69cdf6316971802a2f9a1",
+        "logIndexInTx": 0,
+        "blockWideLogIndex": 14,
+        "topic1Payer": "0x74dec05e5b894b0efec69cdf6316971802a2f9a1",
+        "topic2Recipient": "0xcef99b4b75f78db2af5a2fe131b4c079cc57ab4f",
+        "amountBaseUnits": "296118835",
+        "logCountInTx": 1,
+        "payerDiffersFromTxFrom": false
+      }
+    ]
+  },
+  "proofMaterial": [
+    {
+      "height": 25870427,
+      "txHash": "0x3de63fb4420c4b3e95c1b60fb35fa9d762dab19cf35af52bc533bca499ce2248",
+      "txIndexFromProofBuilder": 15,
+      "txIndexFromMainnetRpc": 15,
+      "txIndexAgrees": true,
+      "encodedTransactionByteLength": 1664,
+      "merkleProof": {
+        "root": "0x8fe58eb507dc765bd546e8ea30a29911e7176ca0b4eb278721d0c0c4dd78f66f",
+        "siblings": [
+          {
+            "hash": "0x5a58bb39acd0ae1116a425e4806db0c68116ba22b537d8dcda683c40f4e44f99",
+            "isLeft": true
+          },
+          {
+            "hash": "0x12387e65a96284b91fa592ac03558760364b32175ad678d1cda638c8bab5cacb",
+            "isLeft": true
+          },
+          {
+            "hash": "0x4971930613dc56b4ec2903bf120eee19ac1f59b37132bb6bb35031288fe2d07d",
+            "isLeft": true
+          },
+          {
+            "hash": "0xab7fe86c5933dbe08520a72c1f64b051b4daf1e788e1a5fcd52b551c802b184b",
+            "isLeft": true
+          },
+          {
+            "hash": "0x56eecaa2fd35e027f759c63930207ddb1362331a67d8be4b3c342ed055132d0d",
+            "isLeft": false
+          },
+          {
+            "hash": "0x07aca3d32871ca8d8ea047a552e14e151698cd671c85639dfd66fe0038a25527",
+            "isLeft": false
+          },
+          {
+            "hash": "0x4edca8daccb050645f88a0fc8dc56cf0bbed51b3eaa2292a25e434582e38eaed",
+            "isLeft": false
+          },
+          {
+            "hash": "0xf10daa72be0f72a37b81fd307e4ec78cfcce837101341bcd36c353783879a371",
+            "isLeft": false
+          }
+        ],
+        "siblingCount": 8
+      },
+      "ownContinuityProof": {
+        "lowerEndpointDigest": "0x4c7e72e4c40c75369bd913e6a7a60d7aa63295894670a91f63d0b886133ad70b",
+        "roots": [
+          "0x8fe58eb507dc765bd546e8ea30a29911e7176ca0b4eb278721d0c0c4dd78f66f",
+          "0x5f3605836a09dc6e437ae3807eba1b770ce8489fe0e493439a5ac3b22d45ea8b",
+          "0x2b65373c3cc61b01eaed67cdc6be7b5911766bee06598d2e34c10acab026513c",
+          "0x2de76f02b1da7056c45e99e0bdd17f833bb37a10cf3fb4ce60968e5e6eed3538"
+        ],
+        "rootCount": 4
+      },
+      "logIndexInTx": 0,
+      "payerFromTopic1": "0x58f298e3bf930886ab7639f4d71f892d5f1f0214",
+      "transactionFrom": "0x58f298e3bf930886ab7639f4d71f892d5f1f0214",
+      "payerDiffersFromTxFrom": false
+    },
+    {
+      "height": 25870428,
+      "txHash": "0x70067b45c098c7e7d146294c17191e085f90aa37c25cc10a30f62f98601ada75",
+      "txIndexFromProofBuilder": 15,
+      "txIndexFromMainnetRpc": 15,
+      "txIndexAgrees": true,
+      "encodedTransactionByteLength": 1824,
+      "merkleProof": {
+        "root": "0x5f3605836a09dc6e437ae3807eba1b770ce8489fe0e493439a5ac3b22d45ea8b",
+        "siblings": [
+          {
+            "hash": "0xeb16bd171f8115b71de4678c2abe35eee73834ae7e73cb35da3216d9cf002acf",
+            "isLeft": true
+          },
+          {
+            "hash": "0x314c1be2ce70892b80449d8539ca1834da57f938a6b1a6f46b6e7683b2b5195a",
+            "isLeft": true
+          },
+          {
+            "hash": "0x056901424377da8e0b96de82c1ac02d0b6690b6f8e1d4b403f553edb2ac30d7b",
+            "isLeft": true
+          },
+          {
+            "hash": "0x83407522eac9826bb853dce7dcb4609cf02cc076e831f4141cd901351c061c63",
+            "isLeft": true
+          },
+          {
+            "hash": "0xdda0e7778c70e940ff07a0d8022c17ebe018808d67e52e8994f23f8bfab7402a",
+            "isLeft": false
+          },
+          {
+            "hash": "0xf3b15ec9d931570d95a33e9ef19eecac975b67cb83de80b0b8cc3df1b85397da",
+            "isLeft": false
+          },
+          {
+            "hash": "0x0997bbea8ab0a19728f771226def57bb5fda9d9daf73dfa308d4d12e6663454d",
+            "isLeft": false
+          },
+          {
+            "hash": "0xdce6cb0241416983dd31cb76c17ae797b5b7b1988503191ea583e6dd01416aac",
+            "isLeft": false
+          }
+        ],
+        "siblingCount": 8
+      },
+      "ownContinuityProof": {
+        "lowerEndpointDigest": "0xf897447610f02609a61b76c6d2cb256c6db8cace3b91df736d9878d38c3867d1",
+        "roots": [
+          "0x5f3605836a09dc6e437ae3807eba1b770ce8489fe0e493439a5ac3b22d45ea8b",
+          "0x2b65373c3cc61b01eaed67cdc6be7b5911766bee06598d2e34c10acab026513c",
+          "0x2de76f02b1da7056c45e99e0bdd17f833bb37a10cf3fb4ce60968e5e6eed3538"
+        ],
+        "rootCount": 3
+      },
+      "logIndexInTx": 0,
+      "payerFromTopic1": "0x2744dfd9898f0babbc570cc594bbbc84b487a22b",
+      "transactionFrom": "0x05ff6964d21e5dae3b1010d5ae0465b3c450f381",
+      "payerDiffersFromTxFrom": true
+    },
+    {
+      "height": 25870429,
+      "txHash": "0x065e26dcad0867430b3eb8c3478ef52cdfdfd6b877231ce684243ff03dfa9fda",
+      "txIndexFromProofBuilder": 26,
+      "txIndexFromMainnetRpc": 26,
+      "txIndexAgrees": true,
+      "encodedTransactionByteLength": 1664,
+      "merkleProof": {
+        "root": "0x2b65373c3cc61b01eaed67cdc6be7b5911766bee06598d2e34c10acab026513c",
+        "siblings": [
+          {
+            "hash": "0xfeb9983b3924c68733442dc5369e08279dcc3709c437fecde38948d7641714cd",
+            "isLeft": false
+          },
+          {
+            "hash": "0x587fc0bf3cb33781433852f8932d62395da1b2ff8a9ea5c34d141404eecac2ca",
+            "isLeft": true
+          },
+          {
+            "hash": "0x70af822ed6df2fd465a92af2eca18f8fa55d8a3756a83635be602b88d6e03a75",
+            "isLeft": false
+          },
+          {
+            "hash": "0x613607d3054253262cf1b03669427c76d3ee12c6801e95fcdad9169136128d47",
+            "isLeft": true
+          },
+          {
+            "hash": "0x3af5886f1cc4ae903b7a8cde7a458c3ae5e43ed2a54efc01241cdb4afad46527",
+            "isLeft": true
+          },
+          {
+            "hash": "0xfa486045cbeee7097ebc056c8c2522a1aa9cd4fe5f8fac912992652350705dd1",
+            "isLeft": false
+          },
+          {
+            "hash": "0x501da44bfc354066b801043c75211a49d3e407f694bd7e00f77ee7f7589be5cd",
+            "isLeft": false
+          },
+          {
+            "hash": "0x2edc102c146400233ce63468a611d5da90257cb861deb574485bbf98fe26fb02",
+            "isLeft": false
+          },
+          {
+            "hash": "0xd89bc428c94efb5b2097199040882c2d21f7bd6140ba7cbd2b57f3c6dd78900a",
+            "isLeft": false
+          }
+        ],
+        "siblingCount": 9
+      },
+      "ownContinuityProof": {
+        "lowerEndpointDigest": "0x333b58cdba6c2e5e3df19cad8d9ad37fde520e0f14da49f654f27360d2c650b6",
+        "roots": [
+          "0x2b65373c3cc61b01eaed67cdc6be7b5911766bee06598d2e34c10acab026513c",
+          "0x2de76f02b1da7056c45e99e0bdd17f833bb37a10cf3fb4ce60968e5e6eed3538"
+        ],
+        "rootCount": 2
+      },
+      "logIndexInTx": 0,
+      "payerFromTopic1": "0xf589119c1664c251e399a9184836bdbfafe205a8",
+      "transactionFrom": "0xf589119c1664c251e399a9184836bdbfafe205a8",
+      "payerDiffersFromTxFrom": false
+    },
+    {
+      "height": 25870430,
+      "txHash": "0x8d33c188634cecf1901d80fa7505f13f1f11baaf4942cd22fbadaeb6b763df2e",
+      "txIndexFromProofBuilder": 16,
+      "txIndexFromMainnetRpc": 16,
+      "txIndexAgrees": true,
+      "encodedTransactionByteLength": 1824,
+      "merkleProof": {
+        "root": "0x2de76f02b1da7056c45e99e0bdd17f833bb37a10cf3fb4ce60968e5e6eed3538",
+        "siblings": [
+          {
+            "hash": "0x7d17cca991da7f6931f806e18c2c22188d8ed2f57defb4bf4dcb897e93802875",
+            "isLeft": false
+          },
+          {
+            "hash": "0xfa1008823e5f0c218e7e0223f6e129b7cd53c0f0651cfe138f11ac5bc7861023",
+            "isLeft": false
+          },
+          {
+            "hash": "0xa417c002b4ee6ce8ef0463fab4bcdc3adf6274e6f21f77400aeebe93dab4df49",
+            "isLeft": false
+          },
+          {
+            "hash": "0xe9d3c29f0b54163d62684cea1358912b85f6411524333a75d5328b1a31109858",
+            "isLeft": false
+          },
+          {
+            "hash": "0x28414a80dd7bf97dce2ee99cd1624704d0d0d6b6bd614404478c47ac8567fa2d",
+            "isLeft": true
+          },
+          {
+            "hash": "0x3f593c2bbba8eb599217c5d34216c6ba2a6a71f4d11b849d6531e2a359c41940",
+            "isLeft": false
+          },
+          {
+            "hash": "0x449dc5e9da3f6ee883feecf6c34144a9c1ec6e3afc2d136db303d6b143626688",
+            "isLeft": false
+          },
+          {
+            "hash": "0xbbc4187f8d20a0409a7a7dfd7c52c6ac29c9ff82619a92d61b3e831107b94032",
+            "isLeft": false
+          }
+        ],
+        "siblingCount": 8
+      },
+      "ownContinuityProof": {
+        "lowerEndpointDigest": "0xa57ceeb8a675409755c8052ef4eb618e462dd896f558cf7581b592665fdebfe0",
+        "roots": [
+          "0x2de76f02b1da7056c45e99e0bdd17f833bb37a10cf3fb4ce60968e5e6eed3538"
+        ],
+        "rootCount": 1
+      },
+      "logIndexInTx": 0,
+      "payerFromTopic1": "0x2744dfd9898f0babbc570cc594bbbc84b487a22b",
+      "transactionFrom": "0x05ff6964d21e5dae3b1010d5ae0465b3c450f381",
+      "payerDiffersFromTxFrom": true
+    },
+    {
+      "height": 25870431,
+      "txHash": "0x1be36f2262b9c05ae83c142108ba4cb7adb4c8afa25613698ea3c24a7b18f7c3",
+      "txIndexFromProofBuilder": 12,
+      "txIndexFromMainnetRpc": 12,
+      "txIndexAgrees": true,
+      "encodedTransactionByteLength": 1824,
+      "merkleProof": {
+        "root": "0x99cbb7a1395c407b98f67af59742e573e6c81bccbe291ccff43d97c13710b90b",
+        "siblings": [
+          {
+            "hash": "0x84cdd1b8a94e3eaf01e857967fc067bac6678384653c3ae56d43b6ae81f636d3",
+            "isLeft": false
+          },
+          {
+            "hash": "0x3ae172db16247606b893825f383f6592dd06f841d14c41ce8d85eb4efa7230bc",
+            "isLeft": false
+          },
+          {
+            "hash": "0x38cae84d0c9abb0be36c874e5e3012103d3071541af81873f3d0ea708bc39397",
+            "isLeft": true
+          },
+          {
+            "hash": "0x943c70c23a601c143590ffc1eba9a156f3aaa5b94d66556091211ced1ac42d15",
+            "isLeft": true
+          },
+          {
+            "hash": "0xd01016024bb4c4d09de60300088f6bc2dd1661acd4b13b0f6a4c9caaedd5f03d",
+            "isLeft": false
+          },
+          {
+            "hash": "0x804a0f6873dc56f6fcb56d329603c5517bf2697c1da948e9172962c23329a594",
+            "isLeft": false
+          },
+          {
+            "hash": "0xc2ee7842e3f6ea680e1dca4e9452ce82cf6f499fd225e095e9183719b872e166",
+            "isLeft": false
+          },
+          {
+            "hash": "0xd3f02620129f4594c7e0873326669a2c5d6b1f48efd0ea3f9c1776342044efcb",
+            "isLeft": false
+          },
+          {
+            "hash": "0x75e4a59ec55c4636cf1d4c1838ef7a5d36bdb156f915e08ab1a7bfc947c02d3a",
+            "isLeft": false
+          }
+        ],
+        "siblingCount": 9
+      },
+      "ownContinuityProof": {
+        "lowerEndpointDigest": "0x50c156f08379499962ff92aa5cee066aa713d11da1f04037688bd9908462da2e",
+        "roots": [
+          "0x99cbb7a1395c407b98f67af59742e573e6c81bccbe291ccff43d97c13710b90b",
+          "0x3067bb5cf29165433ecd25442e6a76b4e7db70e68422a4234666aab3e8faea39",
+          "0xf4e5cd7ac3c85883342019b55c0792596261080f81481c6df6c7f42f39f66190",
+          "0xf448c16ee06453c352ef138d6b015f42a8d120cab96db80bd5c1fd2b5e9db6df",
+          "0x0806cd8a5c563b279b0d813d9fb1ec778d8b084010def22a3e9ddd9bce0dbc4c",
+          "0x76727d0571ef59fb84526bac0ef4dc9c245b005b402a8f083a3b4b7638f32240",
+          "0x181a734d071580d5bfd90cc13fc8670e597ec49e16125df5704c050b71de64bc",
+          "0xe9e2ecdccaf33f78f1edb8ef3c03a0f2e7520cf7de1e2cef13c40f3f0311f9ea",
+          "0x545875e07cd2e3630739ebf78f700ca3ed76d593a7cc06bac1c6c38745929bbb",
+          "0x2c2d9f9037a0a0cc11e2c747d8391d32647f4315e3be88074b41fe5450e2823f"
+        ],
+        "rootCount": 10
+      },
+      "logIndexInTx": 0,
+      "payerFromTopic1": "0x2744dfd9898f0babbc570cc594bbbc84b487a22b",
+      "transactionFrom": "0x05ff6964d21e5dae3b1010d5ae0465b3c450f381",
+      "payerDiffersFromTxFrom": true
+    },
+    {
+      "height": 25870432,
+      "txHash": "0xd5c0f9c6605fdfea3c378601cd56b11bb00eabbb3b7cf6e7521fc84e9d8d2d9c",
+      "txIndexFromProofBuilder": 20,
+      "txIndexFromMainnetRpc": 20,
+      "txIndexAgrees": true,
+      "encodedTransactionByteLength": 1824,
+      "merkleProof": {
+        "root": "0x3067bb5cf29165433ecd25442e6a76b4e7db70e68422a4234666aab3e8faea39",
+        "siblings": [
+          {
+            "hash": "0xa1fff57e9638c48f5866cd589c15f42a08062c1f6d285955044b39666aa9fdd9",
+            "isLeft": false
+          },
+          {
+            "hash": "0xedef2535db55723d9a7420b37559c1354a33d227c692aa57c7f3b45468a29a48",
+            "isLeft": false
+          },
+          {
+            "hash": "0xdee6b05db1a784614f5f17d41302236790bf231e76a38185fae8514a0bf75d69",
+            "isLeft": true
+          },
+          {
+            "hash": "0x31801e69e56192efda5682f81cb63f83fb47973bbbc2f1b71dd82ca0e5074907",
+            "isLeft": false
+          },
+          {
+            "hash": "0x33a20ce553595bbddaa315539514c3df1bbe2be17f460f1c9a48e8f970dd6b1c",
+            "isLeft": true
+          },
+          {
+            "hash": "0xad9a56f01a3faa7dbd022f27e602f7a7e3a6367c20f4be35c8f291f1f16d5240",
+            "isLeft": false
+          },
+          {
+            "hash": "0x6222996e808b529d7f40a300f45d52de0e86441c1be03a074f5c2ddab786df38",
+            "isLeft": false
+          },
+          {
+            "hash": "0x778317ce15c3f1e3b8160673f63fa97832ffd282e6c0a3f13ed1c7be46b22548",
+            "isLeft": false
+          },
+          {
+            "hash": "0x1c0528da98850ec03dd63c22ab51a7b83206c982585f38bf5dafeef1f399fc49",
+            "isLeft": false
+          }
+        ],
+        "siblingCount": 9
+      },
+      "ownContinuityProof": {
+        "lowerEndpointDigest": "0xa40ab17383f3421008af395e8e2e65b40ef3668e99828af26345c65c4dc09aa0",
+        "roots": [
+          "0x3067bb5cf29165433ecd25442e6a76b4e7db70e68422a4234666aab3e8faea39",
+          "0xf4e5cd7ac3c85883342019b55c0792596261080f81481c6df6c7f42f39f66190",
+          "0xf448c16ee06453c352ef138d6b015f42a8d120cab96db80bd5c1fd2b5e9db6df",
+          "0x0806cd8a5c563b279b0d813d9fb1ec778d8b084010def22a3e9ddd9bce0dbc4c",
+          "0x76727d0571ef59fb84526bac0ef4dc9c245b005b402a8f083a3b4b7638f32240",
+          "0x181a734d071580d5bfd90cc13fc8670e597ec49e16125df5704c050b71de64bc",
+          "0xe9e2ecdccaf33f78f1edb8ef3c03a0f2e7520cf7de1e2cef13c40f3f0311f9ea",
+          "0x545875e07cd2e3630739ebf78f700ca3ed76d593a7cc06bac1c6c38745929bbb",
+          "0x2c2d9f9037a0a0cc11e2c747d8391d32647f4315e3be88074b41fe5450e2823f"
+        ],
+        "rootCount": 9
+      },
+      "logIndexInTx": 0,
+      "payerFromTopic1": "0xee7ae85f2fe2239e27d9c1e23fffe168d63b4055",
+      "transactionFrom": "0x28c6c06298d514db089934071355e5743bf21d60",
+      "payerDiffersFromTxFrom": true
+    },
+    {
+      "height": 25870433,
+      "txHash": "0x6b13a084f9a8b9d86e56c320edd4ab1624fe23f8e95d874326212c8833de3ff0",
+      "txIndexFromProofBuilder": 18,
+      "txIndexFromMainnetRpc": 18,
+      "txIndexAgrees": true,
+      "encodedTransactionByteLength": 1696,
+      "merkleProof": {
+        "root": "0xf4e5cd7ac3c85883342019b55c0792596261080f81481c6df6c7f42f39f66190",
+        "siblings": [
+          {
+            "hash": "0xad711f74475aec108b193c3f7429680cebe339dec976ebba17d1b4565075b027",
+            "isLeft": false
+          },
+          {
+            "hash": "0x4ab4895eb33dc5ea9a3346b09b7f94e29093d10d9ca774439c506a47f9019bcc",
+            "isLeft": true
+          },
+          {
+            "hash": "0x97e359dd5468c3f5df9983763b935d96447472a021db96d7f3c47aebcd59ec26",
+            "isLeft": false
+          },
+          {
+            "hash": "0x81190f267f29a05c6b52e9788271722251fb25f800e0690b895181522d84b93d",
+            "isLeft": false
+          },
+          {
+            "hash": "0xe123555ff037c954151f23fd89e175c47bfc31df56832c631c0cc68dd8ca01fc",
+            "isLeft": true
+          },
+          {
+            "hash": "0x571347b2f8fd0c839e3bbadaf54959271398d09bb917ea96ba20a11830ca28a3",
+            "isLeft": false
+          },
+          {
+            "hash": "0x4485dab6cc6219f2f57b7770405805c3d811e9bcb08487dbec0a5956dee45a7f",
+            "isLeft": false
+          },
+          {
+            "hash": "0xd4a05b0cc634aebffb6583f65e0c89d0014a56bc0d5019a2b3b4c5fba7c6c8e6",
+            "isLeft": false
+          }
+        ],
+        "siblingCount": 8
+      },
+      "ownContinuityProof": {
+        "lowerEndpointDigest": "0x8457a8922b82e1dd3cd11209151d3e909090af704503cae4d74c3cc5abdae88a",
+        "roots": [
+          "0xf4e5cd7ac3c85883342019b55c0792596261080f81481c6df6c7f42f39f66190",
+          "0xf448c16ee06453c352ef138d6b015f42a8d120cab96db80bd5c1fd2b5e9db6df",
+          "0x0806cd8a5c563b279b0d813d9fb1ec778d8b084010def22a3e9ddd9bce0dbc4c",
+          "0x76727d0571ef59fb84526bac0ef4dc9c245b005b402a8f083a3b4b7638f32240",
+          "0x181a734d071580d5bfd90cc13fc8670e597ec49e16125df5704c050b71de64bc",
+          "0xe9e2ecdccaf33f78f1edb8ef3c03a0f2e7520cf7de1e2cef13c40f3f0311f9ea",
+          "0x545875e07cd2e3630739ebf78f700ca3ed76d593a7cc06bac1c6c38745929bbb",
+          "0x2c2d9f9037a0a0cc11e2c747d8391d32647f4315e3be88074b41fe5450e2823f"
+        ],
+        "rootCount": 8
+      },
+      "logIndexInTx": 0,
+      "payerFromTopic1": "0x937f958f6b5d12ac71f8a1feee780b46da9b1e81",
+      "transactionFrom": "0x55fe002aeff02f77364de339a1292923a15844b8",
+      "payerDiffersFromTxFrom": true
+    },
+    {
+      "height": 25870434,
+      "txHash": "0xfc16f72f9aa97faaf53b0262276e77502e91d23bb4357e16250c59cd5ed66501",
+      "txIndexFromProofBuilder": 14,
+      "txIndexFromMainnetRpc": 14,
+      "txIndexAgrees": true,
+      "encodedTransactionByteLength": 1664,
+      "merkleProof": {
+        "root": "0xf448c16ee06453c352ef138d6b015f42a8d120cab96db80bd5c1fd2b5e9db6df",
+        "siblings": [
+          {
+            "hash": "0xbb64f1350be51b6a8b63b38ba516fdb2a5ac14d3d4f23b3dd92faf6ca90c0ce2",
+            "isLeft": false
+          },
+          {
+            "hash": "0x0e1ef0f801b7950f217954afcf443203d6b340ebba0f172955fa379f14c83f53",
+            "isLeft": true
+          },
+          {
+            "hash": "0xf2ca77271fd9d35c538509bd444ccfb1210956cf9522bb7c51d731f33f60ec4c",
+            "isLeft": true
+          },
+          {
+            "hash": "0xef8a283fd0ed5193a0157670678b211890d7d46c043d50a9e82f412784ecc944",
+            "isLeft": true
+          },
+          {
+            "hash": "0xc54cdb46507467a38dfb49c2365ba7375fd8354bd0c9619bab927235b4bf8360",
+            "isLeft": false
+          },
+          {
+            "hash": "0x7ff38d06b247098ce4f114e5ffc36b9ddc442fe0926402658c697cac7b7758b4",
+            "isLeft": false
+          },
+          {
+            "hash": "0x40dbd3516b59fdb0052367b58863411ad89396978f1e1ac92010d3c060c0f612",
+            "isLeft": false
+          },
+          {
+            "hash": "0x79c910f18199e13722b2009b4ad756df884b674a3ef12262444fa11389ce9401",
+            "isLeft": false
+          },
+          {
+            "hash": "0x71dbd27d8075a14d1a95608a8520a4174165d1feaebab350e64e2091c16d4445",
+            "isLeft": false
+          }
+        ],
+        "siblingCount": 9
+      },
+      "ownContinuityProof": {
+        "lowerEndpointDigest": "0x8d8293b72fdb0c66f57432bc72179a266b7f29d35563a28a52c23255e0d76080",
+        "roots": [
+          "0xf448c16ee06453c352ef138d6b015f42a8d120cab96db80bd5c1fd2b5e9db6df",
+          "0x0806cd8a5c563b279b0d813d9fb1ec778d8b084010def22a3e9ddd9bce0dbc4c",
+          "0x76727d0571ef59fb84526bac0ef4dc9c245b005b402a8f083a3b4b7638f32240",
+          "0x181a734d071580d5bfd90cc13fc8670e597ec49e16125df5704c050b71de64bc",
+          "0xe9e2ecdccaf33f78f1edb8ef3c03a0f2e7520cf7de1e2cef13c40f3f0311f9ea",
+          "0x545875e07cd2e3630739ebf78f700ca3ed76d593a7cc06bac1c6c38745929bbb",
+          "0x2c2d9f9037a0a0cc11e2c747d8391d32647f4315e3be88074b41fe5450e2823f"
+        ],
+        "rootCount": 7
+      },
+      "logIndexInTx": 0,
+      "payerFromTopic1": "0xedec506ed27489b970df7fce5dab06d81fe0e4c4",
+      "transactionFrom": "0xedec506ed27489b970df7fce5dab06d81fe0e4c4",
+      "payerDiffersFromTxFrom": false
+    },
+    {
+      "height": 25870435,
+      "txHash": "0x9d08c9872b3146ea8f8753095b6cd425cc4ab5402895e5e65dce92f8fdff814c",
+      "txIndexFromProofBuilder": 39,
+      "txIndexFromMainnetRpc": 39,
+      "txIndexAgrees": true,
+      "encodedTransactionByteLength": 1696,
+      "merkleProof": {
+        "root": "0x0806cd8a5c563b279b0d813d9fb1ec778d8b084010def22a3e9ddd9bce0dbc4c",
+        "siblings": [
+          {
+            "hash": "0xb4a9487844dfe37ab02619e316f8a69f128d08e0cb4491cb56d9a70d37030019",
+            "isLeft": true
+          },
+          {
+            "hash": "0xd815993d19b4a9fe18aa97493146a5837e86ef87b4864cc06a633de14b8e6e58",
+            "isLeft": true
+          },
+          {
+            "hash": "0xb4c925263449119952d5cd1737f08e1716a71c95ef120471de7388c2f10e011a",
+            "isLeft": true
+          },
+          {
+            "hash": "0x14616098162027bc9f835bbfc0bd887e2fe00332c5e30dd3f522c2f15a7b1c21",
+            "isLeft": false
+          },
+          {
+            "hash": "0xda34531d9aa7539574e42b8dc08406eb97dbe79b98b51f88f131428187412f89",
+            "isLeft": false
+          },
+          {
+            "hash": "0x13873028cb6d35670977b8f4affb597186d20af53c2d0d49f1f1d82d0d1290b2",
+            "isLeft": true
+          },
+          {
+            "hash": "0x5fcca1caa760f3e66fc2f5b06613050c6536b46aaa02e32dda9d933947643f36",
+            "isLeft": false
+          },
+          {
+            "hash": "0xbd6f4770d2b4ea6e5afa6a3f703941ed653467b344923c1335e15762c88efb62",
+            "isLeft": false
+          }
+        ],
+        "siblingCount": 8
+      },
+      "ownContinuityProof": {
+        "lowerEndpointDigest": "0x002a84f632e69097336a911d7d50c90fb821fd41cb9851257b76885f97521f3c",
+        "roots": [
+          "0x0806cd8a5c563b279b0d813d9fb1ec778d8b084010def22a3e9ddd9bce0dbc4c",
+          "0x76727d0571ef59fb84526bac0ef4dc9c245b005b402a8f083a3b4b7638f32240",
+          "0x181a734d071580d5bfd90cc13fc8670e597ec49e16125df5704c050b71de64bc",
+          "0xe9e2ecdccaf33f78f1edb8ef3c03a0f2e7520cf7de1e2cef13c40f3f0311f9ea",
+          "0x545875e07cd2e3630739ebf78f700ca3ed76d593a7cc06bac1c6c38745929bbb",
+          "0x2c2d9f9037a0a0cc11e2c747d8391d32647f4315e3be88074b41fe5450e2823f"
+        ],
+        "rootCount": 6
+      },
+      "logIndexInTx": 0,
+      "payerFromTopic1": "0x367c732f75395b2ce003333a9cf95b055d1d47d8",
+      "transactionFrom": "0x05ff6964d21e5dae3b1010d5ae0465b3c450f381",
+      "payerDiffersFromTxFrom": true
+    },
+    {
+      "height": 25870436,
+      "txHash": "0xd335b2f65cd0ef75215a960c5d49c4d34a047e283e7666cb75feb9a4c71315e2",
+      "txIndexFromProofBuilder": 24,
+      "txIndexFromMainnetRpc": 24,
+      "txIndexAgrees": true,
+      "encodedTransactionByteLength": 1664,
+      "merkleProof": {
+        "root": "0x76727d0571ef59fb84526bac0ef4dc9c245b005b402a8f083a3b4b7638f32240",
+        "siblings": [
+          {
+            "hash": "0x3a8e18aaa629160072e2d4f6a88817f08e5c7fa621e16b7c4b6d689becd2b05c",
+            "isLeft": false
+          },
+          {
+            "hash": "0x78669f11d85e35cea79dac63e599789e4dc1f7536672bad539aeb8c4e25fe911",
+            "isLeft": false
+          },
+          {
+            "hash": "0xad38b5502f1e5e72e2ece8c115245096fd154a33096d802419d41f047a2d5364",
+            "isLeft": false
+          },
+          {
+            "hash": "0x16834de21c152d6a4cc3638ad09d1b3c8129e4da509bb27cbd549c51a214bd2e",
+            "isLeft": true
+          },
+          {
+            "hash": "0xa2315d1bd6cbcceba64db38c0b5260f11d026dda2601b54c87e23fe12adace7c",
+            "isLeft": true
+          },
+          {
+            "hash": "0xbd536824875dd9312d909dfb0918a983579e4510f83cff90165cef3b1b39b045",
+            "isLeft": false
+          },
+          {
+            "hash": "0xaa38cbbd27e81c4d265e814314d426a6bb530e086a7476eec16af75491f125a5",
+            "isLeft": false
+          }
+        ],
+        "siblingCount": 7
+      },
+      "ownContinuityProof": {
+        "lowerEndpointDigest": "0xb72ca80c9cd5db4a292185cbe30e6a1bbcddcf56c74e23e4322ca88b3496bd26",
+        "roots": [
+          "0x76727d0571ef59fb84526bac0ef4dc9c245b005b402a8f083a3b4b7638f32240",
+          "0x181a734d071580d5bfd90cc13fc8670e597ec49e16125df5704c050b71de64bc",
+          "0xe9e2ecdccaf33f78f1edb8ef3c03a0f2e7520cf7de1e2cef13c40f3f0311f9ea",
+          "0x545875e07cd2e3630739ebf78f700ca3ed76d593a7cc06bac1c6c38745929bbb",
+          "0x2c2d9f9037a0a0cc11e2c747d8391d32647f4315e3be88074b41fe5450e2823f"
+        ],
+        "rootCount": 5
+      },
+      "logIndexInTx": 0,
+      "payerFromTopic1": "0x74dec05e5b894b0efec69cdf6316971802a2f9a1",
+      "transactionFrom": "0x74dec05e5b894b0efec69cdf6316971802a2f9a1",
+      "payerDiffersFromTxFrom": false
+    }
+  ],
+  "sharedContinuityProof": {
+    "perHeightRootCounts": [
+      {
+        "height": 25870427,
+        "roots": 4
+      },
+      {
+        "height": 25870428,
+        "roots": 3
+      },
+      {
+        "height": 25870429,
+        "roots": 2
+      },
+      {
+        "height": 25870430,
+        "roots": 1
+      },
+      {
+        "height": 25870431,
+        "roots": 10
+      },
+      {
+        "height": 25870432,
+        "roots": 9
+      },
+      {
+        "height": 25870433,
+        "roots": 8
+      },
+      {
+        "height": 25870434,
+        "roots": 7
+      },
+      {
+        "height": 25870435,
+        "roots": 6
+      },
+      {
+        "height": 25870436,
+        "roots": 5
+      }
+    ],
+    "mergeProofs": {
+      "lowerEndpointDigest": "0x4c7e72e4c40c75369bd913e6a7a60d7aa63295894670a91f63d0b886133ad70b",
+      "roots": [
+        "0x8fe58eb507dc765bd546e8ea30a29911e7176ca0b4eb278721d0c0c4dd78f66f",
+        "0x5f3605836a09dc6e437ae3807eba1b770ce8489fe0e493439a5ac3b22d45ea8b",
+        "0x2b65373c3cc61b01eaed67cdc6be7b5911766bee06598d2e34c10acab026513c",
+        "0x2de76f02b1da7056c45e99e0bdd17f833bb37a10cf3fb4ce60968e5e6eed3538",
+        "0x99cbb7a1395c407b98f67af59742e573e6c81bccbe291ccff43d97c13710b90b",
+        "0x3067bb5cf29165433ecd25442e6a76b4e7db70e68422a4234666aab3e8faea39",
+        "0xf4e5cd7ac3c85883342019b55c0792596261080f81481c6df6c7f42f39f66190",
+        "0xf448c16ee06453c352ef138d6b015f42a8d120cab96db80bd5c1fd2b5e9db6df",
+        "0x0806cd8a5c563b279b0d813d9fb1ec778d8b084010def22a3e9ddd9bce0dbc4c",
+        "0x76727d0571ef59fb84526bac0ef4dc9c245b005b402a8f083a3b4b7638f32240",
+        "0x181a734d071580d5bfd90cc13fc8670e597ec49e16125df5704c050b71de64bc",
+        "0xe9e2ecdccaf33f78f1edb8ef3c03a0f2e7520cf7de1e2cef13c40f3f0311f9ea",
+        "0x545875e07cd2e3630739ebf78f700ca3ed76d593a7cc06bac1c6c38745929bbb",
+        "0x2c2d9f9037a0a0cc11e2c747d8391d32647f4315e3be88074b41fe5450e2823f"
+      ],
+      "rootCount": 14
+    },
+    "getBatchProof": {
+      "lowerEndpointDigest": "0x4c7e72e4c40c75369bd913e6a7a60d7aa63295894670a91f63d0b886133ad70b",
+      "roots": [
+        "0x8fe58eb507dc765bd546e8ea30a29911e7176ca0b4eb278721d0c0c4dd78f66f",
+        "0x5f3605836a09dc6e437ae3807eba1b770ce8489fe0e493439a5ac3b22d45ea8b",
+        "0x2b65373c3cc61b01eaed67cdc6be7b5911766bee06598d2e34c10acab026513c",
+        "0x2de76f02b1da7056c45e99e0bdd17f833bb37a10cf3fb4ce60968e5e6eed3538",
+        "0x99cbb7a1395c407b98f67af59742e573e6c81bccbe291ccff43d97c13710b90b",
+        "0x3067bb5cf29165433ecd25442e6a76b4e7db70e68422a4234666aab3e8faea39",
+        "0xf4e5cd7ac3c85883342019b55c0792596261080f81481c6df6c7f42f39f66190",
+        "0xf448c16ee06453c352ef138d6b015f42a8d120cab96db80bd5c1fd2b5e9db6df",
+        "0x0806cd8a5c563b279b0d813d9fb1ec778d8b084010def22a3e9ddd9bce0dbc4c",
+        "0x76727d0571ef59fb84526bac0ef4dc9c245b005b402a8f083a3b4b7638f32240",
+        "0x181a734d071580d5bfd90cc13fc8670e597ec49e16125df5704c050b71de64bc",
+        "0xe9e2ecdccaf33f78f1edb8ef3c03a0f2e7520cf7de1e2cef13c40f3f0311f9ea",
+        "0x545875e07cd2e3630739ebf78f700ca3ed76d593a7cc06bac1c6c38745929bbb",
+        "0x2c2d9f9037a0a0cc11e2c747d8391d32647f4315e3be88074b41fe5450e2823f"
+      ],
+      "rootCount": 14,
+      "merkleProofHeights": [
+        25870427,
+        25870428,
+        25870429,
+        25870430,
+        25870431,
+        25870432,
+        25870433,
+        25870434,
+        25870435,
+        25870436
+      ]
+    },
+    "twoRoutesAgree": true,
+    "note": "A per-height Continuity Proof carries the roots from its own height up to the next attestation endpoint, so merging is only defined for targets whose windows touch. That is a real constraint on how far apart a batch’s heights can sit, independent of requirement 9.4’s 1000-block ceiling."
+  },
+  "sharedContinuityProofUsed": {
+    "source": "proofProvider.mergeProofs",
+    "lowerEndpointDigest": "0x4c7e72e4c40c75369bd913e6a7a60d7aa63295894670a91f63d0b886133ad70b",
+    "roots": [
+      "0x8fe58eb507dc765bd546e8ea30a29911e7176ca0b4eb278721d0c0c4dd78f66f",
+      "0x5f3605836a09dc6e437ae3807eba1b770ce8489fe0e493439a5ac3b22d45ea8b",
+      "0x2b65373c3cc61b01eaed67cdc6be7b5911766bee06598d2e34c10acab026513c",
+      "0x2de76f02b1da7056c45e99e0bdd17f833bb37a10cf3fb4ce60968e5e6eed3538",
+      "0x99cbb7a1395c407b98f67af59742e573e6c81bccbe291ccff43d97c13710b90b",
+      "0x3067bb5cf29165433ecd25442e6a76b4e7db70e68422a4234666aab3e8faea39",
+      "0xf4e5cd7ac3c85883342019b55c0792596261080f81481c6df6c7f42f39f66190",
+      "0xf448c16ee06453c352ef138d6b015f42a8d120cab96db80bd5c1fd2b5e9db6df",
+      "0x0806cd8a5c563b279b0d813d9fb1ec778d8b084010def22a3e9ddd9bce0dbc4c",
+      "0x76727d0571ef59fb84526bac0ef4dc9c245b005b402a8f083a3b4b7638f32240",
+      "0x181a734d071580d5bfd90cc13fc8670e597ec49e16125df5704c050b71de64bc",
+      "0xe9e2ecdccaf33f78f1edb8ef3c03a0f2e7520cf7de1e2cef13c40f3f0311f9ea",
+      "0x545875e07cd2e3630739ebf78f700ca3ed76d593a7cc06bac1c6c38745929bbb",
+      "0x2c2d9f9037a0a0cc11e2c747d8391d32647f4315e3be88074b41fe5450e2823f"
+    ],
+    "rootCount": 14
+  },
+  "preflight": {
+    "purpose": "Every shape is checked with a keyless eth_call first, so a negative result is attributable to the shape rather than to a broken submission, and costs nothing.",
+    "eachTargetAgainstItsOwnContinuityProof": [
+      {
+        "height": 25870427,
+        "verified": true
+      },
+      {
+        "height": 25870428,
+        "verified": true
+      },
+      {
+        "height": 25870429,
+        "verified": true
+      },
+      {
+        "height": 25870430,
+        "verified": true
+      },
+      {
+        "height": 25870431,
+        "verified": true
+      },
+      {
+        "height": 25870432,
+        "verified": true
+      },
+      {
+        "height": 25870433,
+        "verified": true
+      },
+      {
+        "height": 25870434,
+        "verified": true
+      },
+      {
+        "height": 25870435,
+        "verified": true
+      },
+      {
+        "height": 25870436,
+        "verified": true
+      }
+    ],
+    "eachTargetAgainstTheSharedContinuityProof": [
+      {
+        "height": 25870427,
+        "verified": true
+      },
+      {
+        "height": 25870428,
+        "verified": null,
+        "error": {
+          "text": "Error: execution reverted: \"Merkle root mismatch\" (action=\"call\", data=\"0x08c379a0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000144d65726b6c6520726f6f74206d69736d61746368000000000000000000000000\", reason=\"Merkle root mismatch\", transaction={ \"data\": \"0x7cc4e258000000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000018ac05c00000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000007e00000000000000000000000000000000000000000000000000000000000000a4000000000000000000000000000000000000000000000000000000000000007200000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000028000000000000000000000000000000000000000000000000000000000000003a0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000001acbc1000000000000000000000000000000000000000000000000000000000001db0000000000000000000000000005ff6964d21e5dae3b1010d5ae0465b3c450f38100000000000000000000000000000000000000000000000000000000000000000000000000000000000000002744dfd9898f0babbc570cc594bbbc84b487a22b000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000000e4b61d27f6000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000044a9059cbb0000000000000000000000009bdc0fbbcb4e2575d14e13a9804a07ae21d17ed300000000000000000000000000000000000000000000000000000000000f42400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000077359400000000000000000000000000000000000000000000000000000000007f6cd4e600000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000001347274e7d82c28313d10161b0e5c9e926156fd3d7be540cba9657484f36c51704615f78fcec87ba171647e76d801c0f5a333f36f4052357ef35fcd2651de937600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000135a7000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000001e000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000020000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000003ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef0000000000000000000000002744dfd9898f0babbc570cc594bbbc84b487a22b0000000000000000000000009bdc0fbbcb4e2575d14e13a9804a07ae21d17ed3000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000f42400000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000080000080000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000400000000000000100000000000000000000000000000001002000000000000000000000000000000000000000000000000000000000020000000000000000000000001000000000000000000000000000000000000000000000000100000000000000000000000000000000200000000000005f3605836a09dc6e437ae3807eba1b770ce8489fe0e493439a5ac3b22d45ea8b00000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000008eb16bd171f8115b71de4678c2abe35eee73834ae7e73cb35da3216d9cf002acf0000000000000000000000000000000000000000000000000000000000000001314c1be2ce70892b80449d8539ca1834da57f938a6b1a6f46b6e7683b2b5195a0000000000000000000000000000000000000000000000000000000000000001056901424377da8e0b96de82c1ac02d0b6690b6f8e1d4b403f553edb2ac30d7b000000000000000000000000000000000000000000000000000000000000000183407522eac9826bb853dce7dcb4609cf02cc076e831f4141cd901351c061c630000000000000000000000000000000000000000000000000000000000000001dda0e7778c70e940ff07a0d8022c17ebe018808d67e52e8994f23f8bfab7402a0000000000000000000000000000000000000000000000000000000000000000f3b15ec9d931570d95a33e9ef19eecac975b67cb83de80b0b8cc3df1b85397da00000000000000000000000000000000000000000000000000000000000000000997bbea8ab0a19728f771226def57bb5fda9d9daf73dfa308d4d12e6663454d0000000000000000000000000000000000000000000000000000000000000000dce6cb0241416983dd31cb76c17ae797b5b7b1988503191ea583e6dd01416aac00000000000000000000000000000000000000000000000000000000000000004c7e72e4c40c75369bd913e6a7a60d7aa63295894670a91f63d0b886133ad70b0000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000e8fe58eb507dc765bd546e8ea30a29911e7176ca0b4eb278721d0c0c4dd78f66f5f3605836a09dc6e437ae3807eba1b770ce8489fe0e493439a5ac3b22d45ea8b2b65373c3cc61b01eaed67cdc6be7b5911766bee06598d2e34c10acab026513c2de76f02b1da7056c45e99e0bdd17f833bb37a10cf3fb4ce60968e5e6eed353899cbb7a1395c407b98f67af59742e573e6c81bccbe291ccff43d97c13710b90b3067bb5cf29165433ecd25442e6a76b4e7db70e68422a4234666aab3e8faea39f4e5cd7ac3c85883342019b55c0792596261080f81481c6df6c7f42f39f66190f448c16ee06453c352ef138d6b015f42a8d120cab96db80bd5c1fd2b5e9db6df0806cd8a5c563b279b0d813d9fb1ec778d8b084010def22a3e9ddd9bce0dbc4c76727d0571ef59fb84526bac0ef4dc9c245b005b402a8f083a3b4b7638f32240181a734d071580d5bfd90cc13fc8670e597ec49e16125df5704c050b71de64bce9e2ecdccaf33f78f1edb8ef3c03a0f2e7520cf7de1e2cef13c40f3f0311f9ea545875e07cd2e3630739ebf78f700ca3ed76d593a7cc06bac1c6c38745929bbb2c2d9f9037a0a0cc11e2c747d8391d32647f4315e3be88074b41fe5450e2823f\", \"to\": \"0x0000000000000000000000000000000000000FD2\" }, invocation=null, revert={ \"args\": [ \"Merkle root mismatch\" ], \"name\": \"Error\", \"signature\": \"Error(string)\" }, code=CALL_EXCEPTION, version=6.17.0) | code=CALL_EXCEPTION | data=0x08c379a0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000144d65726b6c6520726f6f74206d69736d61746368000000000000000000000000",
+          "code": "CALL_EXCEPTION",
+          "shortMessage": "execution reverted: \"Merkle root mismatch\"",
+          "revertData": "0x08c379a0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000144d65726b6c6520726f6f74206d69736d61746368000000000000000000000000",
+          "reason": "Merkle root mismatch"
+        }
+      },
+      {
+        "height": 25870429,
+        "verified": null,
+        "error": {
+          "text": "Error: execution reverted: \"Merkle root mismatch\" (action=\"call\", data=\"0x08c379a0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000144d65726b6c6520726f6f74206d69736d61746368000000000000000000000000\", reason=\"Merkle root mismatch\", transaction={ \"data\": \"0x7cc4e258000000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000018ac05d00000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000074000000000000000000000000000000000000000000000000000000000000009e00000000000000000000000000000000000000000000000000000000000000680000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000001e00000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000000000016000000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000015f90000000000000000000000000f589119c1664c251e399a9184836bdbfafe205a80000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000044a9059cbb000000000000000000000000260b364fe0d3d37e6fd3cda0fa50926a06c54cea0000000000000000000000000000000000000000000000000000000009bdcf87000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000773594000000000000000000000000000000000000000000000000000000002e90edd00000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000001f4a42f4d150743c9bd03c3edc72994e5d39c2f1b0df6916940c73d00eb89502722bb0b5154e7629a462ff47184a3eb9d0c774506206c5dbcf7ba135be7f8fba60000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000009da8000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000001e000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000020000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000003ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef000000000000000000000000f589119c1664c251e399a9184836bdbfafe205a8000000000000000000000000260b364fe0d3d37e6fd3cda0fa50926a06c54cea00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000009bdcf870000000000000000000000000000000000000000000000000000000000000100000002000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000080000080000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100100000000000000000000000000000000000000000000000100000000000000000000000000000000002000000000000000000000000000000000000000000000000000000010020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000000000000040000002b65373c3cc61b01eaed67cdc6be7b5911766bee06598d2e34c10acab026513c00000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000009feb9983b3924c68733442dc5369e08279dcc3709c437fecde38948d7641714cd0000000000000000000000000000000000000000000000000000000000000000587fc0bf3cb33781433852f8932d62395da1b2ff8a9ea5c34d141404eecac2ca000000000000000000000000000000000000000000000000000000000000000170af822ed6df2fd465a92af2eca18f8fa55d8a3756a83635be602b88d6e03a750000000000000000000000000000000000000000000000000000000000000000613607d3054253262cf1b03669427c76d3ee12c6801e95fcdad9169136128d4700000000000000000000000000000000000000000000000000000000000000013af5886f1cc4ae903b7a8cde7a458c3ae5e43ed2a54efc01241cdb4afad465270000000000000000000000000000000000000000000000000000000000000001fa486045cbeee7097ebc056c8c2522a1aa9cd4fe5f8fac912992652350705dd10000000000000000000000000000000000000000000000000000000000000000501da44bfc354066b801043c75211a49d3e407f694bd7e00f77ee7f7589be5cd00000000000000000000000000000000000000000000000000000000000000002edc102c146400233ce63468a611d5da90257cb861deb574485bbf98fe26fb020000000000000000000000000000000000000000000000000000000000000000d89bc428c94efb5b2097199040882c2d21f7bd6140ba7cbd2b57f3c6dd78900a00000000000000000000000000000000000000000000000000000000000000004c7e72e4c40c75369bd913e6a7a60d7aa63295894670a91f63d0b886133ad70b0000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000e8fe58eb507dc765bd546e8ea30a29911e7176ca0b4eb278721d0c0c4dd78f66f5f3605836a09dc6e437ae3807eba1b770ce8489fe0e493439a5ac3b22d45ea8b2b65373c3cc61b01eaed67cdc6be7b5911766bee06598d2e34c10acab026513c2de76f02b1da7056c45e99e0bdd17f833bb37a10cf3fb4ce60968e5e6eed353899cbb7a1395c407b98f67af59742e573e6c81bccbe291ccff43d97c13710b90b3067bb5cf29165433ecd25442e6a76b4e7db70e68422a4234666aab3e8faea39f4e5cd7ac3c85883342019b55c0792596261080f81481c6df6c7f42f39f66190f448c16ee06453c352ef138d6b015f42a8d120cab96db80bd5c1fd2b5e9db6df0806cd8a5c563b279b0d813d9fb1ec778d8b084010def22a3e9ddd9bce0dbc4c76727d0571ef59fb84526bac0ef4dc9c245b005b402a8f083a3b4b7638f32240181a734d071580d5bfd90cc13fc8670e597ec49e16125df5704c050b71de64bce9e2ecdccaf33f78f1edb8ef3c03a0f2e7520cf7de1e2cef13c40f3f0311f9ea545875e07cd2e3630739ebf78f700ca3ed76d593a7cc06bac1c6c38745929bbb2c2d9f9037a0a0cc11e2c747d8391d32647f4315e3be88074b41fe5450e2823f\", \"to\": \"0x0000000000000000000000000000000000000FD2\" }, invocation=null, revert={ \"args\": [ \"Merkle root mismatch\" ], \"name\": \"Error\", \"signature\": \"Error(string)\" }, code=CALL_EXCEPTION, version=6.17.0) | code=CALL_EXCEPTION | data=0x08c379a0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000144d65726b6c6520726f6f74206d69736d61746368000000000000000000000000",
+          "code": "CALL_EXCEPTION",
+          "shortMessage": "execution reverted: \"Merkle root mismatch\"",
+          "revertData": "0x08c379a0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000144d65726b6c6520726f6f74206d69736d61746368000000000000000000000000",
+          "reason": "Merkle root mismatch"
+        }
+      },
+      {
+        "height": 25870430,
+        "verified": null,
+        "error": {
+          "text": "Error: execution reverted: \"Merkle root mismatch\" (action=\"call\", data=\"0x08c379a0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000144d65726b6c6520726f6f74206d69736d61746368000000000000000000000000\", reason=\"Merkle root mismatch\", transaction={ \"data\": \"0x7cc4e258000000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000018ac05e00000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000007e00000000000000000000000000000000000000000000000000000000000000a4000000000000000000000000000000000000000000000000000000000000007200000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000028000000000000000000000000000000000000000000000000000000000000003a0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000001acbc5000000000000000000000000000000000000000000000000000000000001db2600000000000000000000000005ff6964d21e5dae3b1010d5ae0465b3c450f38100000000000000000000000000000000000000000000000000000000000000000000000000000000000000002744dfd9898f0babbc570cc594bbbc84b487a22b000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000000e4b61d27f6000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000044a9059cbb0000000000000000000000007ec1f9b35f0e162899310bd5238f4b3f10ee1e4800000000000000000000000000000000000000000000000000000014041b25b70000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000077359400000000000000000000000000000000000000000000000000000000007f14498000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000000299237d2063a41e83cd26732eae2d6cca3c96c4d31da01b285bdbf9c3e3f1dbd6933ec5914d21b75f5e69e9866faa96c3f6f9884b26ff278ce20569052414e0e00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000135bf000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000001e000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000020000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000003ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef0000000000000000000000002744dfd9898f0babbc570cc594bbbc84b487a22b0000000000000000000000007ec1f9b35f0e162899310bd5238f4b3f10ee1e48000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000014041b25b70000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000002000002000000000000000000000000000000000000080000080000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000400000000000000100000000000000000000000000000000002000000000080000000000000000000000000000000000000000000000020000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002de76f02b1da7056c45e99e0bdd17f833bb37a10cf3fb4ce60968e5e6eed3538000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000087d17cca991da7f6931f806e18c2c22188d8ed2f57defb4bf4dcb897e938028750000000000000000000000000000000000000000000000000000000000000000fa1008823e5f0c218e7e0223f6e129b7cd53c0f0651cfe138f11ac5bc78610230000000000000000000000000000000000000000000000000000000000000000a417c002b4ee6ce8ef0463fab4bcdc3adf6274e6f21f77400aeebe93dab4df490000000000000000000000000000000000000000000000000000000000000000e9d3c29f0b54163d62684cea1358912b85f6411524333a75d5328b1a31109858000000000000000000000000000000000000000000000000000000000000000028414a80dd7bf97dce2ee99cd1624704d0d0d6b6bd614404478c47ac8567fa2d00000000000000000000000000000000000000000000000000000000000000013f593c2bbba8eb599217c5d34216c6ba2a6a71f4d11b849d6531e2a359c419400000000000000000000000000000000000000000000000000000000000000000449dc5e9da3f6ee883feecf6c34144a9c1ec6e3afc2d136db303d6b1436266880000000000000000000000000000000000000000000000000000000000000000bbc4187f8d20a0409a7a7dfd7c52c6ac29c9ff82619a92d61b3e831107b9403200000000000000000000000000000000000000000000000000000000000000004c7e72e4c40c75369bd913e6a7a60d7aa63295894670a91f63d0b886133ad70b0000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000e8fe58eb507dc765bd546e8ea30a29911e7176ca0b4eb278721d0c0c4dd78f66f5f3605836a09dc6e437ae3807eba1b770ce8489fe0e493439a5ac3b22d45ea8b2b65373c3cc61b01eaed67cdc6be7b5911766bee06598d2e34c10acab026513c2de76f02b1da7056c45e99e0bdd17f833bb37a10cf3fb4ce60968e5e6eed353899cbb7a1395c407b98f67af59742e573e6c81bccbe291ccff43d97c13710b90b3067bb5cf29165433ecd25442e6a76b4e7db70e68422a4234666aab3e8faea39f4e5cd7ac3c85883342019b55c0792596261080f81481c6df6c7f42f39f66190f448c16ee06453c352ef138d6b015f42a8d120cab96db80bd5c1fd2b5e9db6df0806cd8a5c563b279b0d813d9fb1ec778d8b084010def22a3e9ddd9bce0dbc4c76727d0571ef59fb84526bac0ef4dc9c245b005b402a8f083a3b4b7638f32240181a734d071580d5bfd90cc13fc8670e597ec49e16125df5704c050b71de64bce9e2ecdccaf33f78f1edb8ef3c03a0f2e7520cf7de1e2cef13c40f3f0311f9ea545875e07cd2e3630739ebf78f700ca3ed76d593a7cc06bac1c6c38745929bbb2c2d9f9037a0a0cc11e2c747d8391d32647f4315e3be88074b41fe5450e2823f\", \"to\": \"0x0000000000000000000000000000000000000FD2\" }, invocation=null, revert={ \"args\": [ \"Merkle root mismatch\" ], \"name\": \"Error\", \"signature\": \"Error(string)\" }, code=CALL_EXCEPTION, version=6.17.0) | code=CALL_EXCEPTION | data=0x08c379a0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000144d65726b6c6520726f6f74206d69736d61746368000000000000000000000000",
+          "code": "CALL_EXCEPTION",
+          "shortMessage": "execution reverted: \"Merkle root mismatch\"",
+          "revertData": "0x08c379a0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000144d65726b6c6520726f6f74206d69736d61746368000000000000000000000000",
+          "reason": "Merkle root mismatch"
+        }
+      },
+      {
+        "height": 25870431,
+        "verified": null,
+        "error": {
+          "text": "Error: execution reverted: \"Merkle root mismatch\" (action=\"call\", data=\"0x08c379a0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000144d65726b6c6520726f6f74206d69736d61746368000000000000000000000000\", reason=\"Merkle root mismatch\", transaction={ \"data\": \"0x7cc4e258000000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000018ac05f00000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000007e00000000000000000000000000000000000000000000000000000000000000a8000000000000000000000000000000000000000000000000000000000000007200000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000028000000000000000000000000000000000000000000000000000000000000003a0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000001acbc60000000000000000000000000000000000000000000000000000000000023ffe00000000000000000000000005ff6964d21e5dae3b1010d5ae0465b3c450f38100000000000000000000000000000000000000000000000000000000000000000000000000000000000000002744dfd9898f0babbc570cc594bbbc84b487a22b000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000000e4b61d27f6000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000044a9059cbb000000000000000000000000daf26c147d149eb640c44b5658cd8c7c79af74000000000000000000000000000000000000000000000000000000000009b2ca6c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000077359400000000000000000000000000000000000000000000000000000000007f87c57800000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000000de75ef98dff58e3fe5868398880da8c0d08de2c4dd33da29ec6567504047a9a06dad4296e18911902a9ffb31259ba071d7fb3c0da66cf205c7eb6f70dfbdf6040000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000017873000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000001e000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000020000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000003ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef0000000000000000000000002744dfd9898f0babbc570cc594bbbc84b487a22b000000000000000000000000daf26c147d149eb640c44b5658cd8c7c79af740000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000009b2ca6c00000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000800000800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000010000000000004000000000000001000000000000000000000000010000000020000000000000000000000000000000000000000000000000020000000200000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000099cbb7a1395c407b98f67af59742e573e6c81bccbe291ccff43d97c13710b90b0000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000984cdd1b8a94e3eaf01e857967fc067bac6678384653c3ae56d43b6ae81f636d300000000000000000000000000000000000000000000000000000000000000003ae172db16247606b893825f383f6592dd06f841d14c41ce8d85eb4efa7230bc000000000000000000000000000000000000000000000000000000000000000038cae84d0c9abb0be36c874e5e3012103d3071541af81873f3d0ea708bc393970000000000000000000000000000000000000000000000000000000000000001943c70c23a601c143590ffc1eba9a156f3aaa5b94d66556091211ced1ac42d150000000000000000000000000000000000000000000000000000000000000001d01016024bb4c4d09de60300088f6bc2dd1661acd4b13b0f6a4c9caaedd5f03d0000000000000000000000000000000000000000000000000000000000000000804a0f6873dc56f6fcb56d329603c5517bf2697c1da948e9172962c23329a5940000000000000000000000000000000000000000000000000000000000000000c2ee7842e3f6ea680e1dca4e9452ce82cf6f499fd225e095e9183719b872e1660000000000000000000000000000000000000000000000000000000000000000d3f02620129f4594c7e0873326669a2c5d6b1f48efd0ea3f9c1776342044efcb000000000000000000000000000000000000000000000000000000000000000075e4a59ec55c4636cf1d4c1838ef7a5d36bdb156f915e08ab1a7bfc947c02d3a00000000000000000000000000000000000000000000000000000000000000004c7e72e4c40c75369bd913e6a7a60d7aa63295894670a91f63d0b886133ad70b0000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000e8fe58eb507dc765bd546e8ea30a29911e7176ca0b4eb278721d0c0c4dd78f66f5f3605836a09dc6e437ae3807eba1b770ce8489fe0e493439a5ac3b22d45ea8b2b65373c3cc61b01eaed67cdc6be7b5911766bee06598d2e34c10acab026513c2de76f02b1da7056c45e99e0bdd17f833bb37a10cf3fb4ce60968e5e6eed353899cbb7a1395c407b98f67af59742e573e6c81bccbe291ccff43d97c13710b90b3067bb5cf29165433ecd25442e6a76b4e7db70e68422a4234666aab3e8faea39f4e5cd7ac3c85883342019b55c0792596261080f81481c6df6c7f42f39f66190f448c16ee06453c352ef138d6b015f42a8d120cab96db80bd5c1fd2b5e9db6df0806cd8a5c563b279b0d813d9fb1ec778d8b084010def22a3e9ddd9bce0dbc4c76727d0571ef59fb84526bac0ef4dc9c245b005b402a8f083a3b4b7638f32240181a734d071580d5bfd90cc13fc8670e597ec49e16125df5704c050b71de64bce9e2ecdccaf33f78f1edb8ef3c03a0f2e7520cf7de1e2cef13c40f3f0311f9ea545875e07cd2e3630739ebf78f700ca3ed76d593a7cc06bac1c6c38745929bbb2c2d9f9037a0a0cc11e2c747d8391d32647f4315e3be88074b41fe5450e2823f\", \"to\": \"0x0000000000000000000000000000000000000FD2\" }, invocation=null, revert={ \"args\": [ \"Merkle root mismatch\" ], \"name\": \"Error\", \"signature\": \"Error(string)\" }, code=CALL_EXCEPTION, version=6.17.0) | code=CALL_EXCEPTION | data=0x08c379a0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000144d65726b6c6520726f6f74206d69736d61746368000000000000000000000000",
+          "code": "CALL_EXCEPTION",
+          "shortMessage": "execution reverted: \"Merkle root mismatch\"",
+          "revertData": "0x08c379a0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000144d65726b6c6520726f6f74206d69736d61746368000000000000000000000000",
+          "reason": "Merkle root mismatch"
+        }
+      },
+      {
+        "height": 25870432,
+        "verified": null,
+        "error": {
+          "text": "Error: execution reverted: \"Merkle root mismatch\" (action=\"call\", data=\"0x08c379a0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000144d65726b6c6520726f6f74206d69736d61746368000000000000000000000000\", reason=\"Merkle root mismatch\", transaction={ \"data\": \"0x7cc4e258000000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000018ac06000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000007e00000000000000000000000000000000000000000000000000000000000000a8000000000000000000000000000000000000000000000000000000000000007200000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000028000000000000000000000000000000000000000000000000000000000000003a000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000001139ebd000000000000000000000000000000000000000000000000000000000003291800000000000000000000000028c6c06298d514db089934071355e5743bf21d600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000ee7ae85f2fe2239e27d9c1e23fffe168d63b4055000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000000e4b61d27f6000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000044a9059cbb00000000000000000000000080bfbcf274fc512fde985ee817eec5432bb9e7cc00000000000000000000000000000000000000000000000000000000785d9940000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000003b9aca000000000000000000000000000000000000000000000000000000002794ca240000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000001404cb09b4aaf705192bc90c02e975edbf964ea855d0462433ead258a39f7d3827e8630c5c3910bd18c1fc673c78f00b7c710af8257f4d54468437433325c1f1b00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000135b3000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000001e000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000020000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000003ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef000000000000000000000000ee7ae85f2fe2239e27d9c1e23fffe168d63b405500000000000000000000000080bfbcf274fc512fde985ee817eec5432bb9e7cc000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000785d99400000000000000000000000000000000000000000000000000000000000000100000000000000008000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000080000080100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000100000000000000000000000000000000002000000000000000000000000000020000000000000000000000000000020000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000000400000000000004000000003067bb5cf29165433ecd25442e6a76b4e7db70e68422a4234666aab3e8faea3900000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000009a1fff57e9638c48f5866cd589c15f42a08062c1f6d285955044b39666aa9fdd90000000000000000000000000000000000000000000000000000000000000000edef2535db55723d9a7420b37559c1354a33d227c692aa57c7f3b45468a29a480000000000000000000000000000000000000000000000000000000000000000dee6b05db1a784614f5f17d41302236790bf231e76a38185fae8514a0bf75d69000000000000000000000000000000000000000000000000000000000000000131801e69e56192efda5682f81cb63f83fb47973bbbc2f1b71dd82ca0e5074907000000000000000000000000000000000000000000000000000000000000000033a20ce553595bbddaa315539514c3df1bbe2be17f460f1c9a48e8f970dd6b1c0000000000000000000000000000000000000000000000000000000000000001ad9a56f01a3faa7dbd022f27e602f7a7e3a6367c20f4be35c8f291f1f16d524000000000000000000000000000000000000000000000000000000000000000006222996e808b529d7f40a300f45d52de0e86441c1be03a074f5c2ddab786df380000000000000000000000000000000000000000000000000000000000000000778317ce15c3f1e3b8160673f63fa97832ffd282e6c0a3f13ed1c7be46b2254800000000000000000000000000000000000000000000000000000000000000001c0528da98850ec03dd63c22ab51a7b83206c982585f38bf5dafeef1f399fc4900000000000000000000000000000000000000000000000000000000000000004c7e72e4c40c75369bd913e6a7a60d7aa63295894670a91f63d0b886133ad70b0000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000e8fe58eb507dc765bd546e8ea30a29911e7176ca0b4eb278721d0c0c4dd78f66f5f3605836a09dc6e437ae3807eba1b770ce8489fe0e493439a5ac3b22d45ea8b2b65373c3cc61b01eaed67cdc6be7b5911766bee06598d2e34c10acab026513c2de76f02b1da7056c45e99e0bdd17f833bb37a10cf3fb4ce60968e5e6eed353899cbb7a1395c407b98f67af59742e573e6c81bccbe291ccff43d97c13710b90b3067bb5cf29165433ecd25442e6a76b4e7db70e68422a4234666aab3e8faea39f4e5cd7ac3c85883342019b55c0792596261080f81481c6df6c7f42f39f66190f448c16ee06453c352ef138d6b015f42a8d120cab96db80bd5c1fd2b5e9db6df0806cd8a5c563b279b0d813d9fb1ec778d8b084010def22a3e9ddd9bce0dbc4c76727d0571ef59fb84526bac0ef4dc9c245b005b402a8f083a3b4b7638f32240181a734d071580d5bfd90cc13fc8670e597ec49e16125df5704c050b71de64bce9e2ecdccaf33f78f1edb8ef3c03a0f2e7520cf7de1e2cef13c40f3f0311f9ea545875e07cd2e3630739ebf78f700ca3ed76d593a7cc06bac1c6c38745929bbb2c2d9f9037a0a0cc11e2c747d8391d32647f4315e3be88074b41fe5450e2823f\", \"to\": \"0x0000000000000000000000000000000000000FD2\" }, invocation=null, revert={ \"args\": [ \"Merkle root mismatch\" ], \"name\": \"Error\", \"signature\": \"Error(string)\" }, code=CALL_EXCEPTION, version=6.17.0) | code=CALL_EXCEPTION | data=0x08c379a0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000144d65726b6c6520726f6f74206d69736d61746368000000000000000000000000",
+          "code": "CALL_EXCEPTION",
+          "shortMessage": "execution reverted: \"Merkle root mismatch\"",
+          "revertData": "0x08c379a0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000144d65726b6c6520726f6f74206d69736d61746368000000000000000000000000",
+          "reason": "Merkle root mismatch"
+        }
+      },
+      {
+        "height": 25870433,
+        "verified": null,
+        "error": {
+          "text": "Error: execution reverted: \"Merkle root mismatch\" (action=\"call\", data=\"0x08c379a0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000144d65726b6c6520726f6f74206d69736d61746368000000000000000000000000\", reason=\"Merkle root mismatch\", transaction={ \"data\": \"0x7cc4e258000000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000018ac06100000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000076000000000000000000000000000000000000000000000000000000000000009c000000000000000000000000000000000000000000000000000000000000006a0000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000320000000000000000000000000000000000000000000000000000000000000018000000000000000000000000000000000000000000000000000000000001985c000000000000000000000000000000000000000000000000000000000000112a200000000000000000000000055fe002aeff02f77364de339a1292923a15844b80000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e0000000000000000000000000000000000000000000000000000000000000006423b872dd000000000000000000000000937f958f6b5d12ac71f8a1feee780b46da9b1e8100000000000000000000000055fe002aeff02f77364de339a1292923a15844b8000000000000000000000000000000000000000000000000000000003f9eed20000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000861c4680000000000000000000000000000000000000000000000000000000009276033300000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000000007e4808a7960fc86d42e49f004662bddf9acc9256839a6e759c8364d95250bbc50449c69d3328cbb92d7cbe58fced5d6fbd089645e4555922eb3b57e36a75c572000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000b615000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000001e000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000020000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000003ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef000000000000000000000000937f958f6b5d12ac71f8a1feee780b46da9b1e8100000000000000000000000055fe002aeff02f77364de339a1292923a15844b80000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000003f9eed20000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000004000000000000000000000000000008000008000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000010080000000000000000000000000000000200000000000000000000004000000000000000000000000000000000002000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000f4e5cd7ac3c85883342019b55c0792596261080f81481c6df6c7f42f39f6619000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000008ad711f74475aec108b193c3f7429680cebe339dec976ebba17d1b4565075b02700000000000000000000000000000000000000000000000000000000000000004ab4895eb33dc5ea9a3346b09b7f94e29093d10d9ca774439c506a47f9019bcc000000000000000000000000000000000000000000000000000000000000000197e359dd5468c3f5df9983763b935d96447472a021db96d7f3c47aebcd59ec26000000000000000000000000000000000000000000000000000000000000000081190f267f29a05c6b52e9788271722251fb25f800e0690b895181522d84b93d0000000000000000000000000000000000000000000000000000000000000000e123555ff037c954151f23fd89e175c47bfc31df56832c631c0cc68dd8ca01fc0000000000000000000000000000000000000000000000000000000000000001571347b2f8fd0c839e3bbadaf54959271398d09bb917ea96ba20a11830ca28a300000000000000000000000000000000000000000000000000000000000000004485dab6cc6219f2f57b7770405805c3d811e9bcb08487dbec0a5956dee45a7f0000000000000000000000000000000000000000000000000000000000000000d4a05b0cc634aebffb6583f65e0c89d0014a56bc0d5019a2b3b4c5fba7c6c8e600000000000000000000000000000000000000000000000000000000000000004c7e72e4c40c75369bd913e6a7a60d7aa63295894670a91f63d0b886133ad70b0000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000e8fe58eb507dc765bd546e8ea30a29911e7176ca0b4eb278721d0c0c4dd78f66f5f3605836a09dc6e437ae3807eba1b770ce8489fe0e493439a5ac3b22d45ea8b2b65373c3cc61b01eaed67cdc6be7b5911766bee06598d2e34c10acab026513c2de76f02b1da7056c45e99e0bdd17f833bb37a10cf3fb4ce60968e5e6eed353899cbb7a1395c407b98f67af59742e573e6c81bccbe291ccff43d97c13710b90b3067bb5cf29165433ecd25442e6a76b4e7db70e68422a4234666aab3e8faea39f4e5cd7ac3c85883342019b55c0792596261080f81481c6df6c7f42f39f66190f448c16ee06453c352ef138d6b015f42a8d120cab96db80bd5c1fd2b5e9db6df0806cd8a5c563b279b0d813d9fb1ec778d8b084010def22a3e9ddd9bce0dbc4c76727d0571ef59fb84526bac0ef4dc9c245b005b402a8f083a3b4b7638f32240181a734d071580d5bfd90cc13fc8670e597ec49e16125df5704c050b71de64bce9e2ecdccaf33f78f1edb8ef3c03a0f2e7520cf7de1e2cef13c40f3f0311f9ea545875e07cd2e3630739ebf78f700ca3ed76d593a7cc06bac1c6c38745929bbb2c2d9f9037a0a0cc11e2c747d8391d32647f4315e3be88074b41fe5450e2823f\", \"to\": \"0x0000000000000000000000000000000000000FD2\" }, invocation=null, revert={ \"args\": [ \"Merkle root mismatch\" ], \"name\": \"Error\", \"signature\": \"Error(string)\" }, code=CALL_EXCEPTION, version=6.17.0) | code=CALL_EXCEPTION | data=0x08c379a0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000144d65726b6c6520726f6f74206d69736d61746368000000000000000000000000",
+          "code": "CALL_EXCEPTION",
+          "shortMessage": "execution reverted: \"Merkle root mismatch\"",
+          "revertData": "0x08c379a0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000144d65726b6c6520726f6f74206d69736d61746368000000000000000000000000",
+          "reason": "Merkle root mismatch"
+        }
+      },
+      {
+        "height": 25870434,
+        "verified": null,
+        "error": {
+          "text": "Error: execution reverted: \"Merkle root mismatch\" (action=\"call\", data=\"0x08c379a0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000144d65726b6c6520726f6f74206d69736d61746368000000000000000000000000\", reason=\"Merkle root mismatch\", transaction={ \"data\": \"0x7cc4e258000000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000018ac06200000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000074000000000000000000000000000000000000000000000000000000000000009e00000000000000000000000000000000000000000000000000000000000000680000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000001e00000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000000000016000000000000000000000000000000000000000000000000000000000000000120000000000000000000000000000000000000000000000000000000000015f90000000000000000000000000edec506ed27489b970df7fce5dab06d81fe0e4c40000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000044a9059cbb000000000000000000000000260b364fe0d3d37e6fd3cda0fa50926a06c54cea00000000000000000000000000000000000000000000000000000000b2d05e00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000773594000000000000000000000000000000000000000000000000000000002e90edd00000000000000000000000000000000000000000000000000000000000000000e0000000000000000000000000000000000000000000000000000000000000000104bd9224aaf565a6129e4b6bebf3965cc1687da3dc887fb5063c769dc732ec0d218f620e0d79f0943ab97cc8d72363e9a371d382ca90ff366b1e344b81b549f80000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000009d9c000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000001e000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000020000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000003ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef000000000000000000000000edec506ed27489b970df7fce5dab06d81fe0e4c4000000000000000000000000260b364fe0d3d37e6fd3cda0fa50926a06c54cea000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000b2d05e00000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000000000000000000000000800000000000000004000000000000008000008000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000010000000000000000000000000000000000200000000000000000000000000000000000000000000000000000001002000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000000000040000000000000000000000f448c16ee06453c352ef138d6b015f42a8d120cab96db80bd5c1fd2b5e9db6df00000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000009bb64f1350be51b6a8b63b38ba516fdb2a5ac14d3d4f23b3dd92faf6ca90c0ce200000000000000000000000000000000000000000000000000000000000000000e1ef0f801b7950f217954afcf443203d6b340ebba0f172955fa379f14c83f530000000000000000000000000000000000000000000000000000000000000001f2ca77271fd9d35c538509bd444ccfb1210956cf9522bb7c51d731f33f60ec4c0000000000000000000000000000000000000000000000000000000000000001ef8a283fd0ed5193a0157670678b211890d7d46c043d50a9e82f412784ecc9440000000000000000000000000000000000000000000000000000000000000001c54cdb46507467a38dfb49c2365ba7375fd8354bd0c9619bab927235b4bf836000000000000000000000000000000000000000000000000000000000000000007ff38d06b247098ce4f114e5ffc36b9ddc442fe0926402658c697cac7b7758b4000000000000000000000000000000000000000000000000000000000000000040dbd3516b59fdb0052367b58863411ad89396978f1e1ac92010d3c060c0f612000000000000000000000000000000000000000000000000000000000000000079c910f18199e13722b2009b4ad756df884b674a3ef12262444fa11389ce9401000000000000000000000000000000000000000000000000000000000000000071dbd27d8075a14d1a95608a8520a4174165d1feaebab350e64e2091c16d444500000000000000000000000000000000000000000000000000000000000000004c7e72e4c40c75369bd913e6a7a60d7aa63295894670a91f63d0b886133ad70b0000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000e8fe58eb507dc765bd546e8ea30a29911e7176ca0b4eb278721d0c0c4dd78f66f5f3605836a09dc6e437ae3807eba1b770ce8489fe0e493439a5ac3b22d45ea8b2b65373c3cc61b01eaed67cdc6be7b5911766bee06598d2e34c10acab026513c2de76f02b1da7056c45e99e0bdd17f833bb37a10cf3fb4ce60968e5e6eed353899cbb7a1395c407b98f67af59742e573e6c81bccbe291ccff43d97c13710b90b3067bb5cf29165433ecd25442e6a76b4e7db70e68422a4234666aab3e8faea39f4e5cd7ac3c85883342019b55c0792596261080f81481c6df6c7f42f39f66190f448c16ee06453c352ef138d6b015f42a8d120cab96db80bd5c1fd2b5e9db6df0806cd8a5c563b279b0d813d9fb1ec778d8b084010def22a3e9ddd9bce0dbc4c76727d0571ef59fb84526bac0ef4dc9c245b005b402a8f083a3b4b7638f32240181a734d071580d5bfd90cc13fc8670e597ec49e16125df5704c050b71de64bce9e2ecdccaf33f78f1edb8ef3c03a0f2e7520cf7de1e2cef13c40f3f0311f9ea545875e07cd2e3630739ebf78f700ca3ed76d593a7cc06bac1c6c38745929bbb2c2d9f9037a0a0cc11e2c747d8391d32647f4315e3be88074b41fe5450e2823f\", \"to\": \"0x0000000000000000000000000000000000000FD2\" }, invocation=null, revert={ \"args\": [ \"Merkle root mismatch\" ], \"name\": \"Error\", \"signature\": \"Error(string)\" }, code=CALL_EXCEPTION, version=6.17.0) | code=CALL_EXCEPTION | data=0x08c379a0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000144d65726b6c6520726f6f74206d69736d61746368000000000000000000000000",
+          "code": "CALL_EXCEPTION",
+          "shortMessage": "execution reverted: \"Merkle root mismatch\"",
+          "revertData": "0x08c379a0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000144d65726b6c6520726f6f74206d69736d61746368000000000000000000000000",
+          "reason": "Merkle root mismatch"
+        }
+      },
+      {
+        "height": 25870435,
+        "verified": null,
+        "error": {
+          "text": "Error: execution reverted: \"Merkle root mismatch\" (action=\"call\", data=\"0x08c379a0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000144d65726b6c6520726f6f74206d69736d61746368000000000000000000000000\", reason=\"Merkle root mismatch\", transaction={ \"data\": \"0x7cc4e258000000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000018ac06300000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000076000000000000000000000000000000000000000000000000000000000000009c000000000000000000000000000000000000000000000000000000000000006a0000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000320000000000000000000000000000000000000000000000000000000000000018000000000000000000000000000000000000000000000000000000000001acbc8000000000000000000000000000000000000000000000000000000000000cb7b00000000000000000000000005ff6964d21e5dae3b1010d5ae0465b3c450f3810000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e0000000000000000000000000000000000000000000000000000000000000006423b872dd000000000000000000000000367c732f75395b2ce003333a9cf95b055d1d47d800000000000000000000000005ff6964d21e5dae3b1010d5ae0465b3c450f3810000000000000000000000000000000000000000000000000000000001d9a1ff00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000077359400000000000000000000000000000000000000000000000000000000007f8e291500000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000001f4226c769cd4f07a2bdbbf8a15a42740daeea42c92cd4b03d6b854ee2f2059ba4cad453ceab2af891ab55d719a62be4a06fd6797a9cf041299643c952b1d9f3f000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000b621000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000001e000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000020000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000003ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef000000000000000000000000367c732f75395b2ce003333a9cf95b055d1d47d800000000000000000000000005ff6964d21e5dae3b1010d5ae0465b3c450f38100000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000001d9a1ff0000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000080000080000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000100000000000000000000004000000000000000000000000000100000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000200000000000000000000800000000000000000000000000000400000000000000000000000002000000000000806cd8a5c563b279b0d813d9fb1ec778d8b084010def22a3e9ddd9bce0dbc4c00000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000008b4a9487844dfe37ab02619e316f8a69f128d08e0cb4491cb56d9a70d370300190000000000000000000000000000000000000000000000000000000000000001d815993d19b4a9fe18aa97493146a5837e86ef87b4864cc06a633de14b8e6e580000000000000000000000000000000000000000000000000000000000000001b4c925263449119952d5cd1737f08e1716a71c95ef120471de7388c2f10e011a000000000000000000000000000000000000000000000000000000000000000114616098162027bc9f835bbfc0bd887e2fe00332c5e30dd3f522c2f15a7b1c210000000000000000000000000000000000000000000000000000000000000000da34531d9aa7539574e42b8dc08406eb97dbe79b98b51f88f131428187412f89000000000000000000000000000000000000000000000000000000000000000013873028cb6d35670977b8f4affb597186d20af53c2d0d49f1f1d82d0d1290b200000000000000000000000000000000000000000000000000000000000000015fcca1caa760f3e66fc2f5b06613050c6536b46aaa02e32dda9d933947643f360000000000000000000000000000000000000000000000000000000000000000bd6f4770d2b4ea6e5afa6a3f703941ed653467b344923c1335e15762c88efb6200000000000000000000000000000000000000000000000000000000000000004c7e72e4c40c75369bd913e6a7a60d7aa63295894670a91f63d0b886133ad70b0000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000e8fe58eb507dc765bd546e8ea30a29911e7176ca0b4eb278721d0c0c4dd78f66f5f3605836a09dc6e437ae3807eba1b770ce8489fe0e493439a5ac3b22d45ea8b2b65373c3cc61b01eaed67cdc6be7b5911766bee06598d2e34c10acab026513c2de76f02b1da7056c45e99e0bdd17f833bb37a10cf3fb4ce60968e5e6eed353899cbb7a1395c407b98f67af59742e573e6c81bccbe291ccff43d97c13710b90b3067bb5cf29165433ecd25442e6a76b4e7db70e68422a4234666aab3e8faea39f4e5cd7ac3c85883342019b55c0792596261080f81481c6df6c7f42f39f66190f448c16ee06453c352ef138d6b015f42a8d120cab96db80bd5c1fd2b5e9db6df0806cd8a5c563b279b0d813d9fb1ec778d8b084010def22a3e9ddd9bce0dbc4c76727d0571ef59fb84526bac0ef4dc9c245b005b402a8f083a3b4b7638f32240181a734d071580d5bfd90cc13fc8670e597ec49e16125df5704c050b71de64bce9e2ecdccaf33f78f1edb8ef3c03a0f2e7520cf7de1e2cef13c40f3f0311f9ea545875e07cd2e3630739ebf78f700ca3ed76d593a7cc06bac1c6c38745929bbb2c2d9f9037a0a0cc11e2c747d8391d32647f4315e3be88074b41fe5450e2823f\", \"to\": \"0x0000000000000000000000000000000000000FD2\" }, invocation=null, revert={ \"args\": [ \"Merkle root mismatch\" ], \"name\": \"Error\", \"signature\": \"Error(string)\" }, code=CALL_EXCEPTION, version=6.17.0) | code=CALL_EXCEPTION | data=0x08c379a0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000144d65726b6c6520726f6f74206d69736d61746368000000000000000000000000",
+          "code": "CALL_EXCEPTION",
+          "shortMessage": "execution reverted: \"Merkle root mismatch\"",
+          "revertData": "0x08c379a0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000144d65726b6c6520726f6f74206d69736d61746368000000000000000000000000",
+          "reason": "Merkle root mismatch"
+        }
+      },
+      {
+        "height": 25870436,
+        "verified": null,
+        "error": {
+          "text": "Error: execution reverted: \"Merkle root mismatch\" (action=\"call\", data=\"0x08c379a0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000144d65726b6c6520726f6f74206d69736d61746368000000000000000000000000\", reason=\"Merkle root mismatch\", transaction={ \"data\": \"0x7cc4e258000000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000018ac06400000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000074000000000000000000000000000000000000000000000000000000000000009600000000000000000000000000000000000000000000000000000000000000680000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000001e00000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000000000016000000000000000000000000000000000000000000000000000000000001c2ff6000000000000000000000000000000000000000000000000000000000001731800000000000000000000000074dec05e5b894b0efec69cdf6316971802a2f9a10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000044a9059cbb000000000000000000000000cef99b4b75f78db2af5a2fe131b4c079cc57ab4f0000000000000000000000000000000000000000000000000000000011a66a330000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000003b9aca00000000000000000000000000000000000000000000000000000000174876e80000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000001a572ac5e232c891f4237e519d621c96ec5569c426c2a3652ee9bde70d9557bc0565564ad887d9800888bef2655dfd5c20101aea5c1cd6bf51d07bfbe15420b72000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000b068000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000001e000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000020000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000003ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef00000000000000000000000074dec05e5b894b0efec69cdf6316971802a2f9a1000000000000000000000000cef99b4b75f78db2af5a2fe131b4c079cc57ab4f00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000011a66a3300000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000800000800000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000041000000000000000000000000000000000800000000000000001000000000000000000000000000040000020000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000000000000000000000000076727d0571ef59fb84526bac0ef4dc9c245b005b402a8f083a3b4b7638f32240000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000073a8e18aaa629160072e2d4f6a88817f08e5c7fa621e16b7c4b6d689becd2b05c000000000000000000000000000000000000000000000000000000000000000078669f11d85e35cea79dac63e599789e4dc1f7536672bad539aeb8c4e25fe9110000000000000000000000000000000000000000000000000000000000000000ad38b5502f1e5e72e2ece8c115245096fd154a33096d802419d41f047a2d5364000000000000000000000000000000000000000000000000000000000000000016834de21c152d6a4cc3638ad09d1b3c8129e4da509bb27cbd549c51a214bd2e0000000000000000000000000000000000000000000000000000000000000001a2315d1bd6cbcceba64db38c0b5260f11d026dda2601b54c87e23fe12adace7c0000000000000000000000000000000000000000000000000000000000000001bd536824875dd9312d909dfb0918a983579e4510f83cff90165cef3b1b39b0450000000000000000000000000000000000000000000000000000000000000000aa38cbbd27e81c4d265e814314d426a6bb530e086a7476eec16af75491f125a500000000000000000000000000000000000000000000000000000000000000004c7e72e4c40c75369bd913e6a7a60d7aa63295894670a91f63d0b886133ad70b0000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000e8fe58eb507dc765bd546e8ea30a29911e7176ca0b4eb278721d0c0c4dd78f66f5f3605836a09dc6e437ae3807eba1b770ce8489fe0e493439a5ac3b22d45ea8b2b65373c3cc61b01eaed67cdc6be7b5911766bee06598d2e34c10acab026513c2de76f02b1da7056c45e99e0bdd17f833bb37a10cf3fb4ce60968e5e6eed353899cbb7a1395c407b98f67af59742e573e6c81bccbe291ccff43d97c13710b90b3067bb5cf29165433ecd25442e6a76b4e7db70e68422a4234666aab3e8faea39f4e5cd7ac3c85883342019b55c0792596261080f81481c6df6c7f42f39f66190f448c16ee06453c352ef138d6b015f42a8d120cab96db80bd5c1fd2b5e9db6df0806cd8a5c563b279b0d813d9fb1ec778d8b084010def22a3e9ddd9bce0dbc4c76727d0571ef59fb84526bac0ef4dc9c245b005b402a8f083a3b4b7638f32240181a734d071580d5bfd90cc13fc8670e597ec49e16125df5704c050b71de64bce9e2ecdccaf33f78f1edb8ef3c03a0f2e7520cf7de1e2cef13c40f3f0311f9ea545875e07cd2e3630739ebf78f700ca3ed76d593a7cc06bac1c6c38745929bbb2c2d9f9037a0a0cc11e2c747d8391d32647f4315e3be88074b41fe5450e2823f\", \"to\": \"0x0000000000000000000000000000000000000FD2\" }, invocation=null, revert={ \"args\": [ \"Merkle root mismatch\" ], \"name\": \"Error\", \"signature\": \"Error(string)\" }, code=CALL_EXCEPTION, version=6.17.0) | code=CALL_EXCEPTION | data=0x08c379a0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000144d65726b6c6520726f6f74206d69736d61746368000000000000000000000000",
+          "code": "CALL_EXCEPTION",
+          "shortMessage": "execution reverted: \"Merkle root mismatch\"",
+          "revertData": "0x08c379a0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000144d65726b6c6520726f6f74206d69736d61746368000000000000000000000000",
+          "reason": "Merkle root mismatch"
+        }
+      }
+    ],
+    "arrayShapedOverloadAgainstTheSharedProof": {
+      "itemCount": 10,
+      "verified": true,
+      "calldataBytes": 25700
+    },
+    "sharedProofWorksForEveryTarget": false,
+    "verdict": "A single-transaction verifyAndEmit did NOT accept the shared Continuity Proof for every target. Requirement 9.2 cannot be submitted as written against this precompile build; see the per-target records for the exact revert data."
+  },
+  "batchProbeContract": {
+    "source": "spike/BatchProbe.sol",
+    "solcVersion": "0.8.23+commit.f704f362",
+    "address": "0x80118aA246d8AD663Db2Fe3bC95720C943d63F59",
+    "deploymentTxHash": "0x5828c34f627f8211173d4a5e366d110325e99e8c296b89a99d948b180c5b164d",
+    "deploymentBlock": 5402301,
+    "deploymentGasUsed": "1633189",
+    "deployedBytecodeLength": 7333,
+    "libraryLinkingRequired": false,
+    "note": "A new contract, because the 1.3 probe takes one proof and cannot express a batch."
+  },
+  "controlSubmission": {
+    "label": "control — one verifyAndEmit",
+    "method": "probeSequentialOwnProofs",
+    "itemCount": 1,
+    "calldata": {
+      "selector": "0x50c6762d",
+      "calldataBytes": 2916,
+      "zeroBytes": 2108,
+      "nonZeroBytes": 808,
+      "calldataGas": 21360,
+      "baseTransactionGas": 21000,
+      "intrinsicGasTotal": 42360,
+      "schedule": "EIP-2028: 4 gas per zero byte, 16 per non-zero byte, on top of the 21,000 base cost.",
+      "encodedTransactionBytes": [
+        1664
+      ],
+      "encodedTransactionBytesTotal": 1664,
+      "continuityRootCount": 4,
+      "continuityProofsCarried": 1,
+      "merkleSiblingCounts": [
+        8
+      ]
+    },
+    "perItemContinuityRootCounts": [
+      4
+    ],
+    "heights": {
+      "lowest": 25870427,
+      "highest": 25870427
+    },
+    "blockSpan": 0,
+    "dryRun": {
+      "reverted": false,
+      "sumOfVerifyAndEmitGas": "6991",
+      "gasUsedInsideFunction": "25839"
+    },
+    "gasEstimate": {
+      "estimated": "159627",
+      "gasLimitUsed": "239440"
+    },
+    "creditcoinTxHash": "0x6d6ea7cb5481f9367d14567cccfae19b2bde0845b8412a80a5dd322ce724e5d9",
+    "status": 1,
+    "blockNumber": 5402302,
+    "totalGasUsed": "158662",
+    "effectiveGasPriceWei": "500000000",
+    "transactionCalldataBytes": 2916,
+    "logCount": 3,
+    "transactionVerifiedEventCount": 1,
+    "items": [
+      {
+        "index": 0,
+        "height": 25870427,
+        "txIndex": 15,
+        "payerFromTopic1": "0x58F298E3BF930886aB7639f4D71f892d5F1F0214",
+        "recipientFromTopic2": "0x37A4D3d81eddE5c3e9f15f62F638a98074412f9c",
+        "amountBaseUnits": "1131256639",
+        "verifyAndEmitGasUsed": 6991
+      }
+    ],
+    "batchMeasured": {
+      "shape": "sequential single verifyAndEmit calls, one Continuity Proof each",
+      "itemCount": 1,
+      "sumOfVerifyAndEmitGas": 6991,
+      "gasUsedInsideFunction": 25839,
+      "continuityRootCount": 4,
+      "lowestHeight": 25870427,
+      "highestHeight": 25870427
+    },
+    "perItemVerifyAndEmitGas": [
+      6991
+    ],
+    "verifyAndEmitGasSpread": {
+      "min": 6991,
+      "max": 6991,
+      "mean": 6991
+    }
+  },
+  "designShapeSubmission": {
+    "label": "requirement 9.2 as written — 10 sequential calls against one shared Continuity Proof",
+    "method": "probeSequentialSharedProof",
+    "itemCount": 10,
+    "calldata": {
+      "selector": "0x1ad13c72",
+      "calldataBytes": 26308,
+      "zeroBytes": 19694,
+      "nonZeroBytes": 6614,
+      "calldataGas": 184600,
+      "baseTransactionGas": 21000,
+      "intrinsicGasTotal": 205600,
+      "schedule": "EIP-2028: 4 gas per zero byte, 16 per non-zero byte, on top of the 21,000 base cost.",
+      "encodedTransactionBytes": [
+        1664,
+        1824,
+        1664,
+        1824,
+        1824,
+        1824,
+        1696,
+        1664,
+        1696,
+        1664
+      ],
+      "encodedTransactionBytesTotal": 17344,
+      "continuityRootCount": 14,
+      "continuityProofsCarried": 1,
+      "merkleSiblingCounts": [
+        8,
+        8,
+        9,
+        8,
+        9,
+        9,
+        8,
+        9,
+        8,
+        7
+      ]
+    },
+    "heights": {
+      "lowest": 25870427,
+      "highest": 25870436
+    },
+    "blockSpan": 9,
+    "dryRun": {
+      "reverted": true,
+      "error": {
+        "text": "Error: execution reverted: \"Merkle root mismatch\" (action=\"call\", data=\"0x08c379a0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000144d65726b6c6520726f6f74206d69736d61746368000000000000000000000000\", reason=\"Merkle root mismatch\", transaction={ \"data\": \"0x1ad13c7200000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef00000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000002c04c7e72e4c40c75369bd913e6a7a60d7aa63295894670a91f63d0b886133ad70b0000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000e8fe58eb507dc765bd546e8ea30a29911e7176ca0b4eb278721d0c0c4dd78f66f5f3605836a09dc6e437ae3807eba1b770ce8489fe0e493439a5ac3b22d45ea8b2b65373c3cc61b01eaed67cdc6be7b5911766bee06598d2e34c10acab026513c2de76f02b1da7056c45e99e0bdd17f833bb37a10cf3fb4ce60968e5e6eed353899cbb7a1395c407b98f67af59742e573e6c81bccbe291ccff43d97c13710b90b3067bb5cf29165433ecd25442e6a76b4e7db70e68422a4234666aab3e8faea39f4e5cd7ac3c85883342019b55c0792596261080f81481c6df6c7f42f39f66190f448c16ee06453c352ef138d6b015f42a8d120cab96db80bd5c1fd2b5e9db6df0806cd8a5c563b279b0d813d9fb1ec778d8b084010def22a3e9ddd9bce0dbc4c76727d0571ef59fb84526bac0ef4dc9c245b005b402a8f083a3b4b7638f32240181a734d071580d5bfd90cc13fc8670e597ec49e16125df5704c050b71de64bce9e2ecdccaf33f78f1edb8ef3c03a0f2e7520cf7de1e2cef13c40f3f0311f9ea545875e07cd2e3630739ebf78f700ca3ed76d593a7cc06bac1c6c38745929bbb2c2d9f9037a0a0cc11e2c747d8391d32647f4315e3be88074b41fe5450e2823f000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000001400000000000000000000000000000000000000000000000000000000000000ac000000000000000000000000000000000000000000000000000000000000014e00000000000000000000000000000000000000000000000000000000000001ea000000000000000000000000000000000000000000000000000000000000028c000000000000000000000000000000000000000000000000000000000000033200000000000000000000000000000000000000000000000000000000000003d80000000000000000000000000000000000000000000000000000000000000472000000000000000000000000000000000000000000000000000000000000050e00000000000000000000000000000000000000000000000000000000000005a8000000000000000000000000000000000000000000000000000000000018ac05b0000000000000000000000000000000000000000000000000000000000000080000000000000000000000000000000000000000000000000000000000000072000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000680000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000001e000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000000160000000000000000000000000000000000000000000000000000000000000e7e400000000000000000000000000000000000000000000000000000000000493e000000000000000000000000058f298e3bf930886ab7639f4d71f892d5f1f02140000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000044a9059cbb00000000000000000000000037a4d3d81edde5c3e9f15f62f638a98074412f9c00000000000000000000000000000000000000000000000000000000436d9b3f00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000077359400000000000000000000000000000000000000000000000000000000746a52880000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000000010898e2718886614cc8576eadc1e3941f34889ac14e99b71b25859d3dd1b68ea5404aff1799f4a2b9fd7790d61fce7b681dbfc8f0497e987ca6ffcdd557ab3d95000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000f334000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000001e000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000020000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000003ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef00000000000000000000000058f298e3bf930886ab7639f4d71f892d5f1f021400000000000000000000000037a4d3d81edde5c3e9f15f62f638a98074412f9c000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000436d9b3f0000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002000000000000000000000080000080000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000120000000000000000100000000000000000000000000000000002000000200000000000000000000000000000000000000000000000000020000000000000000000000000000100000000000000000000000000000000000000000000010000000000000000000000000000000000000000000008fe58eb507dc765bd546e8ea30a29911e7176ca0b4eb278721d0c0c4dd78f66f000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000085a58bb39acd0ae1116a425e4806db0c68116ba22b537d8dcda683c40f4e44f99000000000000000000000000000000000000000000000000000000000000000112387e65a96284b91fa592ac03558760364b32175ad678d1cda638c8bab5cacb00000000000000000000000000000000000000000000000000000000000000014971930613dc56b4ec2903bf120eee19ac1f59b37132bb6bb35031288fe2d07d0000000000000000000000000000000000000000000000000000000000000001ab7fe86c5933dbe08520a72c1f64b051b4daf1e788e1a5fcd52b551c802b184b000000000000000000000000000000000000000000000000000000000000000156eecaa2fd35e027f759c63930207ddb1362331a67d8be4b3c342ed055132d0d000000000000000000000000000000000000000000000000000000000000000007aca3d32871ca8d8ea047a552e14e151698cd671c85639dfd66fe0038a2552700000000000000000000000000000000000000000000000000000000000000004edca8daccb050645f88a0fc8dc56cf0bbed51b3eaa2292a25e434582e38eaed0000000000000000000000000000000000000000000000000000000000000000f10daa72be0f72a37b81fd307e4ec78cfcce837101341bcd36c353783879a371000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000018ac05c000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000007c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000007200000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000028000000000000000000000000000000000000000000000000000000000000003a0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000001acbc1000000000000000000000000000000000000000000000000000000000001db0000000000000000000000000005ff6964d21e5dae3b1010d5ae0465b3c450f38100000000000000000000000000000000000000000000000000000000000000000000000000000000000000002744dfd9898f0babbc570cc594bbbc84b487a22b000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000000e4b61d27f6000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000044a9059cbb0000000000000000000000009bdc0fbbcb4e2575d14e13a9804a07ae21d17ed300000000000000000000000000000000000000000000000000000000000f42400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000077359400000000000000000000000000000000000000000000000000000000007f6cd4e600000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000001347274e7d82c28313d10161b0e5c9e926156fd3d7be540cba9657484f36c51704615f78fcec87ba171647e76d801c0f5a333f36f4052357ef35fcd2651de937600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000135a7000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000001e000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000020000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000003ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef0000000000000000000000002744dfd9898f0babbc570cc594bbbc84b487a22b0000000000000000000000009bdc0fbbcb4e2575d14e13a9804a07ae21d17ed3000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000f42400000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000080000080000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000400000000000000100000000000000000000000000000001002000000000000000000000000000000000000000000000000000000000020000000000000000000000001000000000000000000000000000000000000000000000000100000000000000000000000000000000200000000000005f3605836a09dc6e437ae3807eba1b770ce8489fe0e493439a5ac3b22d45ea8b00000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000008eb16bd171f8115b71de4678c2abe35eee73834ae7e73cb35da3216d9cf002acf0000000000000000000000000000000000000000000000000000000000000001314c1be2ce70892b80449d8539ca1834da57f938a6b1a6f46b6e7683b2b5195a0000000000000000000000000000000000000000000000000000000000000001056901424377da8e0b96de82c1ac02d0b6690b6f8e1d4b403f553edb2ac30d7b000000000000000000000000000000000000000000000000000000000000000183407522eac9826bb853dce7dcb4609cf02cc076e831f4141cd901351c061c630000000000000000000000000000000000000000000000000000000000000001dda0e7778c70e940ff07a0d8022c17ebe018808d67e52e8994f23f8bfab7402a0000000000000000000000000000000000000000000000000000000000000000f3b15ec9d931570d95a33e9ef19eecac975b67cb83de80b0b8cc3df1b85397da00000000000000000000000000000000000000000000000000000000000000000997bbea8ab0a19728f771226def57bb5fda9d9daf73dfa308d4d12e6663454d0000000000000000000000000000000000000000000000000000000000000000dce6cb0241416983dd31cb76c17ae797b5b7b1988503191ea583e6dd01416aac000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000018ac05d0000000000000000000000000000000000000000000000000000000000000080000000000000000000000000000000000000000000000000000000000000072000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000680000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000001e00000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000000000016000000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000015f90000000000000000000000000f589119c1664c251e399a9184836bdbfafe205a80000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000044a9059cbb000000000000000000000000260b364fe0d3d37e6fd3cda0fa50926a06c54cea0000000000000000000000000000000000000000000000000000000009bdcf87000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000773594000000000000000000000000000000000000000000000000000000002e90edd00000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000001f4a42f4d150743c9bd03c3edc72994e5d39c2f1b0df6916940c73d00eb89502722bb0b5154e7629a462ff47184a3eb9d0c774506206c5dbcf7ba135be7f8fba60000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000009da8000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000001e000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000020000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000003ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef000000000000000000000000f589119c1664c251e399a9184836bdbfafe205a8000000000000000000000000260b364fe0d3d37e6fd3cda0fa50926a06c54cea00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000009bdcf870000000000000000000000000000000000000000000000000000000000000100000002000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000080000080000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100100000000000000000000000000000000000000000000000100000000000000000000000000000000002000000000000000000000000000000000000000000000000000000010020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000000000000040000002b65373c3cc61b01eaed67cdc6be7b5911766bee06598d2e34c10acab026513c00000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000009feb9983b3924c68733442dc5369e08279dcc3709c437fecde38948d7641714cd0000000000000000000000000000000000000000000000000000000000000000587fc0bf3cb33781433852f8932d62395da1b2ff8a9ea5c34d141404eecac2ca000000000000000000000000000000000000000000000000000000000000000170af822ed6df2fd465a92af2eca18f8fa55d8a3756a83635be602b88d6e03a750000000000000000000000000000000000000000000000000000000000000000613607d3054253262cf1b03669427c76d3ee12c6801e95fcdad9169136128d4700000000000000000000000000000000000000000000000000000000000000013af5886f1cc4ae903b7a8cde7a458c3ae5e43ed2a54efc01241cdb4afad465270000000000000000000000000000000000000000000000000000000000000001fa486045cbeee7097ebc056c8c2522a1aa9cd4fe5f8fac912992652350705dd10000000000000000000000000000000000000000000000000000000000000000501da44bfc354066b801043c75211a49d3e407f694bd7e00f77ee7f7589be5cd00000000000000000000000000000000000000000000000000000000000000002edc102c146400233ce63468a611d5da90257cb861deb574485bbf98fe26fb020000000000000000000000000000000000000000000000000000000000000000d89bc428c94efb5b2097199040882c2d21f7bd6140ba7cbd2b57f3c6dd78900a000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000018ac05e000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000007c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000007200000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000028000000000000000000000000000000000000000000000000000000000000003a0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000001acbc5000000000000000000000000000000000000000000000000000000000001db2600000000000000000000000005ff6964d21e5dae3b1010d5ae0465b3c450f38100000000000000000000000000000000000000000000000000000000000000000000000000000000000000002744dfd9898f0babbc570cc594bbbc84b487a22b000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000000e4b61d27f6000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000044a9059cbb0000000000000000000000007ec1f9b35f0e162899310bd5238f4b3f10ee1e4800000000000000000000000000000000000000000000000000000014041b25b70000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000077359400000000000000000000000000000000000000000000000000000000007f14498000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000000299237d2063a41e83cd26732eae2d6cca3c96c4d31da01b285bdbf9c3e3f1dbd6933ec5914d21b75f5e69e9866faa96c3f6f9884b26ff278ce20569052414e0e00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000135bf000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000001e000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000020000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000003ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef0000000000000000000000002744dfd9898f0babbc570cc594bbbc84b487a22b0000000000000000000000007ec1f9b35f0e162899310bd5238f4b3f10ee1e48000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000014041b25b70000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000002000002000000000000000000000000000000000000080000080000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000400000000000000100000000000000000000000000000000002000000000080000000000000000000000000000000000000000000000020000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002de76f02b1da7056c45e99e0bdd17f833bb37a10cf3fb4ce60968e5e6eed3538000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000087d17cca991da7f6931f806e18c2c22188d8ed2f57defb4bf4dcb897e938028750000000000000000000000000000000000000000000000000000000000000000fa1008823e5f0c218e7e0223f6e129b7cd53c0f0651cfe138f11ac5bc78610230000000000000000000000000000000000000000000000000000000000000000a417c002b4ee6ce8ef0463fab4bcdc3adf6274e6f21f77400aeebe93dab4df490000000000000000000000000000000000000000000000000000000000000000e9d3c29f0b54163d62684cea1358912b85f6411524333a75d5328b1a31109858000000000000000000000000000000000000000000000000000000000000000028414a80dd7bf97dce2ee99cd1624704d0d0d6b6bd614404478c47ac8567fa2d00000000000000000000000000000000000000000000000000000000000000013f593c2bbba8eb599217c5d34216c6ba2a6a71f4d11b849d6531e2a359c419400000000000000000000000000000000000000000000000000000000000000000449dc5e9da3f6ee883feecf6c34144a9c1ec6e3afc2d136db303d6b1436266880000000000000000000000000000000000000000000000000000000000000000bbc4187f8d20a0409a7a7dfd7c52c6ac29c9ff82619a92d61b3e831107b94032000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000018ac05f000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000007c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000007200000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000028000000000000000000000000000000000000000000000000000000000000003a0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000001acbc60000000000000000000000000000000000000000000000000000000000023ffe00000000000000000000000005ff6964d21e5dae3b1010d5ae0465b3c450f38100000000000000000000000000000000000000000000000000000000000000000000000000000000000000002744dfd9898f0babbc570cc594bbbc84b487a22b000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000000e4b61d27f6000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000044a9059cbb000000000000000000000000daf26c147d149eb640c44b5658cd8c7c79af74000000000000000000000000000000000000000000000000000000000009b2ca6c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000077359400000000000000000000000000000000000000000000000000000000007f87c57800000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000000de75ef98dff58e3fe5868398880da8c0d08de2c4dd33da29ec6567504047a9a06dad4296e18911902a9ffb31259ba071d7fb3c0da66cf205c7eb6f70dfbdf6040000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000017873000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000001e000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000020000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000003ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef0000000000000000000000002744dfd9898f0babbc570cc594bbbc84b487a22b000000000000000000000000daf26c147d149eb640c44b5658cd8c7c79af740000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000009b2ca6c00000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000800000800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000010000000000004000000000000001000000000000000000000000010000000020000000000000000000000000000000000000000000000000020000000200000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000099cbb7a1395c407b98f67af59742e573e6c81bccbe291ccff43d97c13710b90b0000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000984cdd1b8a94e3eaf01e857967fc067bac6678384653c3ae56d43b6ae81f636d300000000000000000000000000000000000000000000000000000000000000003ae172db16247606b893825f383f6592dd06f841d14c41ce8d85eb4efa7230bc000000000000000000000000000000000000000000000000000000000000000038cae84d0c9abb0be36c874e5e3012103d3071541af81873f3d0ea708bc393970000000000000000000000000000000000000000000000000000000000000001943c70c23a601c143590ffc1eba9a156f3aaa5b94d66556091211ced1ac42d150000000000000000000000000000000000000000000000000000000000000001d01016024bb4c4d09de60300088f6bc2dd1661acd4b13b0f6a4c9caaedd5f03d0000000000000000000000000000000000000000000000000000000000000000804a0f6873dc56f6fcb56d329603c5517bf2697c1da948e9172962c23329a5940000000000000000000000000000000000000000000000000000000000000000c2ee7842e3f6ea680e1dca4e9452ce82cf6f499fd225e095e9183719b872e1660000000000000000000000000000000000000000000000000000000000000000d3f02620129f4594c7e0873326669a2c5d6b1f48efd0ea3f9c1776342044efcb000000000000000000000000000000000000000000000000000000000000000075e4a59ec55c4636cf1d4c1838ef7a5d36bdb156f915e08ab1a7bfc947c02d3a000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000018ac060000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000007c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000007200000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000028000000000000000000000000000000000000000000000000000000000000003a000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000001139ebd000000000000000000000000000000000000000000000000000000000003291800000000000000000000000028c6c06298d514db089934071355e5743bf21d600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000ee7ae85f2fe2239e27d9c1e23fffe168d63b4055000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000000e4b61d27f6000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000044a9059cbb00000000000000000000000080bfbcf274fc512fde985ee817eec5432bb9e7cc00000000000000000000000000000000000000000000000000000000785d9940000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000003b9aca000000000000000000000000000000000000000000000000000000002794ca240000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000001404cb09b4aaf705192bc90c02e975edbf964ea855d0462433ead258a39f7d3827e8630c5c3910bd18c1fc673c78f00b7c710af8257f4d54468437433325c1f1b00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000135b3000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000001e000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000020000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000003ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef000000000000000000000000ee7ae85f2fe2239e27d9c1e23fffe168d63b405500000000000000000000000080bfbcf274fc512fde985ee817eec5432bb9e7cc000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000785d99400000000000000000000000000000000000000000000000000000000000000100000000000000008000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000080000080100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000100000000000000000000000000000000002000000000000000000000000000020000000000000000000000000000020000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000000400000000000004000000003067bb5cf29165433ecd25442e6a76b4e7db70e68422a4234666aab3e8faea3900000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000009a1fff57e9638c48f5866cd589c15f42a08062c1f6d285955044b39666aa9fdd90000000000000000000000000000000000000000000000000000000000000000edef2535db55723d9a7420b37559c1354a33d227c692aa57c7f3b45468a29a480000000000000000000000000000000000000000000000000000000000000000dee6b05db1a784614f5f17d41302236790bf231e76a38185fae8514a0bf75d69000000000000000000000000000000000000000000000000000000000000000131801e69e56192efda5682f81cb63f83fb47973bbbc2f1b71dd82ca0e5074907000000000000000000000000000000000000000000000000000000000000000033a20ce553595bbddaa315539514c3df1bbe2be17f460f1c9a48e8f970dd6b1c0000000000000000000000000000000000000000000000000000000000000001ad9a56f01a3faa7dbd022f27e602f7a7e3a6367c20f4be35c8f291f1f16d524000000000000000000000000000000000000000000000000000000000000000006222996e808b529d7f40a300f45d52de0e86441c1be03a074f5c2ddab786df380000000000000000000000000000000000000000000000000000000000000000778317ce15c3f1e3b8160673f63fa97832ffd282e6c0a3f13ed1c7be46b2254800000000000000000000000000000000000000000000000000000000000000001c0528da98850ec03dd63c22ab51a7b83206c982585f38bf5dafeef1f399fc49000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000018ac06100000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000740000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006a0000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000320000000000000000000000000000000000000000000000000000000000000018000000000000000000000000000000000000000000000000000000000001985c000000000000000000000000000000000000000000000000000000000000112a200000000000000000000000055fe002aeff02f77364de339a1292923a15844b80000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e0000000000000000000000000000000000000000000000000000000000000006423b872dd000000000000000000000000937f958f6b5d12ac71f8a1feee780b46da9b1e8100000000000000000000000055fe002aeff02f77364de339a1292923a15844b8000000000000000000000000000000000000000000000000000000003f9eed20000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000861c4680000000000000000000000000000000000000000000000000000000009276033300000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000000007e4808a7960fc86d42e49f004662bddf9acc9256839a6e759c8364d95250bbc50449c69d3328cbb92d7cbe58fced5d6fbd089645e4555922eb3b57e36a75c572000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000b615000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000001e000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000020000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000003ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef000000000000000000000000937f958f6b5d12ac71f8a1feee780b46da9b1e8100000000000000000000000055fe002aeff02f77364de339a1292923a15844b80000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000003f9eed20000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000004000000000000000000000000000008000008000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000010080000000000000000000000000000000200000000000000000000004000000000000000000000000000000000002000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000f4e5cd7ac3c85883342019b55c0792596261080f81481c6df6c7f42f39f6619000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000008ad711f74475aec108b193c3f7429680cebe339dec976ebba17d1b4565075b02700000000000000000000000000000000000000000000000000000000000000004ab4895eb33dc5ea9a3346b09b7f94e29093d10d9ca774439c506a47f9019bcc000000000000000000000000000000000000000000000000000000000000000197e359dd5468c3f5df9983763b935d96447472a021db96d7f3c47aebcd59ec26000000000000000000000000000000000000000000000000000000000000000081190f267f29a05c6b52e9788271722251fb25f800e0690b895181522d84b93d0000000000000000000000000000000000000000000000000000000000000000e123555ff037c954151f23fd89e175c47bfc31df56832c631c0cc68dd8ca01fc0000000000000000000000000000000000000000000000000000000000000001571347b2f8fd0c839e3bbadaf54959271398d09bb917ea96ba20a11830ca28a300000000000000000000000000000000000000000000000000000000000000004485dab6cc6219f2f57b7770405805c3d811e9bcb08487dbec0a5956dee45a7f0000000000000000000000000000000000000000000000000000000000000000d4a05b0cc634aebffb6583f65e0c89d0014a56bc0d5019a2b3b4c5fba7c6c8e6000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000018ac0620000000000000000000000000000000000000000000000000000000000000080000000000000000000000000000000000000000000000000000000000000072000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000680000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000001e00000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000000000016000000000000000000000000000000000000000000000000000000000000000120000000000000000000000000000000000000000000000000000000000015f90000000000000000000000000edec506ed27489b970df7fce5dab06d81fe0e4c40000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000044a9059cbb000000000000000000000000260b364fe0d3d37e6fd3cda0fa50926a06c54cea00000000000000000000000000000000000000000000000000000000b2d05e00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000773594000000000000000000000000000000000000000000000000000000002e90edd00000000000000000000000000000000000000000000000000000000000000000e0000000000000000000000000000000000000000000000000000000000000000104bd9224aaf565a6129e4b6bebf3965cc1687da3dc887fb5063c769dc732ec0d218f620e0d79f0943ab97cc8d72363e9a371d382ca90ff366b1e344b81b549f80000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000009d9c000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000001e000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000020000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000003ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef000000000000000000000000edec506ed27489b970df7fce5dab06d81fe0e4c4000000000000000000000000260b364fe0d3d37e6fd3cda0fa50926a06c54cea000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000b2d05e00000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000000000000000000000000800000000000000004000000000000008000008000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000010000000000000000000000000000000000200000000000000000000000000000000000000000000000000000001002000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000000000040000000000000000000000f448c16ee06453c352ef138d6b015f42a8d120cab96db80bd5c1fd2b5e9db6df00000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000009bb64f1350be51b6a8b63b38ba516fdb2a5ac14d3d4f23b3dd92faf6ca90c0ce200000000000000000000000000000000000000000000000000000000000000000e1ef0f801b7950f217954afcf443203d6b340ebba0f172955fa379f14c83f530000000000000000000000000000000000000000000000000000000000000001f2ca77271fd9d35c538509bd444ccfb1210956cf9522bb7c51d731f33f60ec4c0000000000000000000000000000000000000000000000000000000000000001ef8a283fd0ed5193a0157670678b211890d7d46c043d50a9e82f412784ecc9440000000000000000000000000000000000000000000000000000000000000001c54cdb46507467a38dfb49c2365ba7375fd8354bd0c9619bab927235b4bf836000000000000000000000000000000000000000000000000000000000000000007ff38d06b247098ce4f114e5ffc36b9ddc442fe0926402658c697cac7b7758b4000000000000000000000000000000000000000000000000000000000000000040dbd3516b59fdb0052367b58863411ad89396978f1e1ac92010d3c060c0f612000000000000000000000000000000000000000000000000000000000000000079c910f18199e13722b2009b4ad756df884b674a3ef12262444fa11389ce9401000000000000000000000000000000000000000000000000000000000000000071dbd27d8075a14d1a95608a8520a4174165d1feaebab350e64e2091c16d4445000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000018ac06300000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000740000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006a0000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000320000000000000000000000000000000000000000000000000000000000000018000000000000000000000000000000000000000000000000000000000001acbc8000000000000000000000000000000000000000000000000000000000000cb7b00000000000000000000000005ff6964d21e5dae3b1010d5ae0465b3c450f3810000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e0000000000000000000000000000000000000000000000000000000000000006423b872dd000000000000000000000000367c732f75395b2ce003333a9cf95b055d1d47d800000000000000000000000005ff6964d21e5dae3b1010d5ae0465b3c450f3810000000000000000000000000000000000000000000000000000000001d9a1ff00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000077359400000000000000000000000000000000000000000000000000000000007f8e291500000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000001f4226c769cd4f07a2bdbbf8a15a42740daeea42c92cd4b03d6b854ee2f2059ba4cad453ceab2af891ab55d719a62be4a06fd6797a9cf041299643c952b1d9f3f000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000b621000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000001e000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000020000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000003ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef000000000000000000000000367c732f75395b2ce003333a9cf95b055d1d47d800000000000000000000000005ff6964d21e5dae3b1010d5ae0465b3c450f38100000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000001d9a1ff0000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000080000080000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000100000000000000000000004000000000000000000000000000100000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000200000000000000000000800000000000000000000000000000400000000000000000000000002000000000000806cd8a5c563b279b0d813d9fb1ec778d8b084010def22a3e9ddd9bce0dbc4c00000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000008b4a9487844dfe37ab02619e316f8a69f128d08e0cb4491cb56d9a70d370300190000000000000000000000000000000000000000000000000000000000000001d815993d19b4a9fe18aa97493146a5837e86ef87b4864cc06a633de14b8e6e580000000000000000000000000000000000000000000000000000000000000001b4c925263449119952d5cd1737f08e1716a71c95ef120471de7388c2f10e011a000000000000000000000000000000000000000000000000000000000000000114616098162027bc9f835bbfc0bd887e2fe00332c5e30dd3f522c2f15a7b1c210000000000000000000000000000000000000000000000000000000000000000da34531d9aa7539574e42b8dc08406eb97dbe79b98b51f88f131428187412f89000000000000000000000000000000000000000000000000000000000000000013873028cb6d35670977b8f4affb597186d20af53c2d0d49f1f1d82d0d1290b200000000000000000000000000000000000000000000000000000000000000015fcca1caa760f3e66fc2f5b06613050c6536b46aaa02e32dda9d933947643f360000000000000000000000000000000000000000000000000000000000000000bd6f4770d2b4ea6e5afa6a3f703941ed653467b344923c1335e15762c88efb62000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000018ac0640000000000000000000000000000000000000000000000000000000000000080000000000000000000000000000000000000000000000000000000000000072000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000680000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000001e00000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000000000016000000000000000000000000000000000000000000000000000000000001c2ff6000000000000000000000000000000000000000000000000000000000001731800000000000000000000000074dec05e5b894b0efec69cdf6316971802a2f9a10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000044a9059cbb000000000000000000000000cef99b4b75f78db2af5a2fe131b4c079cc57ab4f0000000000000000000000000000000000000000000000000000000011a66a330000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000003b9aca00000000000000000000000000000000000000000000000000000000174876e80000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000001a572ac5e232c891f4237e519d621c96ec5569c426c2a3652ee9bde70d9557bc0565564ad887d9800888bef2655dfd5c20101aea5c1cd6bf51d07bfbe15420b72000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000b068000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000001e000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000020000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000003ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef00000000000000000000000074dec05e5b894b0efec69cdf6316971802a2f9a1000000000000000000000000cef99b4b75f78db2af5a2fe131b4c079cc57ab4f00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000011a66a3300000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000800000800000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000041000000000000000000000000000000000800000000000000001000000000000000000000000000040000020000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000000000000000000000000076727d0571ef59fb84526bac0ef4dc9c245b005b402a8f083a3b4b7638f32240000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000073a8e18aaa629160072e2d4f6a88817f08e5c7fa621e16b7c4b6d689becd2b05c000000000000000000000000000000000000000000000000000000000000000078669f11d85e35cea79dac63e599789e4dc1f7536672bad539aeb8c4e25fe9110000000000000000000000000000000000000000000000000000000000000000ad38b5502f1e5e72e2ece8c115245096fd154a33096d802419d41f047a2d5364000000000000000000000000000000000000000000000000000000000000000016834de21c152d6a4cc3638ad09d1b3c8129e4da509bb27cbd549c51a214bd2e0000000000000000000000000000000000000000000000000000000000000001a2315d1bd6cbcceba64db38c0b5260f11d026dda2601b54c87e23fe12adace7c0000000000000000000000000000000000000000000000000000000000000001bd536824875dd9312d909dfb0918a983579e4510f83cff90165cef3b1b39b0450000000000000000000000000000000000000000000000000000000000000000aa38cbbd27e81c4d265e814314d426a6bb530e086a7476eec16af75491f125a50000000000000000000000000000000000000000000000000000000000000000\", \"to\": \"0x80118aA246d8AD663Db2Fe3bC95720C943d63F59\" }, invocation=null, revert={ \"args\": [ \"Merkle root mismatch\" ], \"name\": \"Error\", \"signature\": \"Error(string)\" }, code=CALL_EXCEPTION, version=6.17.0) | code=CALL_EXCEPTION | data=0x08c379a0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000144d65726b6c6520726f6f74206d69736d61746368000000000000000000000000",
+        "code": "CALL_EXCEPTION",
+        "shortMessage": "execution reverted: \"Merkle root mismatch\"",
+        "revertData": "0x08c379a0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000144d65726b6c6520726f6f74206d69736d61746368000000000000000000000000",
+        "reason": "Merkle root mismatch"
+      }
+    },
+    "gasEstimate": {
+      "estimated": null,
+      "gasLimitUsed": "3000000",
+      "note": "Submitted with a hand-set ceiling despite a reverting dry run, so the failure is on chain."
+    },
+    "creditcoinTxHash": "0x67682095d197191160da72a5f7a3e5349bf9b9d9f8023c2004782b16b0c57fd1",
+    "reverted": true,
+    "error": {
+      "text": "Error: transaction execution reverted (action=\"sendTransaction\", data=null, reason=null, invocation=null, revert=null, transaction={ \"data\": \"\", \"from\": \"0xb67c73fd513adF5d270d1102F04eb8327F218FE7\", \"to\": \"0x80118aA246d8AD663Db2Fe3bC95720C943d63F59\" }, receipt={ \"_type\": \"TransactionReceipt\", \"blobGasPrice\": null, \"blobGasUsed\": null, \"blockHash\": \"0xd009728413c1625e8934a35524ac3b5039945243d390499c9b902b060fc4c723\", \"blockNumber\": 5402303, \"contractAddress\": null, \"cumulativeGasUsed\": \"947772\", \"from\": \"0xb67c73fd513adF5d270d1102F04eb8327F218FE7\", \"gasPrice\": \"500000000\", \"gasUsed\": \"488992\", \"hash\": \"0x67682095d197191160da72a5f7a3e5349bf9b9d9f8023c2004782b16b0c57fd1\", \"index\": 2, \"logs\": [  ], \"logsBloom\": \"0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\", \"root\": null, \"status\": 0, \"to\": \"0x80118aA246d8AD663Db2Fe3bC95720C943d63F59\" }, code=CALL_EXCEPTION, version=6.17.0) | code=CALL_EXCEPTION",
+      "code": "CALL_EXCEPTION",
+      "shortMessage": "transaction execution reverted",
+      "revertData": null,
+      "reason": null
+    },
+    "status": 0,
+    "blockNumber": 5402303,
+    "totalGasUsed": "488992",
+    "logCount": 0,
+    "note": "The transaction was mined and reverted. Its gas figure is the cost of a failed submission, not a measurement of a working batch."
+  },
+  "batchSubmission": {
+    "label": "batch — 10 sequential verifyAndEmit calls, one Continuity Proof each",
+    "method": "probeSequentialOwnProofs",
+    "itemCount": 10,
+    "calldata": {
+      "selector": "0x50c6762d",
+      "calldataBytes": 28772,
+      "zeroBytes": 20529,
+      "nonZeroBytes": 8243,
+      "calldataGas": 214004,
+      "baseTransactionGas": 21000,
+      "intrinsicGasTotal": 235004,
+      "schedule": "EIP-2028: 4 gas per zero byte, 16 per non-zero byte, on top of the 21,000 base cost.",
+      "encodedTransactionBytes": [
+        1664,
+        1824,
+        1664,
+        1824,
+        1824,
+        1824,
+        1696,
+        1664,
+        1696,
+        1664
+      ],
+      "encodedTransactionBytesTotal": 17344,
+      "continuityRootCount": 55,
+      "continuityProofsCarried": 10,
+      "merkleSiblingCounts": [
+        8,
+        8,
+        9,
+        8,
+        9,
+        9,
+        8,
+        9,
+        8,
+        7
+      ]
+    },
+    "perItemContinuityRootCounts": [
+      4,
+      3,
+      2,
+      1,
+      10,
+      9,
+      8,
+      7,
+      6,
+      5
+    ],
+    "heights": {
+      "lowest": 25870427,
+      "highest": 25870436
+    },
+    "blockSpan": 9,
+    "dryRun": {
+      "reverted": false,
+      "sumOfVerifyAndEmitGas": "73643",
+      "gasUsedInsideFunction": "263620"
+    },
+    "gasEstimate": {
+      "estimated": "588927",
+      "gasLimitUsed": "883390"
+    },
+    "creditcoinTxHash": "0x5bfc3f29c03ebb14218b4b39eb94786a91ff73a1631ec0250a1cecf2730eab97",
+    "status": 1,
+    "blockNumber": 5402304,
+    "totalGasUsed": "557718",
+    "effectiveGasPriceWei": "500000000",
+    "transactionCalldataBytes": 28772,
+    "logCount": 21,
+    "transactionVerifiedEventCount": 10,
+    "items": [
+      {
+        "index": 0,
+        "height": 25870427,
+        "txIndex": 15,
+        "payerFromTopic1": "0x58F298E3BF930886aB7639f4D71f892d5F1F0214",
+        "recipientFromTopic2": "0x37A4D3d81eddE5c3e9f15f62F638a98074412f9c",
+        "amountBaseUnits": "1131256639",
+        "verifyAndEmitGasUsed": 6991
+      },
+      {
+        "index": 1,
+        "height": 25870428,
+        "txIndex": 15,
+        "payerFromTopic1": "0x2744dfD9898f0bAbbC570cC594Bbbc84b487a22b",
+        "recipientFromTopic2": "0x9BDc0FBbCb4e2575D14E13a9804a07Ae21D17Ed3",
+        "amountBaseUnits": "1000000",
+        "verifyAndEmitGasUsed": 6997
+      },
+      {
+        "index": 2,
+        "height": 25870429,
+        "txIndex": 26,
+        "payerFromTopic1": "0xf589119c1664c251E399A9184836bdBFafe205A8",
+        "recipientFromTopic2": "0x260B364fe0d3d37E6Fd3cda0FA50926A06C54cEa",
+        "amountBaseUnits": "163434375",
+        "verifyAndEmitGasUsed": 7206
+      },
+      {
+        "index": 3,
+        "height": 25870430,
+        "txIndex": 16,
+        "payerFromTopic1": "0x2744dfD9898f0bAbbC570cC594Bbbc84b487a22b",
+        "recipientFromTopic2": "0x7eC1f9b35F0E162899310Bd5238f4b3F10Ee1E48",
+        "amountBaseUnits": "85968233911",
+        "verifyAndEmitGasUsed": 6982
+      },
+      {
+        "index": 4,
+        "height": 25870431,
+        "txIndex": 12,
+        "payerFromTopic1": "0x2744dfD9898f0bAbbC570cC594Bbbc84b487a22b",
+        "recipientFromTopic2": "0xDaF26c147D149EB640c44b5658CD8c7C79af7400",
+        "amountBaseUnits": "162712172",
+        "verifyAndEmitGasUsed": 7794
+      },
+      {
+        "index": 5,
+        "height": 25870432,
+        "txIndex": 20,
+        "payerFromTopic1": "0xEe7aE85f2Fe2239E27D9c1E23fFFe168D63b4055",
+        "recipientFromTopic2": "0x80BFbcF274FC512FDe985Ee817eEc5432Bb9e7cc",
+        "amountBaseUnits": "2019400000",
+        "verifyAndEmitGasUsed": 7793
+      },
+      {
+        "index": 6,
+        "height": 25870433,
+        "txIndex": 18,
+        "payerFromTopic1": "0x937f958F6B5d12AC71f8A1Feee780b46dA9B1E81",
+        "recipientFromTopic2": "0x55FE002aefF02F77364de339a1292923A15844B8",
+        "amountBaseUnits": "1067380000",
+        "verifyAndEmitGasUsed": 7493
+      },
+      {
+        "index": 7,
+        "height": 25870434,
+        "txIndex": 14,
+        "payerFromTopic1": "0xedec506ED27489B970DF7FCe5Dab06d81Fe0e4C4",
+        "recipientFromTopic2": "0x260B364fe0d3d37E6Fd3cda0FA50926A06C54cEa",
+        "amountBaseUnits": "3000000000",
+        "verifyAndEmitGasUsed": 7730
+      },
+      {
+        "index": 8,
+        "height": 25870435,
+        "txIndex": 39,
+        "payerFromTopic1": "0x367C732f75395b2cE003333A9Cf95B055D1D47d8",
+        "recipientFromTopic2": "0x05ff6964D21e5dAE3b1010D5AE0465b3c450F381",
+        "amountBaseUnits": "31039999",
+        "verifyAndEmitGasUsed": 7471
+      },
+      {
+        "index": 9,
+        "height": 25870436,
+        "txIndex": 24,
+        "payerFromTopic1": "0x74dEc05E5b894b0EfEc69Cdf6316971802A2F9a1",
+        "recipientFromTopic2": "0xcef99b4B75F78DB2aF5A2Fe131B4C079Cc57Ab4F",
+        "amountBaseUnits": "296118835",
+        "verifyAndEmitGasUsed": 7186
+      }
+    ],
+    "batchMeasured": {
+      "shape": "sequential single verifyAndEmit calls, one Continuity Proof each",
+      "itemCount": 10,
+      "sumOfVerifyAndEmitGas": 73643,
+      "gasUsedInsideFunction": 263620,
+      "continuityRootCount": 55,
+      "lowestHeight": 25870427,
+      "highestHeight": 25870436
+    },
+    "perItemVerifyAndEmitGas": [
+      6991,
+      6997,
+      7206,
+      6982,
+      7794,
+      7793,
+      7493,
+      7730,
+      7471,
+      7186
+    ],
+    "verifyAndEmitGasSpread": {
+      "min": 6982,
+      "max": 7794,
+      "mean": 7364
+    }
+  },
+  "arrayShapedBatchSubmission": {
+    "label": "batch — one array-shaped verifyAndEmit over 10 proofs, one shared Continuity Proof",
+    "method": "probeArraySharedProof",
+    "itemCount": 10,
+    "calldata": {
+      "selector": "0xd1808980",
+      "calldataBytes": 26308,
+      "zeroBytes": 19694,
+      "nonZeroBytes": 6614,
+      "calldataGas": 184600,
+      "baseTransactionGas": 21000,
+      "intrinsicGasTotal": 205600,
+      "schedule": "EIP-2028: 4 gas per zero byte, 16 per non-zero byte, on top of the 21,000 base cost.",
+      "encodedTransactionBytes": [
+        1664,
+        1824,
+        1664,
+        1824,
+        1824,
+        1824,
+        1696,
+        1664,
+        1696,
+        1664
+      ],
+      "encodedTransactionBytesTotal": 17344,
+      "continuityRootCount": 14,
+      "continuityProofsCarried": 1,
+      "merkleSiblingCounts": [
+        8,
+        8,
+        9,
+        8,
+        9,
+        9,
+        8,
+        9,
+        8,
+        7
+      ]
+    },
+    "heights": {
+      "lowest": 25870427,
+      "highest": 25870436
+    },
+    "blockSpan": 9,
+    "dryRun": {
+      "reverted": false,
+      "sumOfVerifyAndEmitGas": "66557",
+      "gasUsedInsideFunction": "314875"
+    },
+    "gasEstimate": {
+      "estimated": "555649",
+      "gasLimitUsed": "833473"
+    },
+    "creditcoinTxHash": "0xc556b443c3eb88be799426fc59fee043093d837d9fc347e6f15c2d9a197600fc",
+    "status": 1,
+    "blockNumber": 5402305,
+    "totalGasUsed": "525448",
+    "effectiveGasPriceWei": "500000000",
+    "transactionCalldataBytes": 26308,
+    "logCount": 21,
+    "transactionVerifiedEventCount": 10,
+    "items": [
+      {
+        "index": 0,
+        "height": 25870427,
+        "txIndex": 15,
+        "payerFromTopic1": "0x58F298E3BF930886aB7639f4D71f892d5F1F0214",
+        "recipientFromTopic2": "0x37A4D3d81eddE5c3e9f15f62F638a98074412f9c",
+        "amountBaseUnits": "1131256639",
+        "verifyAndEmitGasUsed": 0
+      },
+      {
+        "index": 1,
+        "height": 25870428,
+        "txIndex": 15,
+        "payerFromTopic1": "0x2744dfD9898f0bAbbC570cC594Bbbc84b487a22b",
+        "recipientFromTopic2": "0x9BDc0FBbCb4e2575D14E13a9804a07Ae21D17Ed3",
+        "amountBaseUnits": "1000000",
+        "verifyAndEmitGasUsed": 0
+      },
+      {
+        "index": 2,
+        "height": 25870429,
+        "txIndex": 26,
+        "payerFromTopic1": "0xf589119c1664c251E399A9184836bdBFafe205A8",
+        "recipientFromTopic2": "0x260B364fe0d3d37E6Fd3cda0FA50926A06C54cEa",
+        "amountBaseUnits": "163434375",
+        "verifyAndEmitGasUsed": 0
+      },
+      {
+        "index": 3,
+        "height": 25870430,
+        "txIndex": 16,
+        "payerFromTopic1": "0x2744dfD9898f0bAbbC570cC594Bbbc84b487a22b",
+        "recipientFromTopic2": "0x7eC1f9b35F0E162899310Bd5238f4b3F10Ee1E48",
+        "amountBaseUnits": "85968233911",
+        "verifyAndEmitGasUsed": 0
+      },
+      {
+        "index": 4,
+        "height": 25870431,
+        "txIndex": 12,
+        "payerFromTopic1": "0x2744dfD9898f0bAbbC570cC594Bbbc84b487a22b",
+        "recipientFromTopic2": "0xDaF26c147D149EB640c44b5658CD8c7C79af7400",
+        "amountBaseUnits": "162712172",
+        "verifyAndEmitGasUsed": 0
+      },
+      {
+        "index": 5,
+        "height": 25870432,
+        "txIndex": 20,
+        "payerFromTopic1": "0xEe7aE85f2Fe2239E27D9c1E23fFFe168D63b4055",
+        "recipientFromTopic2": "0x80BFbcF274FC512FDe985Ee817eEc5432Bb9e7cc",
+        "amountBaseUnits": "2019400000",
+        "verifyAndEmitGasUsed": 0
+      },
+      {
+        "index": 6,
+        "height": 25870433,
+        "txIndex": 18,
+        "payerFromTopic1": "0x937f958F6B5d12AC71f8A1Feee780b46dA9B1E81",
+        "recipientFromTopic2": "0x55FE002aefF02F77364de339a1292923A15844B8",
+        "amountBaseUnits": "1067380000",
+        "verifyAndEmitGasUsed": 0
+      },
+      {
+        "index": 7,
+        "height": 25870434,
+        "txIndex": 14,
+        "payerFromTopic1": "0xedec506ED27489B970DF7FCe5Dab06d81Fe0e4C4",
+        "recipientFromTopic2": "0x260B364fe0d3d37E6Fd3cda0FA50926A06C54cEa",
+        "amountBaseUnits": "3000000000",
+        "verifyAndEmitGasUsed": 0
+      },
+      {
+        "index": 8,
+        "height": 25870435,
+        "txIndex": 39,
+        "payerFromTopic1": "0x367C732f75395b2cE003333A9Cf95B055D1D47d8",
+        "recipientFromTopic2": "0x05ff6964D21e5dAE3b1010D5AE0465b3c450F381",
+        "amountBaseUnits": "31039999",
+        "verifyAndEmitGasUsed": 0
+      },
+      {
+        "index": 9,
+        "height": 25870436,
+        "txIndex": 24,
+        "payerFromTopic1": "0x74dEc05E5b894b0EfEc69Cdf6316971802A2F9a1",
+        "recipientFromTopic2": "0xcef99b4B75F78DB2aF5A2Fe131B4C079Cc57Ab4F",
+        "amountBaseUnits": "296118835",
+        "verifyAndEmitGasUsed": 0
+      }
+    ],
+    "batchMeasured": {
+      "shape": "one array-shaped verifyAndEmit, one shared Continuity Proof",
+      "itemCount": 10,
+      "sumOfVerifyAndEmitGas": 66557,
+      "gasUsedInsideFunction": 314875,
+      "continuityRootCount": 14,
+      "lowestHeight": 25870427,
+      "highestHeight": 25870436
+    },
+    "perItemVerifyAndEmitGas": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "verifyAndEmitGasSpread": {
+      "min": 0,
+      "max": 0,
+      "mean": 0
+    }
+  },
+  "blockGasLimitRead": {
+    "blockNumber": 5402304,
+    "gasLimit": "75000000",
+    "gasUsed": "1016498",
+    "source": "eth_getBlockByNumber on the Creditcoin block carrying the batch submission"
+  },
+  "analysis": {
+    "oneVerifyAndEmit": {
+      "measuredHere": 6991,
+      "spike13Control": 6745,
+      "differenceFromSpike13": 246,
+      "reproducesSpike13": false,
+      "note": "A gasleft() delta either side of the precompile call, so it excludes the caller’s own work."
+    },
+    "tenVerifyAndEmit": {
+      "sumOfTenGasleftDeltas": 73643,
+      "perItemDeltas": [
+        6991,
+        6997,
+        7206,
+        6982,
+        7794,
+        7793,
+        7493,
+        7730,
+        7471,
+        7186
+      ],
+      "perItemSpread": {
+        "min": 6982,
+        "max": 7794,
+        "mean": 7364
+      },
+      "perItemCostIsFlat": false,
+      "totalTransactionGasUsed": 557718,
+      "gasUsedInsideProbeBatch": 263620,
+      "callerSideGasInsideFunction": 189977,
+      "intrinsicAndCalldataGas": 235004,
+      "unaccountedRemainder": 59094,
+      "remainderNote": "What the receipt charges beyond the function body and the intrinsic charge: dispatch, the outer ABI decode that runs before the first gasleft() reading, and the final event."
+    },
+    "ratios": {
+      "precompileTenOverOne": 10.534,
+      "precompileIsLinear": false,
+      "transactionTotalTenOverOne": 3.515,
+      "marginalGasPerAdditionalProof": 44340,
+      "fixedGasPerTransaction": 114322,
+      "note": "The precompile scales linearly by construction — ten calls, ten identical charges. The transaction total is sublinear because the 21,000 base charge and the dispatch are paid once. The figure that governs batch size is the marginal cost of one more proof, not either ratio."
+    },
+    "arrayShapedBatchWithOneSharedProof": {
+      "shape": "One array-shaped verifyAndEmit against one shared Continuity Proof — the only shape in which ten proofs genuinely share a Continuity Proof on this precompile build.",
+      "precompileGasForTheWholeBatch": 66557,
+      "gasUsedInsideProbeFunction": 314875,
+      "totalTransactionGasUsed": 525448,
+      "intrinsicAndCalldataGas": 205600,
+      "calldataBytes": 26308,
+      "continuityRootCount": 14,
+      "percentOfBlockGasLimit": 0.7006,
+      "gasSavedAgainstSequentialShape": 32270,
+      "precompileGasPerProof": 6656,
+      "note": "One precompile call rather than ten, so there is no per-item precompile figure. The shared proof also removes nine of the ten Continuity Proofs from calldata."
+    },
+    "calldata": {
+      "controlCalldataBytes": 2916,
+      "controlIntrinsicGas": 42360,
+      "batchCalldataBytes": 28772,
+      "batchZeroBytes": 20529,
+      "batchNonZeroBytes": 8243,
+      "batchCalldataGas": 214004,
+      "batchIntrinsicGasTotal": 235004,
+      "shareOfBatchTotalPercent": 42.1,
+      "encodedTransactionBytesTotal": 17344,
+      "note": "Calldata is charged per byte whether or not the contract reads it, so it is the term that grows fastest with batch size and the one the design has to respect."
+    },
+    "blockGasLimit": {
+      "value": "75000000",
+      "readFrom": "the header of the Creditcoin block that carried the batch submission"
+    },
+    "headroom": {
+      "batchOfTenGasUsed": 557718,
+      "arrayShapedBatchOfTenGasUsed": 525448,
+      "percentOfBlockGasLimit": 0.7436,
+      "gasRemainingInBlock": 74442282,
+      "batchesOfTenPerBlock": 134,
+      "largestBatchThatFitsOneBlock": 1688,
+      "tenProofBoundIsSafe": true,
+      "extrapolationBasis": "largestBatchThatFitsOneBlock = floor((blockGasLimit − fixedGasPerTransaction) / marginalGasPerAdditionalProof), from the two measured points. It is an extrapolation from two submissions, not a measurement, and a real submission that large would also have to fit any per-transaction gas cap the node applies."
+    }
+  },
+  "finding": {
+    "headline": "Ten proofs fit one Creditcoin transaction with room to spare, but requirement 9.2 as written is not submittable: a single-transaction verifyAndEmit accepts a Continuity Proof only when the proof’s first root is the root of the height being proved.",
+    "whatTheChainDoes": "The precompile derives the position of a height’s root from the proof’s own start, so a proof spanning a batch verifies for the batch’s lowest height and reverts \"Merkle root mismatch\" for every other one. Each target verifies against its own Continuity Proof, and the array-shaped verifyAndEmit verifies all ten against the shared proof.",
+    "twoShapesThatWork": [
+      "Ten sequential single-transaction verifyAndEmit calls, each carrying its own Continuity Proof. Keeps per-Settlement attributability, costs nine extra Continuity Proofs in calldata.",
+      "One array-shaped verifyAndEmit against one shared Continuity Proof. Genuinely shares the proof, but a failure is attributable to the batch rather than to one Settlement."
+    ],
+    "designConsequence": "Requirements 9.1, 9.2 and 9.6 need a decision recorded: keep sequential calls and drop the shared Continuity Proof, or keep the shared Continuity Proof and adopt the array-shaped call. Both fit the block gas limit comfortably, so the choice is about failure attribution and calldata, not headroom."
+  },
+  "verdict": {
+    "tenProofsFitOneCreditcoinTransaction": true,
+    "allMeasurementSubmissionsSucceeded": true,
+    "creditcoinTransactionHashes": {
+      "deployment": "0x5828c34f627f8211173d4a5e366d110325e99e8c296b89a99d948b180c5b164d",
+      "control": "0x6d6ea7cb5481f9367d14567cccfae19b2bde0845b8412a80a5dd322ce724e5d9",
+      "requirement92AsWritten": "0x67682095d197191160da72a5f7a3e5349bf9b9d9f8023c2004782b16b0c57fd1",
+      "batchOfTenSequential": "0x5bfc3f29c03ebb14218b4b39eb94786a91ff73a1631ec0250a1cecf2730eab97",
+      "batchOfTenArrayShaped": "0xc556b443c3eb88be799426fc59fee043093d837d9fc347e6f15c2d9a197600fc"
+    },
+    "oneVerifyAndEmitGas": 6991,
+    "tenVerifyAndEmitSumOfDeltas": 73643,
+    "tenProofTransactionGasUsed": 557718,
+    "arrayShapedTenProofTransactionGasUsed": "525448",
+    "percentOfBlockGasLimit": 0.7436,
+    "largestBatchThatFitsOneBlock": 1688,
+    "requirement91BoundOfTenIsSafe": true,
+    "requirement92SequentialSharedProofShapeHolds": false,
+    "requirement92SharedProofSubmissionStatus": 0
+  }
+}
