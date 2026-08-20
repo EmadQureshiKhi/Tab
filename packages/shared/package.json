@@ -1,0 +1,19 @@
+{
+  "name": "@tabai/shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared types, ABIs, chain constants, and replay-key packing. Depends on nothing internal.",
+  "license": "MIT",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b",
+    "test": "tsc -b && node --test test/*.test.mjs"
+  }
+}
