@@ -1,0 +1,180 @@
+{
+  "$comment": [
+    "Tab deployment record. Every address here was read back off the chain by",
+    "script/07_VerifyDeployment.s.sol, which holds no key and sends nothing, so this",
+    "file is checkable by anyone with the repository and an RPC URL rather than only",
+    "by whoever holds the deploying key.",
+    "",
+    "Reproduce the verification, from packages/contracts, with no key:",
+    "  forge script script/07_VerifyDeployment.s.sol:VerifyDeployment --rpc-url creditcoin --sig \"run()\"",
+    "It returns true only when all nine wired slots agree from both ends, both",
+    "Settlement signature topics match what this repository computes, and both Bond",
+    "Collection Addresses resolve with CollectionKind.Bond."
+  ],
+  "verifiedKeylessly": true,
+  "creditcoin": {
+    "network": "Creditcoin CC3 Testnet",
+    "chainId": 102031,
+    "rpcUrl": "https://rpc.cc3-testnet.creditcoin.network",
+    "explorerUrl": "https://creditcoin-testnet.blockscout.com",
+    "contracts": {
+      "EvmV1Decoder": {
+        "address": "0x10619F16E1ac73AAe41AA4C1619f1387687EED79",
+        "txHash": "0x32e79b380505523b60a8978aafedfe719f7721f36453413a156dc0ef57c7f5a8",
+        "envKey": "DECODER_LIBRARY_ADDRESS",
+        "note": "Pinned third-party decoding library. Five link references in SettlementVerifier resolve to this address; verified embedded in the deployed bytecode."
+      },
+      "ServiceRegistry": {
+        "address": "0xF6Bb0d068698e504e2F21ca61c48167634a1fcAC",
+        "txHash": "0x0434a304703ab32c1d15a5a260a6b2c51792772fc7afbf3717cad55a02934571",
+        "envKey": "SERVICE_REGISTRY_ADDRESS",
+        "note": "Takes only the curation authority in its constructor and references no other Tab contract, which is what lets a redeployment of the rest leave the Service registration, its collections, emitters and prices standing."
+      },
+      "AgentRegistry": {
+        "address": "0x4721f24974be89287F5C34aeE4D15D20389A2a8B",
+        "txHash": "0xf2ca8f7b6f5eb384f5d94f7723241fc5511712de3ad1d6705bf2494090a531b4",
+        "envKey": "AGENT_REGISTRY_ADDRESS"
+      },
+      "Bond": {
+        "address": "0xDbB6C19A4236ACdd8535E993C5fA93E6Ff1f173A",
+        "txHash": "0x16f2742afec88b38e86ad7ba3659c0a098410d972522c73099f6c23b7bceaf16",
+        "envKey": "BOND_ADDRESS"
+      },
+      "TabBook": {
+        "address": "0x047ECFB428FE706eA391B626872Ce8Deb8756c5f",
+        "txHash": "0x3eda574394c4d1fa9bc49b47fbf08aa450bdcbf939275bb50fc434b60e38f439",
+        "envKey": "TAB_BOOK_ADDRESS"
+      },
+      "SettlementVerifier": {
+        "address": "0xDf4e7F76e5821ab351877C7862117fDdbC7a44a7",
+        "txHash": "0xc51dcfcb1bcf543755982d4099e1460627d695455d5901a0efe7f5c72103d0bc",
+        "envKey": "SETTLEMENT_VERIFIER_ADDRESS"
+      }
+    },
+    "precompiles": {
+      "blockProver": "0x0000000000000000000000000000000000000FD2",
+      "chainInfo": "0x0000000000000000000000000000000000000fd3"
+    },
+    "wiring": {
+      "$comment": "Five one-shot slots. Each reverts AlreadyWired once non-zero, so this table is final.",
+      "AgentRegistry.settlementVerifier": {
+        "value": "0xDf4e7F76e5821ab351877C7862117fDdbC7a44a7",
+        "txHash": "0xa90d73596db3101ec7994c0485ec0498b8850c9a98e3439b1cccb56cfc1d02a2"
+      },
+      "TabBook.settlementVerifier": {
+        "value": "0xDf4e7F76e5821ab351877C7862117fDdbC7a44a7",
+        "txHash": "0x6c3f763f6ae7b4a6bd88432648b4c1c11189773662e137695c89bc4a51e00037"
+      },
+      "TabBook.watcher": {
+        "value": "0xb67c73fd513adF5d270d1102F04eb8327F218FE7",
+        "txHash": "0xec7f85744833baa143820956710d32e7547221554109841f3d36155d8273844b"
+      },
+      "Bond.tabBook": {
+        "value": "0x047ECFB428FE706eA391B626872Ce8Deb8756c5f",
+        "txHash": "0x79e56e46d5f9937aa0b4acad4a67c396d5c6d48a52bd830ff1bcd1eea1c354de"
+      },
+      "Bond.settlementVerifier": {
+        "value": "0xDf4e7F76e5821ab351877C7862117fDdbC7a44a7",
+        "txHash": "0x210bd2f62aed9b33dbe62da3d153795b7683bb7771b8ca2e760eaa1387211884"
+      }
+    },
+    "roles": {
+      "wiringAuthority": {
+        "address": "0xE5eaB26CaE0855BcCaBBb9A64faFce28C8432b37",
+        "note": "The deploying account. Its entire power over the rail was the ability to mis-wire it once, in public, at deployment; all five slots are now non-zero so that power is spent. Deliberately not the Watcher."
+      },
+      "curationAuthority": {
+        "address": "0x621663045265405B65d2afD1c22bC7254f8E1dec",
+        "envKey": "CURATION_AUTHORITY_ADDRESS",
+        "note": "A ServiceRegistry constructor argument, never settable afterwards. Gates Credit Limit weight only: no power over metering, tabs, or Bonds. The multisig below takes this role at the next deployment of ServiceRegistry, which is the only moment it can change."
+      },
+      "watcher": {
+        "address": "0xb67c73fd513adF5d270d1102F04eb8327F218FE7",
+        "envKey": "WATCHER_ADDRESS",
+        "note": "May apply Provisional Clearings and report reorganisations. Cannot mint credit: a Provisional Clearing is covered by Bond and is revocable for its whole life."
+      }
+    },
+    "registry": {
+      "serviceId": "tab.proof-service",
+      "serviceIdBytes32": "0x7461622e70726f6f662d73657276696365000000000000000000000000000000",
+      "tier": "Permissionless",
+      "settlementWindowSeconds": 21600,
+      "timelockSeconds": 172800,
+      "creditBaselineBaseUnits": 5000000,
+      "growthFactorBps": 5000,
+      "toolPriceBaseUnits": 10000,
+      "collections": {
+        "tab": {
+          "address": "0x952AcC70E6f54Ce87Dca963193A5957BCb27729e",
+          "envKey": "PROOF_SERVICE_COLLECTION_ADDRESS",
+          "kind": "Tab",
+          "chainKeys": [
+            1,
+            3
+          ]
+        },
+        "bond": {
+          "address": "0x9D6Ad64AE2D000873FFdfC757808F24cF9Cf67FC",
+          "envKey": "BOND_COLLECTION_ADDRESS",
+          "kind": "Bond",
+          "chainKeys": [
+            1,
+            3
+          ],
+          "note": "Verified as CollectionKind.Bond on both chains. Without this record no proven deposit can create stake, every Credit Limit stays at zero, and the rail is inert while appearing healthy."
+        }
+      },
+      "emitters": {
+        "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238": {
+          "chainKey": 1,
+          "kind": "Asset",
+          "asset": "USDC"
+        },
+        "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48": {
+          "chainKey": 3,
+          "kind": "Asset",
+          "asset": "USDC"
+        },
+        "0x10619F16E1ac73AAe41AA4C1619f1387687EED79": {
+          "chainKey": 1,
+          "kind": "SettlementContract",
+          "emitterChainMask": 2,
+          "note": "Authorised on chainKey 1 alone, and verified unauthorised on chainKey 3. The mask is 1 << 1 exactly."
+        }
+      }
+    }
+  },
+  "ethereumSepolia": {
+    "network": "Ethereum Sepolia",
+    "chainId": 11155111,
+    "chainKey": 1,
+    "contracts": {
+      "TabSettlement": {
+        "address": "0x10619F16E1ac73AAe41AA4C1619f1387687EED79",
+        "txHash": "0x229e51bdde99c3c3ce59e866696d96c1a428ae915da60223bfc064848641747e",
+        "envKey": "SEPOLIA_SETTLEMENT_ADDRESS",
+        "note": "The only contract Tab deploys to a Source Chain. No owner, no admin, no upgrade path, holds no balances and no tab state. It shares its address with EvmV1Decoder on Creditcoin because CREATE derives from sender and nonce, and the same deployer was at nonce 0 on both chains."
+      }
+    },
+    "assets": {
+      "USDC": {
+        "address": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+        "decimals": 6
+      }
+    }
+  },
+  "ethereumMainnet": {
+    "network": "Ethereum Mainnet",
+    "chainId": 1,
+    "chainKey": 3,
+    "contracts": {
+      "$comment": "None, deliberately. On Mainnet a plain USDC Transfer to a registered Collection Address is the Settlement, so Tab deploys nothing here and reads only."
+    },
+    "assets": {
+      "USDC": {
+        "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        "decimals": 6
+      }
+    }
+  }
+}
