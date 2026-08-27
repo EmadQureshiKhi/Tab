@@ -1,0 +1,33 @@
+{
+  "name": "@tabai/watcher",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Worker that observes source chains, drives the proof pipeline, submits, and turns the cranks.",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b",
+    "test": "tsc -b && node --test test/*.test.mjs",
+    "discover": "tsx src/bin/discover.ts",
+    "observe": "tsx src/bin/observe.ts",
+    "pipeline": "tsx src/bin/pipeline.ts",
+    "probe:attestation": "tsx src/bin/probe-attestation.ts",
+    "db:migrate": "tsx src/bin/migrate.ts",
+    "health": "tsx src/bin/health.ts",
+    "crank": "tsx src/bin/crank.ts",
+    "test:property": "tsc -b && node --test test/*.property.test.mjs"
+  },
+  "dependencies": {
+    "@gluwa/usc-sdk": "0.18.0",
+    "@tabai/shared": "workspace:*",
+    "drizzle-orm": "0.45.2",
+    "ethers": "^6",
+    "postgres": "3.4.9"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.1",
+    "fast-check": "4.9.0",
+    "tsx": "4.19.2"
+  }
+}

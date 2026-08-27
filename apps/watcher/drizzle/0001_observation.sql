@@ -1,0 +1,33 @@
+-- Observation and provisional clearing, additive migration.
+--
+-- Two columns `observed_settlement` needs once logs are actually being read, both
+-- added rather than folded into `0000_init.sql` so an already-migrated database
+-- moves forward instead of being rebuilt.
+--
+-- `emitter_address` — the contract that emitted the observed log. It is not
+-- derivable from `asset`, because on chainKey 1 the Settlement surface is the
+-- registered settlement contract emitting `TabSettled` while the Asset is the
+-- token it moved: two different addresses. Without it a row cannot say which
+-- surface produced it.
+--
+-- `clearing_state` — the last known position of the clearing in the `TabBook`
+-- lifecycle, mirroring `ITabBook.ClearingState`. A cache of chain state, never the
+-- authority: `reverseExpiredClearing` is a permissionless crank and confirmation
+-- arrives through the `SettlementVerifier`, so `clearingOf(replayKey)` is the only
+-- trustworthy answer. What the column earns is keeping a settled question out of
+-- the sweep. `DECLINED` is terminal on chain — `_openClearing` reverts
+-- `ClearingAlreadyExists` for an identity that already carries a record — so a
+-- declined observation can never be cleared again and re-attempting it would spend
+-- gas on a certain revert.
+--
+-- Both are nullable on purpose. `ALTER TABLE` cannot invent a truthful value for a
+-- row written before the column existed, and a null that reads "not recorded" is
+-- better than a zero address that reads like a real one.
+--
+-- Apply with:  pnpm --filter @tabai/watcher db:migrate     (needs DATABASE_URL)
+--
+-- Requirements: 15.1, 20.6, 20.7
+
+ALTER TABLE observed_settlement ADD COLUMN IF NOT EXISTS emitter_address BYTEA;
+ALTER TABLE observed_settlement ADD COLUMN IF NOT EXISTS clearing_state TEXT;
+-- NONE|APPLIED|CONFIRMED|REVERSED|DECLINED|SUPERSEDED

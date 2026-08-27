@@ -1,0 +1,62 @@
+# Local Postgres for the registry read API and the Watcher.
+#
+# Two services in this repository persist state: `apps/registry` and `apps/watcher`.
+# Both read one variable, `DATABASE_URL`. Nothing else here talks to a database, and
+# no other part of the system needs this file to run — the contracts, the SDK, the
+# Dashboard, and the keyless verification path are all databaseless.
+#
+# THIS FILE IS A CONVENIENCE, NOT A DEPENDENCY. Docker is not required to run, build,
+# test, or verify Tab. If you would rather not install Docker, a native server serves
+# the same purpose and the rest of the repository cannot tell the difference:
+#
+#   winget install PostgreSQL.PostgreSQL.17
+#   DATABASE_URL=postgres://postgres:YOUR_PASSWORD@127.0.0.1:5432/postgres
+#
+# Bring it up, apply the schema, and index one pass:
+#
+#   docker compose up -d db
+#   DATABASE_URL=postgres://tab:tab@127.0.0.1:5432/tab pnpm --filter @tabai/registry db:apply
+#   DATABASE_URL=postgres://tab:tab@127.0.0.1:5432/tab pnpm --filter @tabai/registry index:once
+#
+# The credentials are `tab`/`tab` on purpose. They are a development fixture bound to
+# the loopback interface, they are the same three characters in the compose file and in
+# the URL above, and nothing reachable from outside this machine can use them. A real
+# deployment supplies `DATABASE_URL` from its own secret store and never reads this file.
+#
+# NOT EXERCISED ON THE AUTHORING MACHINE. This file was written against the Postgres 16
+# image documentation and the schema in `apps/registry/sql/0001_registry_schema.sql`, on
+# a machine with no Docker, no `psql`, no `pg_ctl`, and nothing listening on 5432. The
+# healthcheck and the schema apply are therefore unverified here rather than known-good.
+# See the note under task 18.1 in the spec. `pnpm --filter @tabai/registry db:apply` is
+# idempotent, so a first run that fails costs a re-run and nothing else.
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: tab-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: tab
+      POSTGRES_PASSWORD: tab
+      POSTGRES_DB: tab
+      # Deterministic collation, so an index built here sorts the way it sorts
+      # anywhere else. Left to the host locale this differs between machines.
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    ports:
+      # Bound to loopback rather than to 0.0.0.0. An unauthenticated-in-practice
+      # development database must not be reachable from the local network.
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - tab-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # `pg_isready` answers as soon as the socket accepts, which during first-time
+      # initdb happens before the database is actually usable. start_period covers
+      # that window instead of the retries absorbing it.
+      test: ["CMD-SHELL", "pg_isready -U tab -d tab"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+volumes:
+  tab-pgdata:
