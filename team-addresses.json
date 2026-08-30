@@ -1,0 +1,76 @@
+{
+  "$comment": [
+    "Every Creditcoin address this project controls. Any address absent from this file",
+    "is external by definition, which is the classification rule in one sentence.",
+    "",
+    "The direction matters. An allowlist of insiders can only ever overstate how many",
+    "outsiders there are if it is incomplete, so the file is written to be exhaustive",
+    "and every omission inflates a published adoption figure. That is why each entry",
+    "names why the address is ours rather than only listing it: an entry nobody can",
+    "check is an entry nobody will notice going stale.",
+    "",
+    "Addresses only. No key material belongs here, and every value below is public and",
+    "readable on chain.",
+    "",
+    "Classification is applied to Metered Deliveries by submitting Creditcoin address,",
+    "and to Verified Settlements by the Agent the Settlement credits, which is the",
+    "address bound in AgentRegistry rather than the Source Chain payer. Those differ",
+    "whenever a Settlement is broadcast from a smart account, and counting the payer",
+    "would attribute the delivery to the wrong party.",
+    "",
+    "Requirements: 29.1"
+  ],
+  "network": "Creditcoin CC3 Testnet",
+  "chainId": 102031,
+  "internal": [
+    {
+      "address": "0xE5eaB26CaE0855BcCaBBb9A64faFce28C8432b37",
+      "role": "deployer and Service operator",
+      "why": "deployed every core contract and is the operator ServiceRegistry holds for tab.proof-service, so it signs every Metered Delivery the gateway and the Proof Service record"
+    },
+    {
+      "address": "0xb67c73fd513adF5d270d1102F04eb8327F218FE7",
+      "role": "Watcher",
+      "why": "the address TabBook.watcher holds. It applies Provisional Clearings and submits Verified Settlements, and it is the only component that spends CTC"
+    },
+    {
+      "address": "0x1F6f797Edc2EECb02BD54009B805fb2E99F80542",
+      "role": "demonstration Agent, Creditcoin half",
+      "why": "the Agent used to drive the rail end to end during development. Every Verified Settlement recorded so far credits this Agent, so counting it as external would make the adoption figures entirely self-reported"
+    },
+    {
+      "address": "0x621663045265405B65d2afD1c22bC7254f8E1dec",
+      "role": "curation authority",
+      "why": "queues and applies Curated Tier changes in ServiceRegistry"
+    },
+    {
+      "address": "0x952AcC70E6f54Ce87Dca963193A5957BCb27729e",
+      "role": "Tab Collection Address",
+      "why": "the address Agents settle to on a Source Chain. It receives rather than submits, so it should never appear as a delivery submitter, and it is listed so that a run which does surface it is recognised as a defect rather than as adoption"
+    },
+    {
+      "address": "0x9D6Ad64AE2D000873FFdfC757808F24cF9Cf67FC",
+      "role": "Bond Collection Address",
+      "why": "where a Service operator sends stake to be credited by proven deposit. Listed for the same reason as the Tab Collection Address"
+    },
+    {
+      "address": "0xc374afE2708CF10153D05f9E07a20388b8B3510E",
+      "role": "second demonstration Agent",
+      "why": "generated during wave 20 for the two-agent demo and holds four Verified Settlements. It was absent from this file for a few minutes and the adoption read reported it as one external Agent with 222,003 base units of external volume, which is exactly the failure this allowlist exists to make visible"
+    }
+  ],
+  "sourceChainInternal": [
+    {
+      "address": "0xA302940db97345c5aDAF8dA23Ff46Ae63613d728",
+      "chainKey": 1,
+      "role": "demonstration Agent, Ethereum half",
+      "why": "the Source Chain address bound to the demonstration Agent in AgentRegistry. It is the payer on every Settlement recorded so far. Kept separate from the Creditcoin list because a Source Chain address is never a delivery submitter and the two spaces must not be compared"
+    },
+    {
+      "address": "0x623B7059c9E67C690594085D280d50449Eb7D1d9",
+      "chainKey": 1,
+      "role": "demonstration smart account (SourceRelay.sol)",
+      "why": "a Sepolia contract holding USDC that moves the Asset to the Tab Collection Address on its own behalf, so the Settlement's payer in topics[1] is the contract while the Ethereum sender is a different wallet entirely. It is the counterparty in the task 26.2 demonstration and never appears as a Creditcoin delivery submitter. Reused from the live negative-path suite rather than deployed again, because Tab deploys exactly one contract to a Source Chain"
+    }
+  ]
+}
