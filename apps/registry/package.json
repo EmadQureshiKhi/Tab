@@ -1,0 +1,28 @@
+{
+  "name": "@tabai/registry",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Indexed read API over registry and settlement events.",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc -b tsconfig.json tsconfig.test.json",
+    "typecheck": "tsc -b tsconfig.json tsconfig.test.json",
+    "test": "tsc -b tsconfig.json tsconfig.test.json && node --import tsx --test test/*.test.ts",
+    "start": "node dist/main.js",
+    "index:once": "node --import tsx src/main.ts --once",
+    "db:apply": "node --import tsx src/apply-schema.ts"
+  },
+  "dependencies": {
+    "@hono/node-server": "2.1.1",
+    "@tabai/shared": "workspace:*",
+    "drizzle-orm": "0.45.2",
+    "ethers": "^6",
+    "hono": "4.13.5",
+    "postgres": "3.4.9"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.1",
+    "tsx": "4.19.2"
+  }
+}
