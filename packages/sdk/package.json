@@ -1,0 +1,65 @@
+{
+  "name": "@tabai/sdk",
+  "version": "0.1.2",
+  "description": "Post-paid billing for autonomous agents on Creditcoin. MCP server, CLI and TypeScript SDK: call a priced tool now, settle in USDC on Ethereum later, and let a Creditcoin contract verify the payment itself through the Attestcoin Protocol.",
+  "keywords": [
+    "creditcoin",
+    "attestcoin",
+    "ctc",
+    "mcp",
+    "model-context-protocol",
+    "ai-agent",
+    "autonomous-agents",
+    "agent-payments",
+    "post-paid",
+    "billing",
+    "credit",
+    "402",
+    "usdc",
+    "ethereum",
+    "cross-chain",
+    "sdk",
+    "cli"
+  ],
+  "license": "MIT",
+  "author": "Emad Qureshi",
+  "type": "module",
+  "engines": {
+    "node": ">=20.10.0"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "tab": "./bin/tab.mjs"
+  },
+  "files": [
+    "dist",
+    "!dist/**/.tsbuildinfo",
+    "bin",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b",
+    "test": "tsc -b && node --test test/*.test.mjs",
+    "bundle": "node scripts/bundle-shared.mjs",
+    "prepack": "tsc -b --force && node scripts/bundle-shared.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.30.0",
+    "ethers": "6.17.0"
+  },
+  "devDependencies": {
+    "@tabai/shared": "workspace:*",
+    "@types/node": "22.20.1",
+    "tsx": "4.19.2"
+  }
+}
