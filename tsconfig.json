@@ -1,0 +1,14 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/shared" },
+    { "path": "packages/sdk" },
+    { "path": "packages/agent-wallet-plugin" },
+    { "path": "apps/app" },
+    { "path": "apps/docs" },
+    { "path": "apps/registry" },
+    { "path": "apps/gateway" },
+    { "path": "apps/keeper" },
+    { "path": "apps/cre-keeper" }
+  ]
+}

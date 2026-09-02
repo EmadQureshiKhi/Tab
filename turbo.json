@@ -1,0 +1,53 @@
+{
+  "ui": "stream",
+  "globalDependencies": [
+    "tsconfig.base.json",
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml"
+  ],
+  "globalEnv": [
+    "NODE_ENV",
+    "CI"
+  ],
+  "tasks": {
+    "build": {
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        "dist/**",
+        "out/**",
+        ".next/**",
+        "!.next/cache/**",
+        "*.tsbuildinfo"
+      ]
+    },
+    "typecheck": {
+      "dependsOn": [
+        "^typecheck"
+      ],
+      "outputs": [
+        "dist/**",
+        "*.tsbuildinfo"
+      ]
+    },
+    "lint": {
+      "dependsOn": [],
+      "outputs": []
+    },
+    "test": {
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        "coverage/**",
+        "lcov.info"
+      ]
+    },
+    "test:property": {
+      "dependsOn": [
+        "^build"
+      ]
+    }
+  }
+}
