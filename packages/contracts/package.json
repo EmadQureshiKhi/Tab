@@ -1,0 +1,13 @@
+{
+  "name": "@tabai/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Foundry project holding the Tab contracts on Monad: registry, bond escrow, tab book and the settlement surface. Solidity toolchain only, so it carries no TypeScript tasks.",
+  "scripts": {
+    "build": "node tools/forge.mjs build",
+    "test": "node tools/forge.mjs test",
+    "test:forge": "node tools/forge.mjs test",
+    "coverage": "node tools/forge.mjs coverage --profile coverage --no-match-coverage node_modules --report lcov",
+    "fmt": "node tools/forge.mjs fmt --check"
+  }
+}

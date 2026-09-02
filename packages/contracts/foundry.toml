@@ -1,0 +1,130 @@
+[profile.default]
+src = "src"
+test = "test"
+script = "script"
+out = "out"
+cache_path = "cache"
+libs = ["lib", "../../node_modules"]
+
+# Every contract compiles with Solidity ^0.8.23.
+solc_version = "0.8.23"
+evm_version = "shanghai"
+optimizer = true
+optimizer_runs = 200
+via_ir = false
+verbosity = 2
+
+# Skip forge's PREVRANDAO check so scripts and forks run against a chain whose
+# blocks do not report the value forge expects.
+bypass_prevrandao = true
+
+# No test reads or writes the filesystem.
+fs_permissions = []
+
+# `forge-std` is pinned to tag v1.9.7 (commit
+# 77041d2ce690e692d6e03cc812b57d1ddaa4d505) and `permit2` to commit
+# cc56ad0f3439c502c246fc5cfcc3db92bb8b7219 as git submodules declared in the
+# repository-root `.gitmodules`. A fresh clone restores the exact same tree with
+# `git submodule update --init --recursive`. OpenZeppelin resolves from the
+# workspace root `node_modules`.
+#
+# Only Permit2's interfaces are compiled from the submodule. Its implementation
+# pins `pragma solidity 0.8.17` exactly, so tests exercise the canonical Permit2
+# by etching its deployed runtime bytecode instead (`test/helpers/Permit2Code.sol`).
+remappings = [
+    "@openzeppelin/contracts/=../../node_modules/@openzeppelin/contracts/",
+    "forge-std/=lib/forge-std/src/",
+    "permit2/=lib/permit2/",
+]
+
+# Property-based test configuration.
+[profile.default.fuzz]
+runs = 256
+max_test_rejects = 100000
+
+[profile.default.invariant]
+runs = 256
+depth = 64
+fail_on_revert = false
+
+# ---------------------------------------------------------------------------
+# Coverage profile. Named `coverage`; the default profile is untouched by it.
+#
+# Task 10.10's per-contract line-coverage gate must invoke exactly this, from
+# `packages/contracts`:
+#
+#     forge coverage --profile coverage --no-match-coverage node_modules --report lcov
+#
+# or `pnpm --filter @tabai/contracts coverage`, which is the same command. The
+# report lands at `packages/contracts/lcov.info`, already gitignored. Verified
+# from a cold cache (no `out/`, no `cache/`) on forge 1.8.1.
+#
+# `--no-match-coverage node_modules` keeps OpenZeppelin, reached through a
+# workspace remapping rather than `lib/`, out of the report.
+#
+# Why the profile exists at all. `forge coverage` wants source maps it can
+# trust, so it force-disables the optimizer and the Yul pipeline for the whole
+# run and discards every attempt to turn either back on: `via_ir = true` in a
+# profile is ignored, `--via-ir` on the command line is ignored, and
+# `--ir-minimum` is the only switch that reaches the Yul pipeline. Two separate
+# things then fail to compile, and both had to be dealt with:
+#
+#   - Unoptimised legacy code generation runs out of stack inside
+#     `src/ServiceRegistry.sol`. Reproduced on solc 0.8.23, 0.8.30, and 0.8.35;
+#     it is not a compiler-version matter.
+#   - `--ir-minimum` does not rescue it, because with only the unused pruner
+#     enabled the Yul stack-limit evader has nothing to work with: the pinned
+#     `EvmV1Decoder` carries one un-annotated assembly block, so no memory
+#     guard is emitted for it, and that run dies on its EIP-7702 `Type4Fields`
+#     decoding instead.
+#
+# So the escape is scoped rather than global. Every source keeps the unoptimised
+# legacy pipeline and its faithful line attribution, and `ServiceRegistry` alone
+# is lifted into a second solc invocation, through the compilation restriction
+# below, where the Yul pipeline resolves its stack pressure. `EvmV1Decoder`
+# compiles perfectly well unoptimised and needs no special handling, so nothing
+# about the decoder affects attribution for our own sources.
+#
+# Two notes:
+#
+#   - Attribution for `ServiceRegistry` is good but not perfect: a handful of
+#     `if (cond) revert ...;` and `if (cond) {` lines read as unhit even though
+#     the condition demonstrably executes. The error is one-directional, it
+#     understates coverage, never overstates it, so a gate cannot be fooled
+#     into passing, though it can fail a little early. Measured alternatives
+#     were worse: the legacy pipeline with the optimizer on reports 77/82 and
+#     the Yul pipeline with the optimizer on reports 59/82, against 78/82 here.
+#     Branch counts for this one file are heavily understated; gate on line
+#     coverage only, which is what both thresholds already say.
+#   - If a newly added contract breaks the coverage compile with `Stack too
+#     deep`, add its path as another `compilation_restrictions` entry rather
+#     than widening the settings for everything. Keeping files on the
+#     unoptimised legacy pipeline is what keeps their line data honest.
+[profile.coverage]
+
+# The settings a restricted file is compiled with. Deliberately the smallest
+# departure from unoptimised legacy codegen that compiles: the Yul pipeline with
+# the optimizer left off. Turning the optimizer on as well is what wrecks line
+# attribution, so it stays off.
+[[profile.coverage.additional_compiler_profiles]]
+name = "via-ir-unoptimised"
+via_ir = true
+optimizer = false
+
+[[profile.coverage.compilation_restrictions]]
+paths = "src/ServiceRegistry.sol"
+via_ir = true
+
+[profile.coverage.coverage]
+# Test contracts are the instrument, not the subject.
+exclude_tests = true
+
+[fmt]
+line_length = 110
+tab_width = 4
+bracket_spacing = false
+int_types = "long"
+
+[rpc_endpoints]
+monad = "${MONAD_RPC_URL}"
+monad_testnet = "${MONAD_TESTNET_RPC_URL}"
