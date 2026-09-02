@@ -1,0 +1,26 @@
+{
+  "name": "@tabai/gateway",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Metering and post-paid wrapper service, including the 402 challenge headers.",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b",
+    "test": "tsc -b && node --test test/*.test.mjs",
+    "meter": "tsx src/bin/meter.ts",
+    "start": "node dist/main.js"
+  },
+  "dependencies": {
+    "@hono/node-server": "2.1.1",
+    "@tabai/sdk": "workspace:^",
+    "@tabai/shared": "workspace:*",
+    "ethers": "6.17.0",
+    "hono": "4.13.5"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.1",
+    "tsx": "4.19.2"
+  }
+}
