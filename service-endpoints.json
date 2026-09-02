@@ -1,0 +1,32 @@
+{
+  "$comment": [
+    "Where a registered Service can actually be reached.",
+    "",
+    "This is not chain state and it is not presented as any. `ServiceRegistry.Service`",
+    "stores an operator, a tier, a Settlement Window, a bond account and a registration",
+    "time. It stores no URL, deliberately: the chain is the billing rail, not a directory",
+    "of hosts. Putting one on chain would mean every Service paid gas to move house, and",
+    "would make a dead link a permanent record.",
+    "",
+    "So the directory lives here, published by this project, and the Dashboard labels it",
+    "as such. A Service registered on chain but absent from this file is still listed",
+    "with its real tools and prices; it is shown without a run command, and the page says",
+    "that is why. The chain remains the authority on what a Service charges. This file is",
+    "only the authority on where to send the call.",
+    "",
+    "No key material belongs here. Every value below is a public endpoint."
+  ],
+  "services": [
+    {
+      "serviceId": "0x7461622e70726f6f662d73657276696365000000000000000000000000000000",
+      "name": "tab.proof-service",
+      "summary": "Generates an Attestcoin Continuity Proof and Merkle Proof for a Creditcoin block height, which is what a Settlement needs before a contract will accept it.",
+      "endpoint": "http://localhost:8788",
+      "transport": "mcp",
+      "operatedBy": "this project",
+      "tools": {
+        "proof.generate": "Returns the proof pair for one height. Priced per call; nothing is paid to make the call."
+      }
+    }
+  ]
+}
