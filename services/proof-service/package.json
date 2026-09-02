@@ -1,0 +1,28 @@
+{
+  "name": "@tabai/proof-service",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Metered proof-generation service, itself an agent trading on the rail.",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b",
+    "test": "tsc -b && node --test test/*.test.mjs",
+    "proof": "tsx src/bin/proof.ts",
+    "settle": "tsx src/bin/settle.ts",
+    "start": "node dist/main.js"
+  },
+  "dependencies": {
+    "@gluwa/usc-sdk": "0.18.0",
+    "@hono/node-server": "2.1.1",
+    "@tabai/sdk": "workspace:^",
+    "@tabai/shared": "workspace:*",
+    "ethers": "6.17.0",
+    "hono": "4.13.5"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.1",
+    "tsx": "4.19.2"
+  }
+}
