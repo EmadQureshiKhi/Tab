@@ -1,0 +1,170 @@
+---
+title: "Attestcoin Protocol integration"
+description: "Every protocol surface Tab uses, why each is load-bearing, and what the removal test returns."
+---
+
+This document names every Attestcoin Protocol surface Tab depends on, states why each one is load-bearing, and records what was measured against the live network rather than assumed.
+Every address, transaction hash, and figure below is checkable from the repository with an RPC endpoint and no key.
+
+## The one-sentence claim
+
+A Creditcoin contract learns that an Ethereum payment happened by verifying the Ethereum transaction, its receipt, and its event logs against a Creditcoin attestation, and nothing else in Tab is allowed to assert that money arrived.
+
+## Surfaces Tab uses, and why each is load-bearing
+
+| Surface | Where | What Tab calls | What breaks without it |
+| --- | --- | --- | --- |
+| BlockProver Precompile | `0x0000000000000000000000000000000000000FD2` on CC3 Testnet | `verifyAndEmit(chainKey, height, encodedTransaction, merkleProof, continuityProof)`, `calculateTxIndex(merkleProof)`, and the `view` overload `verify(...)` as a keyless preflight | no Open Tab can ever be reduced by a proof, and reduction becomes an operator assertion |
+| ChainInfo Precompile | `0x0000000000000000000000000000000000000fd3` on CC3 Testnet | `get_supported_chains()` and `get_latest_attestation_height_and_hash(chainKey)` for discovery and the attestation wait, `get_attestation_bounds(chainKey, height)` for the reorganisation check, `get_attestation_height_for_digest(chainKey, digest)` as corroboration only, and `get_attestation_genesis_height(chainKey)` through the library's RawProofBuilder path | the Watcher cannot know when a Settlement is provable and has to guess finality |
+| `EvmV1Decoder` | `@gluwa/usc-contracts` 0.1.2, deployed once at `0x10619F16E1ac73AAe41AA4C1619f1387687EED79` and linked into `SettlementVerifier` | `getTransactionType`, `isValidTransactionType`, `decodeReceiptFields`, `getLogsByEventSignature`, and `decodeCommonTxFields` | the verified bytes cannot be read as a receipt, so no log can be authenticated |
+| Proof Builder API | `https://prover.cc3-testnet.creditcoin.network` | `GET /api/v1/proof-by-tx/{chainKey}/{txHash}`, `POST /api/v1/proof-batch-by-tx/{chainKey}`, `GET /api/v1/attested-height/{chainKey}` | proof material must be rebuilt locally from Source Chain blocks, which the RawProofBuilder path does as the independent fallback |
+| RawProofBuilder | `@gluwa/usc-sdk` 0.18.0, `proofProvider.raw.RawProofBuilder` | rebuilds the block's transaction tree and the digest chain from Source Chain RPC reads | a single proof source becomes a single point of failure and a single point of trust |
+| Attestation metadata | the ASC Dashboard at `https://dashboard.cc3-testnet.creditcoin.network` | read by people, never by code | nothing in the pipeline; it is the human view of attestation liveness |
+
+`SettlementVerifier`, the Attestcoin Smart Contract, is deployed at `0xDf4e7F76e5821ab351877C7862117fDdbC7a44a7` and every address here is recorded in `deployments.json`, read back keylessly by `script/07_VerifyDeployment.s.sol`.
+The precompile address is read from an address library inside the contract and cannot be injected.
+The BlockProver Precompile reports zero code bytes to `eth_getCode`, as native precompiles do, so the only valid liveness probe for it is a successful call.
+
+## The removal test
+
+Remove the Attestcoin Protocol and `SettlementVerifier` has nothing to call.
+No `verifyAndEmit` exists, so no proof can reduce an Open Tab, and the only remaining way to reduce one is for an off-chain operator to submit a signed claim that funds landed.
+That operator is a trusted facilitator, which is exactly the assumption Tab exists to remove.
+Tab therefore does not degrade without the protocol; it inverts into the product it replaces.
+
+| Capability | Attestcoin surface | Without it |
+| --- | --- | --- |
+| reducing an Open Tab | `verifyAndEmit` | reduction becomes an operator assertion |
+| binding an Ethereum payer address to a Creditcoin identity | `verifyAndEmit` plus payer resolution from `topics[1]` | binding becomes an operator signature |
+| growing a Credit Limit | the Verified Settlement history the verifier records | credit history becomes self-reported |
+| telling a Sepolia event from a Mainnet event at the same address | the `chainKey` carried by the proof | testnet activity can manufacture mainnet credit |
+| batching up to ten Settlements in one Creditcoin transaction | ten sequential `verifyAndEmit` calls, each with its own Continuity Proof | per-payment proving cost |
+| knowing when a Settlement is provable | ChainInfo attestation metadata | the Watcher must guess finality |
+
+## Authority and data flow in one direction
+
+The Agent holds its own Ethereum keys and initiates its own Settlement, either a plain USDC `Transfer` on Ethereum Mainnet or a `TabSettlement.settle` call on Ethereum Sepolia.
+Value moves on Ethereum by the Agent's signature.
+Creditcoin then verifies that the transaction happened and accounts for it.
+No component of Tab holds an Agent key, signs on an Agent's behalf, or can move an Agent's funds.
+Authority and data therefore flow the same way, from the Agent's key on the Source Chain to a verified record on Creditcoin.
+
+## Readability today, and the seam left for Writability
+
+The Attestcoin Protocol makes Source Chain transaction history verifiable inside a Creditcoin contract. Every surface live on CC3 Testnet today is a read: the BlockProver verifies, and every ChainInfo method is a `get_`, an `is_` or a `find_`.
+
+That capability is Readability, and Tab runs its whole settlement, verification and credit flow on it. It consumes CTC gas and carries no protocol fee. Value moves on the Source Chain under the Agent's own key, and Creditcoin reads it. Nothing has to travel the other way, which is why nothing has to be trusted to carry it.
+
+Writability is the other direction, where Creditcoin writes to a Source Chain rather than only reading it, and it is on the protocol's announced roadmap rather than live. Building on it today would be building on a capability that cannot be called, so Tab does not. What Tab did instead is leave the seam.
+
+`IOutboxAdapter` declares the three publications a credit facility would want to make onto a Source Chain, a Credit Limit, a delinquency and a Bond withdrawal, each with the exact arguments it needs, and **ships with zero implementation**. That is the requirement rather than an omission: a stub answering `true` from `isAvailable()` would be worse than nothing, because it would let a caller treat an unpublished limit as published. Nothing in `SettlementVerifier`, `TabBook`, `AgentRegistry`, `ServiceRegistry`, `Bond` or `LimitLib` calls it, and no deployment wires an address into it.
+
+What the declaration buys is that connecting the path later is a wiring task against a fixed shape rather than a design task: the arguments each publication needs are settled now, while the reasons for them are still in view. Two of the [boundaries](/limitations) are the same absent capability seen from two sides, and both resolve the day it lands.
+
+## The ASC Dashboard reports status, not registration
+
+The dashboard at `https://dashboard.cc3-testnet.creditcoin.network` is a read-only status page with two views: an overview of attestation liveness per Source Chain, and a global log of transactions verified through the protocol.
+It has no form, no wallet connection, no account, and no per-contract view.
+There is no ASC registration step because there is no allowlist: `verifyAndEmit` is a precompile call that any deployed contract may make.
+Tab records the dashboard as its source of attestation and verification status and for nothing else.
+
+## What was measured on the live network
+
+Each item below corrects or confirms a claim the design made, with the evidence it rests on.
+
+### The payer is `topics[1]`, never the transaction `from` field
+
+A historical Ethereum Mainnet USDC `Transfer` at height 25870230, transaction `0x73851592942e6283ed87836cee8dc7b0b68a451e91cbc0221c0d78602dd29f28`, was proved end to end from a probe contract on CC3 Testnet in Creditcoin transaction `0xc402fb3074cb931929a0d1651a3b3bae6eceebabf9a007bb4ed9346a628a2cab`.
+The gas payer in the transaction `from` field was `0xf70da97812CB96acDF810712Aa562db8dfA3dbEF` and the sender the Asset recorded in `topics[1]` was `0x4cD00E387622C35bDDB9b4c962C136462338BC31`, two different addresses in one transaction.
+A design that resolved the payer from `from` would have credited the recipient of the money.
+`SettlementVerifier` resolves the payer from `topics[1]` only and excludes the `from` field returned by `decodeCommonTxFields` from payer resolution.
+
+### One Continuity Proof proves exactly one height
+
+The precompile reads a Continuity Proof's first root as the root of the height being proved.
+A proof built to span ten heights verified for the lowest one and reverted `Error("Merkle root mismatch")` for the rest, mined and reverted in `0x67682095d197191160da72a5f7a3e5349bf9b9d9f8023c2004782b16b0c57fd1`.
+Ten sequential `verifyAndEmit` calls, each carrying its own Continuity Proof, succeeded in `0x5bfc3f29c03ebb14218b4b39eb94786a91ff73a1631ec0250a1cecf2730eab97` at 557,718 gas against a 75,000,000 block gas limit, which is 0.74 percent of one block.
+The array-shaped overload accepts a shared proof but returns one boolean for the whole batch, so it cannot attribute a failure to one Settlement, and Tab does not call it.
+Every batch member therefore carries its own Continuity Proof, and the batch bound of ten is a proof-availability and blast-radius bound rather than a gas bound.
+
+### The precompile reverts rather than returning false
+
+A forged Merkle root and a one-byte-tampered `encodedTransaction` are both refused inside `verifyAndEmit` with the builtin `Error(string)` selector `0x08c379a0` carrying `Merkle proof validation failed`.
+Evidence: Creditcoin transactions `0xe452970f5777397104093655cafd0064ba7a00d81ddcdac862a7e590dfc1ac64` and `0x68617e35cc8bf8db5d43a94f7dcfc2d1094e67cfdbe74b619f522313b574c3ca`, both status 0, both 190,036 gas of a stated 3,000,000, with the genuine material returning `true` over a keyless `eth_call` as the control.
+Control never returns to the contract's `if (!ok)` branch, so `ProofRejected` is defensive on this network and is exercised only by unit tests against a mock that returns `false`.
+The Watcher keys its retry decision on the decoded revert message and treats an unrecognised `Error(string)` as skip-and-flag rather than as a retryable builder fault.
+
+### The Merkle tree is domain-separated
+
+A leaf is `keccak256(0x00 || encodedTransaction)` and an inner node is `keccak256(0x01 || left || right)`.
+The design's pseudocode omitted the tags and derives `0x9ee830892e5f5a5d889a0b91477ad934ea804594063eb54932bf04a4fdd40bbb` from genuine Mainnet material whose real root is `0x2d72e37c7d7dc2f5fec2b412e9464d3fd42b197b2d505d252a70d610ff5ce434`.
+The tags are what stop a leaf whose bytes happen to equal `left || right` from hashing identically to the parent of those children.
+The Watcher re-derives the tagged root locally and submits only on an exact match, and it cross-checks the index read from sibling laterality against `calculateTxIndex`, which independently returned 7 for the recorded material.
+
+### ChainInfo names are `snake_case`, and a name is a selector
+
+`supportedChains()`, `latestAttestedHeight(uint64)`, `attestedBlockDigest(uint64,uint64)`, and `waitUntilHeightAttested(uint64,uint64)` all revert `Error("Unknown selector")` against the precompile.
+The real reads are the `snake_case` names in the table above.
+`waitUntilHeightAttested` exists only in the client libraries as a poll of `get_latest_attestation_height_and_hash`, with a default one-minute timeout that would abandon most Mainnet Settlements, so Tab implements its own poll with the timeout sized to the documented wait.
+`chainName` is `bytes` rather than `string`, and every non-trivial return is a struct decoded positionally in wire order.
+
+### Attestations land on a stride of ten blocks
+
+Attested heights on both chains are multiples of 10 and the frontier advances about every 2 minutes; checkpoints sit on a coarser stride of 100 and carry `isAttestation: false`.
+Most Settlement heights are therefore never themselves an attestation endpoint, which is precisely what the Continuity Proof bridges.
+The measured head-to-attested lag was 7 to 8.6 minutes; the documented planning figure of 13 to 15 minutes is kept and the Watcher's wait is not tuned tighter on the strength of two samples.
+
+### The attested digest is a protocol digest, not a block hash
+
+The attested digest at height `h` is `keccak256(uint64(h) || merkleRoot_h || digest_(h-1))`, chained from the previous attestation endpoint, where `merkleRoot_h` is the root of the attested transaction-and-receipt tree.
+It was reproduced byte for byte on Ethereum Sepolia by chaining a Proof Builder Continuity Proof's `lowerEndpointDigest` through its roots up to the frontier digest reported by `get_attestation_bounds`.
+`get_attestation_height_for_digest` resolves attestation endpoints only: with the correct protocol digests in hand, five consecutive non-endpoint heights answered `exists: false` and only the stride-10 endpoint answered `exists: true`.
+A Source Chain block hash is not in that digest space at all and answers `exists: false` on both chains.
+Two consequences follow.
+The reorganisation check cannot be a digest lookup, and the Watcher instead compares the Source Chain block hash it recorded at Provisional Clearing time against the canonical block hash at that height once `get_attestation_bounds` reports the height covered.
+And `get_checkpoint_for_height` must never be used as a digest source, because an attested height is usually not a checkpoint and the call answers `exists: false` for a healthy height.
+
+### Proof material perishes, and only half of it does
+
+The Merkle inclusion proof is durable, because a block's transaction tree never changes.
+The Continuity Proof is not: its length is the distance from the proved height up to the nearest endpoint at or above it, and that distance grows as a range ages from the stride-10 attestation grid onto the stride-100 checkpoint grid.
+The recorded Mainnet target at height 25876970 needed 1 root when its proof was built and 31 roots later, and the 1-root proof was refused with `Error("Continuity proof does not match attestation or checkpoint")` while a freshly fetched proof passed the keyless preflight.
+Continuity Proofs are therefore fetched close to submission and never cached across a long delay, and this is the concrete mechanism behind the dense-attestation cost claim on the [boundaries page](/limitations).
+
+### `is_height_attested` is not relied on at the frontier
+
+One height past the tip, the boolean read once answered differently on the two chains, most likely because Creditcoin `latest` runs ahead of `finalized`.
+The disagreement did not reproduce once both reads were pinned to one block tag, which supports that explanation without proving the function's semantics.
+Every readiness decision in the Watcher therefore polls the height-returning read at a pinned block tag and asks whether the frontier covers the height, never whether the height is an attestation.
+
+## How one Settlement is verified
+
+`SettlementVerifier` runs the following steps in a fixed order for every submission, and applies tab, credit, and Bond state only after the last of them.
+
+1. The `chainKey` must be 1 for Ethereum Sepolia or 3 for Ethereum Mainnet; anything else reverts `UnsupportedChainKey`.
+2. `verifyAndEmit` is called on the BlockProver Precompile with the encoded transaction, its Merkle Proof, and its own Continuity Proof.
+3. The transaction index is taken from `calculateTxIndex(merkleProof)` and never from the caller.
+4. `getTransactionType` and `isValidTransactionType` gate decoding, and `decodeReceiptFields` must report `receiptStatus == 1`, or the submission reverts `SourceTransactionReverted` before any log is read.
+5. Every log is authenticated against the `(chainKey, emitterAddress)` pair the `ServiceRegistry` authorised, and the handler is chosen by the log's own emitter and `topics[0]`, so no caller-supplied selector exists.
+6. Each recognised log takes a replay key packed from `(chainKey, blockHeight, txIndex, logIndex)`, so every Settlement in a batched transaction is claimable exactly once and a duplicate reverts `AlreadyClaimed`.
+7. The payer is resolved from `topics[1]` through the `AgentRegistry`, the Service from the Collection Address in `topics[2]`, and the Asset from the emitting contract.
+
+A batch submission carries between 1 and 10 members, each with its own Continuity Proof, spanning at most 1000 Source Chain blocks, and is all or nothing.
+
+## Reproducing the evidence without a key
+
+```bash
+# attested frontier, digest space, and the block-hash comparison on both chains
+node --input-type=module < spike/verify-reorg.mjs
+
+# the camelCase names that do not exist, the tagged Merkle derivation, and proof perishability
+pnpm --filter @tabai/watcher probe:attestation
+
+# the recorded negative-path cases, replayed over eth_call
+pnpm tsx packages/contracts/test/live/run.mts --preflight --case forged-merkle-root
+
+# the deployment, read back from both ends of every wired slot
+cd packages/contracts && forge script script/07_VerifyDeployment.s.sol:VerifyDeployment --rpc-url creditcoin --sig "run()"
+```
+
+Each command needs an RPC endpoint from `.env.example` and nothing else.
