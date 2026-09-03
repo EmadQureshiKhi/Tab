@@ -1,0 +1,109 @@
+---
+title: "Threat model"
+description: "The trusted set, the bound on what each member can do, and the proof boundary."
+---
+
+This document enumerates every trusted component in Tab, states the exposure each one carries, and draws the boundary of what the Attestcoin Protocol proves.
+The organising fact is that the trusted set contains parties who can slow the system, admit a counterparty, or waste their own Bond, and contains no party who can claim that money arrived.
+
+## Trusted components
+
+| Component | Trust granted | Bound on the damage | Mitigation |
+| --- | --- | --- | --- |
+| Curation authority, a single address that may be a multisig | promote a Service to the Curated Tier and queue changes to prices, Collection Addresses, accepted Assets, and Settlement Windows | can admit a colluding Service into credit computation; cannot mint credit beyond that Service's Bond, cannot move Agent funds, cannot forge a Settlement | every change is queued, held 48 hours, and announced by `RegistryChangeQueued` before `RegistryChangeApplied`, so a pending promotion is visible before it takes effect; the authority is fixed at construction and cannot be reassigned, so the role cannot be quietly moved to another key; it is held by `0x621663045265405B65d2afD1c22bC7254f8E1dec` today, and the 2-of-3 multisig at `0x9fCe693cD68307a2450aB57f4654653643F01Bb6` takes it at the next deployment of the registry |
+| Watcher operator | apply Provisional Clearings, report reorganisations, submit proofs | can apply a Provisional Clearing that no Settlement confirms, which slashes the Service's own Bond and never the Agent; can withhold submissions and delay credit; cannot create a Verified Settlement, alter an amount, or credit the wrong Agent | Provisional Clearings are Bond-reserved, deadline-bounded, and revocable by a permissionless crank; every Verified Settlement still requires the precompile to accept the proof; the Watcher never signs on an Agent's behalf |
+| Service operator | record Metered Delivery against an Agent's tab | can charge only inside an unexpired spending authorisation the Agent set, and only at prices from its applied timelocked price list | the authorisation ceiling is Agent-set; price changes take 48 hours; `PriceListChangedMidCall` blocks re-pricing inside a call; the Agent can let an authorisation lapse |
+| Proof Builder API and RawProofBuilder | supply proof material | can supply bad material, which costs nothing because the Watcher re-derives the root locally and the precompile refuses the rest | two independent sources, local root re-derivation with the domain-separated tree, and a `calculateTxIndex` cross-check before any gas is spent |
+| The Agent's own keys | move the Agent's own funds on Ethereum | no component of Tab holds them | the SDK never persists a key and the CLI never writes one into a client configuration |
+| Deployer | one-shot wiring at deployment | can mis-wire once, in public; cannot re-point a wired contract | every `set*` slot reverts once non-zero, all five slots are now spent, and `07_VerifyDeployment.s.sol` reads every address back keylessly |
+
+There is deliberately no component that can assert a settlement.
+The `SettlementVerifier` learns that money moved by verifying the Ethereum transaction, its receipt, and its logs against a Creditcoin attestation, and every downstream state change waits on that verification.
+
+## The proof boundary
+
+The Attestcoin Protocol proves transaction history: transactions, receipts, and event logs of finalized Source Chain blocks.
+It establishes neither state, nor balances, nor the absence of an event.
+Tab is designed around that boundary rather than papering over it.
+
+- Tab cannot prove that an Agent has funds, only that a transfer occurred, so credit is backed by Service Bonds and never by Agent balances.
+- Tab cannot prove that an Agent did not settle, so delinquency is a timeout on Creditcoin's own clock, and it zeroes credit rather than slashing anyone.
+- Tab cannot read an Ethereum ERC-20 balance, so Bond funding is a proven deposit to a Bond Collection Address rather than a checked balance.
+- Settlement is recognised only from a positive event, a `Transfer` or a `TabSettled`, inside a receipt whose status is 1.
+
+## Wash-settlement bounding
+
+An Agent and a Service under common control can settle back and forth to manufacture history.
+The Bond invariant makes that unprofitable by construction: the credit unlocked by a history is at most `floor(sum(counterpartyBonds) * 9500 / 10000)`, which is strictly less than the Bonds the counterparties posted.
+To unlock `X` of credit a ring must lock strictly more than `X` in Bonds, in the same Asset, on Services holding the Curated Tier.
+Four further terms compound the cost.
+
+- At least 3 distinct Curated Tier bonded counterparties are required before any growth above the baseline.
+- No single counterparty may contribute more than 25 percent of the limit, so a ring needs breadth and not only depth.
+- Age weighting gives a burst of self-settlement a quarter of the weight of the same value seasoned over 30 days.
+- A Settlement counts only where a Metered Delivery for that Agent, Service, and Asset strictly predates it, so the ring must also produce real metered records on Creditcoin.
+
+The pure library that computes the limit guarantees the inequality over whatever Bond set it is handed; `TabBook` guarantees that the set is the real counterparties of that Agent, read from the `Bond` ledger and never supplied by the caller.
+
+Residual risk: collusion between a bonded Curated Tier Service and an Agent remains possible, and it is bounded by the Bond sum.
+That is the honest statement of the exposure and it is disclosed here in exactly those terms.
+
+## Source-chain authentication and dispatch
+
+Every Settlement log is authenticated against the `(chainKey, emitterAddress)` pair the `ServiceRegistry` authorised, so an event on Ethereum Sepolia and an identical event at the same address on Ethereum Mainnet are different facts.
+An emitter authorised for another chainKey reverts `UnauthorizedSourceChain`, and only chainKeys 1 and 3 are accepted at all.
+The handler is selected by the verified log's own emitter and `topics[0]`; the submission entrypoints carry proof material and Source Chain data only, with no caller-supplied handler or action selector.
+The Merkle inclusion, the transaction index, and the receipt status all come from the proof, and anything a caller could supply beside them is excluded from handler selection, authentication, payer resolution, and amount computation.
+
+## Replay and batching
+
+A replay key is the packed tuple `(chainKey, blockHeight, txIndex, logIndex)`.
+It is log-scoped rather than transaction-scoped, so a batched Ethereum transaction carrying several Settlements has each one claimed exactly once, and a resubmission reverts `AlreadyClaimed` with no state changed.
+Zero-topic logs and unrecognised logs are skipped without stranding the recognised logs beside them, and a transaction with no recognised Settlement reverts `NoRecognisedSettlement`.
+
+## Payer resolution
+
+The paying Agent is resolved from `topics[1]` of the Settlement log and never from the transaction `from` field.
+On the live Mainnet transaction the spike proved, the two named different addresses, and resolving from `from` would have credited the recipient of the money.
+An Ethereum address must be bound to a Creditcoin identity by a Verified Settlement of a nonce-encoded amount before it can be credited; an unbound payer reverts `UnboundPayer`, and a binding is refused rather than guessed when the amount matches no open request.
+
+## Provisional Clearing exposure
+
+A Provisional Clearing restores an Agent's headroom the moment the Watcher observes an unfinalized Settlement, before any attestation exists.
+It is covered by the Service's own Bond, reserved for the life of the clearing, and revocable until the Verified Settlement lands.
+If no Verified Settlement confirms it within 60 minutes on Ethereum Mainnet or 30 minutes on Ethereum Sepolia, a permissionless crank restores the Open Tab and slashes the reserved amount to the Agent as prepaid credit, because the claim was made by the Service's own infrastructure and the Agent never consented to it.
+A declined clearing is terminal for that identity, so a Bond that falls short cannot be retried into coverage; the Open Tab simply waits for the proof.
+The identity of a clearing rests on the transaction index the Source Chain RPC asserted at observation time; the proven index is compared against it before submission, and a wrong index costs the Service's own Bond and nothing else.
+
+## Reorganisations, and the stated limit of the check
+
+Attestation covers only finalized blocks, so a reorganisation of an attested block is not an expected event, and the check exists as defence in depth.
+The Watcher records the Source Chain block hash it read for the Settlement's block when it applied the Provisional Clearing.
+Once `get_attestation_bounds` reports the height covered, it compares that hash against the canonical block hash at the height, and only on a difference does it call `reportReorg`, which supersedes the Confirmed Clearing, restores the Open Tab, and slashes the Bond.
+`TabBook` independently refuses equal digests and an observation that disagrees with the stored one, so the contract rejects a spurious report on its own.
+
+The limit, stated plainly: the check trusts the Service's own Source Chain endpoint for canonicality.
+Because `reportReorg` restores the Agent's tab and slashes the Service's Bond, a wrong or hostile endpoint can only cost the operator running it, never the Agent.
+A stronger check, that the Settlement's proven Merkle root still chains to the attested endpoint above it, is reachable from the stored Continuity Proof and is documented as an option rather than a requirement.
+The digest-first lookup the design first described is not used, because the attested digest is the protocol's chained digest rather than a block hash and the lookup resolves stride-10 endpoints only, so it would have reported a reorganisation for nearly every healthy Settlement.
+
+## Network-exposed services
+
+The registry read API and the Watcher health endpoint are unauthenticated by decision, because every field they serve restates a public chain fact or the process's own liveness; a rate limit at the deployment's edge is what they owe.
+The gateway's metering endpoint is different: it must authenticate the Service operator by Creditcoin signature and identify the Agent by the `Tab-Agent` header bound to an on-chain authorisation, because an unauthenticated metering endpoint would let anyone charge any Agent up to its authorisation ceiling.
+That authentication is load-bearing and is not deferrable.
+Inside the SDK, the server-side plugin treats `Tab-Agent` and `Tab-Authorisation` as claims and not as authentication; `TabBook` derives the authorisation key itself, so a header cannot redirect a charge, and metering is bounded by the on-chain authorisation the Agent set.
+
+## Other exposures
+
+- Slashed Bond value is credited to the Agent as prepaid credit in the same Asset rather than paid back to an Ethereum address, because paying one would need Writability, which is roadmap rather than live.
+- A bonded party's withdrawal is an accounting move for the same reason: `requestWithdrawal` releases at most the free amount and records it as released. `IOutboxAdapter` declares the publication that would complete it and implements nothing, so the absence is a declared seam rather than a silent gap.
+- The credit history a Credit Limit is computed from is bounded at 512 records and 32 counterparties, and `HistoryTooLong` fails loudly rather than truncating credit silently.
+- Liveness of Provisional Clearing depends on a single Watcher; correctness does not, and reversal is a permissionless crank so an unavailable Watcher cannot strand a clearing past its deadline.
+- Public Ethereum RPC endpoints differ in the `eth_getLogs` ranges they serve, so observation of Ethereum Mainnet through free endpoints depends on endpoint rotation and an adaptive window.
+
+## Keys and secrets
+
+No private key appears in any tracked file; `.env.example` carries shape hints only and the deployer signs through a keystore.
+The Watcher, gateway, Proof Service, curation authority, and Agent each hold a separate key, so no account holds two roles the design claims are separated.
+The vocabulary denylist that gates every document, identifier, and filename is itself a secret and is materialised at job start rather than committed.

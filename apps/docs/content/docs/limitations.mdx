@@ -1,0 +1,76 @@
+---
+title: "Boundaries"
+description: "What Tab does, what it deliberately does not, and the bound on each."
+---
+
+Every system has edges. This page is where Tab's are written down, each with the bound that says how far it reaches, so nothing here is a surprise once you have built on it.
+
+A boundary named without its bound reads as either worse or better than it is. Each one below carries both.
+
+## Where the edges are
+
+### Attestation latency
+
+A Verified Settlement cannot exist until a Creditcoin attestation covers the Settlement's Source Chain block.
+The documented planning figure for Ethereum Mainnet is roughly 13 to 15 minutes; the measured head-to-attested lag on one day was 7 to 8.6 minutes, and the Watcher's wait is sized to the documented figure rather than to the measurement.
+Attestations land on a stride of 10 source-chain blocks about every 2 minutes.
+Nothing in an Agent's request path waits for an attestation: a metered call completes immediately, and a Bond-covered Provisional Clearing restores headroom the moment the Watcher observes the unfinalized Settlement.
+The clearing deadline is 60 minutes on Ethereum Mainnet and 30 minutes on Ethereum Sepolia, sized above the attestation wait plus proof retrieval, batching, and retry margin.
+
+### Value settles on Creditcoin
+
+Money moves one way today: the Agent pays on the Source Chain with its own key, and Creditcoin reads that payment. Anything Tab owes an Agent back is settled in Creditcoin accounting rather than as a second payment in the other direction. Writability, the return direction, is on the Attestcoin Protocol's announced roadmap and is not live on CC3 Testnet, so Tab is built not to need it.
+
+Three things follow.
+An overpayment becomes prepaid credit for that Agent, Service and Asset, spent against the next Metered Delivery rather than refunded.
+Slashed Bond value is credited to the affected Agent as prepaid credit in the same Asset.
+A bonded party's withdrawal is an accounting move: `requestWithdrawal` releases at most the free amount and records it as released.
+
+The seam for a return path already exists and is deliberately empty. `IOutboxAdapter` declares the functions a credit publication would use, with zero implementation behind them, so the day the capability lands connecting it is a wiring task against a fixed shape rather than a redesign. A stub that answered `true` before then would be worse than the absence, because it would let a caller treat an unpublished figure as published.
+
+### One authority decides the Curated Tier
+
+A curation authority decides which Services hold the Curated Tier, and therefore which Settlement history carries Credit Limit weight. It is the one privileged role in the system.
+
+Two things bound it. Every change it makes is queued and held for 48 hours behind `RegistryChangeQueued` before it can apply, so a promotion is public and contestable before it takes effect, and you can watch the countdown on the Service directory. And the role reaches nothing else: it has no power over metering, over any tab, or over any Bond.
+
+The role is held by `0x621663045265405B65d2afD1c22bC7254f8E1dec`, an account this project controls. A 2-of-3 multisig is deployed at `0x9fCe693cD68307a2450aB57f4654653643F01Bb6` and takes the role at the next deployment of the registry.
+
+It can only change at a deployment. The authority is a constructor argument with no setter, so the role cannot be reassigned on a live registry, by this project or by anyone.
+
+### Collusion is bounded, not eliminated
+
+A bonded Curated Tier Service and an Agent under common control can manufacture Settlement history.
+The Bond invariant bounds what that buys: the credit unlocked is strictly less than the sum of the counterparties' Bonds, a ring needs at least 3 distinct Curated Tier counterparties, no counterparty contributes more than 25 percent, a burst weighs a quarter of seasoned history, and every counted Settlement must follow a real Metered Delivery on Creditcoin.
+The risk is real and its ceiling is the Bond sum. The [threat model](/threat-model) states it in those terms.
+
+### A slash makes an Agent whole in credit
+
+When a Provisional Clearing expires unconfirmed or a Confirmed Clearing is superseded by a reorganisation, the Service's reserved Bond is slashed to the Agent as prepaid credit.
+The Agent is made whole in accounting terms against that Service and Asset, and not in an Ethereum balance.
+
+### Credit history has a ceiling
+
+The Credit Limit is computed by a pure library from a calldata witness of the Agent's full Verified Settlement history, validated against an on-chain commitment.
+The library bounds the witness at 512 records and 32 counterparties and reverts `HistoryTooLong` or `TooManyCounterparties` beyond them.
+An Agent whose history reaches those bounds needs compaction. The contract reverts rather than quietly dropping records, so the ceiling announces itself instead of changing an answer.
+
+### Liveness rests on a Watcher; correctness does not
+
+Provisional Clearing liveness depends on the Service's Watcher observing and acting.
+Correctness does not: a clearing that outlives its deadline is reversed by a permissionless crank that anyone may call, so an unavailable Watcher cannot strand a clearing, and every Verified Settlement is submittable by anyone holding proof material.
+Observation of Ethereum Mainnet through free public RPC endpoints is intermittent on a single endpoint, because those endpoints cap `eth_getLogs` ranges between 10 and 10,000 blocks and sometimes refuse a one-block request; endpoint rotation is the remedy.
+
+### Settlement Windows and the dense-attestation regime
+
+A Settlement Window is at most 24 hours and defaults to 6 hours.
+Windows under 24 hours keep proof material inside the dense-attestation regime, where proving costs are roughly a tenth of the sparse-checkpoint regime.
+The mechanism is measured and concrete: a Continuity Proof's length is the distance from the proved height up to the nearest attestation endpoint at or above it, and that distance grows as a range ages from the stride-10 attestation grid onto the stride-100 checkpoint grid.
+The recorded Mainnet target needed a 1-root Continuity Proof when fresh and a 31-root proof later, and the 1-root proof was refused with `Error("Continuity proof does not match attestation or checkpoint")` while a fresh proof passed.
+Continuity Proofs are therefore fetched close to submission, and a Settlement left unsubmitted gets steadily more expensive to prove.
+
+### What is in scope today
+
+Asset scope is USDC only, on Ethereum Mainnet as chainKey 3 and a registered test USDC on Ethereum Sepolia as chainKey 1; the architecture is multi-asset and no price conversion exists anywhere.
+A Bond is denominated in the Asset it backs. That is what keeps the credit invariant free of any price feed: a Bond and the credit it unlocks are the same unit, so no rate can move the ceiling and no oracle sits on it.
+Where Mainnet attestation is unavailable, discovery selects Sepolia on its own and the rail keeps running. Configuration cannot force a chain the ChainInfo Precompile does not report, which is what stops a misconfiguration from becoming a false claim about where a Settlement happened.
