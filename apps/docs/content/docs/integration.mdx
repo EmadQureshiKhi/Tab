@@ -1,0 +1,289 @@
+---
+title: "Integration surfaces"
+description: "The four MCP tools, the CLI, and the payment-strategy seam, each with something you can run."
+---
+
+Three ways to put an Agent on the rail, in the order most people should try them.
+
+The MCP server is the shortest path and needs one line of configuration.
+The CLI is what writes that line.
+The payment-strategy seam is the one you reach for when Tab does not already speak your Asset, and it is deliberately small.
+
+Everything on this page is runnable against CC3 Testnet as written.
+
+Requirements: 25.7, 21.7, 23.8, 28.6, 27.3
+
+## Install
+
+```bash
+npx -y @tabai/sdk connect
+```
+
+That is the whole adoption step.
+It finds your client's configuration file for your platform, backs the file up, merges a single `mcpServers.tab` entry, and prints the diff before it writes.
+Run it twice and the second run writes nothing: the merge is idempotent, and it leaves no second backup.
+
+**It never writes a private key.**
+Signing keys are read from the environment when a Settlement is actually broadcast, and nothing about them is copied into a client configuration file.
+Check the whole installation, keylessly, with:
+
+```bash
+npx -y @tabai/sdk doctor
+```
+
+`doctor` reports what it could reach and warns rather than passing on what it could not.
+A missing Agent address is a warning and not a failure, because the read-only tools work without one.
+
+## The command line
+
+The same package is a CLI. Every command reads the chain; one of them writes to it, and it says so before it does.
+
+| Command | What it does | Spends |
+| --- | --- | --- |
+| `connect` | Writes the `tab` entry into your MCP client's configuration | nothing |
+| `mcp` | Serves the four tools over MCP. This is what a client launches | nothing |
+| `doctor` | Checks the installation against the live deployment | nothing, and needs no key |
+| `status` | What an Agent owes, may still spend, and has settled | nothing, and needs no key |
+| `settle` | Pays down an Open Tab | real funds, and only with `--broadcast` |
+
+`settle` is a dry run unless you ask for otherwise. It builds the Settlement, resolves the Collection Address, reports the attestation wait, and stops:
+
+```bash
+npx -y @tabai/sdk settle \
+  --agent 0x1f6f…0542 \
+  --asset 1:0x1c7d…7238 \
+  --service 0x7461…0000 \
+  --amount 47000
+```
+
+```
+Dry run. Nothing was broadcast.
+  chain key   1
+  amount      47000
+  collection  0x952acc70e6f54ce87dca963193a5957bcb27729e
+  attestation about 30 minutes
+
+Add --broadcast to send it. This spends real funds.
+```
+
+Amounts are always base units. USDC has six decimals, so `47000` is 0.047 USDC. Nothing in this system takes a decimal.
+
+## tab.config
+
+`doctor` warns when two things are missing, and both live here rather than in the environment, because neither is a secret: the Agent whose Open Tab a call meters to, and where a Service can be reached.
+
+A `tab.config.mjs` beside your project, or any parent directory:
+
+```js
+import { Wallet, JsonRpcProvider } from "ethers";
+import { createEthereumUsdcStrategy } from "@tabai/sdk";
+
+export default {
+  // Whose Open Tab a metered call lands on.
+  agent: process.env.AGENT_ADDRESS,
+
+  registryUrl: "http://localhost:8787",
+
+  // The chain records no URL for a Service, so the address lives here.
+  services: [
+    {
+      serviceId: "0x7461622e70726f6f662d73657276696365000000000000000000000000000000",
+      name: "tab.proof-service",
+      endpoint: "http://localhost:8788",
+    },
+  ],
+
+  // A factory, not an object: the signer is built only if something settles, so
+  // every read stays keyless.
+  strategies: [
+    () => createEthereumUsdcStrategy({
+      signer: new Wallet(process.env.AGENT_ETHEREUM_PRIVATE_KEY, new JsonRpcProvider(process.env.ETHEREUM_SEPOLIA_RPC_URL)),
+      assets: {
+        "1:0x1c7d4b196cb0c7b01d743fbc6116a902379c7238": {
+          chainKey: 1n,
+          address: "0x1c7d4b196cb0c7b01d743fbc6116a902379c7238",
+          decimals: 6,
+          symbol: "USDC",
+        },
+      },
+    }),
+  ],
+};
+```
+
+The key is read from the environment at the moment a Settlement is built, and never from this file. `tab_discover`, `tab_status` and `doctor` never call the factory, which is what keeps every read on this rail keyless.
+
+**A factory may decline.** Returning `undefined`, as the one above does when no key is set, means "not available here" rather than "this config is broken": the strategy is skipped and everything else in the file stands. That is the whole reason the entry is a factory rather than an object, and it is what lets one config file serve a read-only process and a settling one without branching.
+
+With that file in place and no key set, `doctor` reports eight checks passing and one warning, and the warning is the missing signing key. Supply `AGENT_ETHEREUM_PRIVATE_KEY` and it reports nine passing and none.
+
+## As a dependency
+
+`connect` is for a client. To build against the rail directly:
+
+```bash
+npm install @tabai/sdk
+```
+
+```ts
+import { settlementReplayKey, createTabToolset } from "@tabai/sdk";
+
+// The four coordinates that identify a Verified Settlement, packed.
+const key = settlementReplayKey({
+  chainKey: 1n,
+  blockHeight: 11649148n,
+  txIndex: 93n,
+  logIndex: 0n,
+});
+```
+
+The package ships its own types and carries no workspace dependency, so it installs and type-checks on its own.
+
+## The four MCP tools
+
+Each tool declares a JSON Schema for its input and its output, and validates its own input against the schema it published.
+**None of them throws.**
+A failure returns `ok: false` with a `category`, a `code` and a `message`, so a model can decide what to do next rather than parse an exception.
+
+| Tool | What it does | Spends |
+| --- | --- | --- |
+| `tab_discover` | Lists Services, the Assets each accepts, what each tool costs, and the Bond each has staked | nothing, and needs no key |
+| `tab_call` | Calls a metered tool. The charge lands on the Open Tab and is settled later | nothing at call time |
+| `tab_status` | The Agent's Credit Limit, Open Tab, prepaid credit and headroom per Asset | nothing, and needs no key |
+| `tab_settle` | Pays down an Open Tab by broadcasting a Settlement with the Agent's own key | real funds |
+
+Start with `tab_discover`, because `tab_call` needs a `serviceId` from its list.
+
+### The failure that matters
+
+An Agent with no headroom is the one case worth handling by name.
+
+```json
+{
+  "ok": false,
+  "category": "LIMIT",
+  "code": "LIMIT_EXCEEDED",
+  "message": "the charge exceeds the Agent's headroom in this Asset",
+  "requiredBaseUnits": "10000",
+  "headroomBaseUnits": "2500"
+}
+```
+
+Both figures are present only on `LIMIT_EXCEEDED`, and they are there so the answer is actionable.
+The correct response is to settle, not to retry: retrying a call that exceeded a Credit Limit produces the same refusal at the same cost.
+
+`tab_settle` takes `dryRun` for exactly this moment.
+It builds the Settlement, resolves the Collection Address, checks the Agent's balance, and reports what it would broadcast without broadcasting it.
+
+## The payment-strategy seam
+
+Tab does not know how to move money.
+It knows how to recognise that money moved, which is a different thing, and the difference is why this seam exists.
+
+A strategy is five methods:
+
+```ts
+export interface PaymentStrategy {
+  readonly id: string;
+  readonly chainKeys: readonly bigint[];
+  supports(asset: AssetRef): boolean;
+  quote(request: ChargeRequest): Promise<Result<ChargeQuote>>;
+  settle(request: SettleRequest): Promise<Result<SettlementReceipt>>;
+  settleBatch?(requests: readonly SettleRequest[]): Promise<Result<readonly SettlementReceipt[]>>;
+  watchHint(receipt: SettlementReceipt): SettlementHint;
+}
+```
+
+`settleBatch` is optional and should stay undefined where the surface has no batch form.
+A plain Asset `Transfer` has none, and faking one would mean claiming a guarantee the chain does not give.
+
+### A third-party strategy
+
+The rule a new strategy has to satisfy is not "move the money".
+It is: **the payment must leave a log a Creditcoin contract can recognise, at an emitter and a Collection Address the registry already knows.**
+Anything satisfying that works; anything else cannot be verified and is therefore not a Settlement.
+
+```ts
+import { err, ok, type Result } from "@tabai/shared";
+
+export const myAssetStrategy: PaymentStrategy = {
+  id: "my-chain-myusd",
+  chainKeys: [1n],
+  supports: (asset) => asset.address.toLowerCase() === MY_ASSET,
+
+  async quote(request) {
+    // No conversion, ever. Tab records integer base units of one Asset and
+    // holds no price, rate or oracle anywhere.
+    return ok({ asset: request.asset, baseUnits: request.baseUnits });
+  },
+
+  async settle(request) {
+    const sent = await moveTheAsset(request);
+    if (!sent.ok) return err(sent.error);
+    return ok({
+      chainKey: 1n,
+      txHash: sent.value.hash,
+      blockNumber: sent.value.blockNumber,
+      baseUnits: request.baseUnits,
+    });
+  },
+
+  // Tells the Watcher where to look. It does not assert that anything settled:
+  // no component of Tab is allowed to, which is the whole design.
+  watchHint: (receipt) => ({ chainKey: receipt.chainKey, txHash: receipt.txHash }),
+};
+```
+
+Register it and it is reachable by `id`:
+
+```ts
+import { createStrategyRegistry } from "@tabai/sdk";
+
+const registry = createStrategyRegistry([ethereumUsdc, myAssetStrategy]);
+```
+
+Nothing here returns a boolean for success.
+Every fallible call returns a `Result`, and a strategy that throws will take down the caller that trusted it.
+
+## Environment
+
+The full contract is `.env.example` at the repository root, which is checked against every `process.env` read in the tree by `pnpm env:check`, so it cannot drift.
+An integrator needs a much smaller set than a developer does.
+
+| Variable | Needed for |
+| --- | --- |
+| `CREDITCOIN_RPC_URL` | every read. The MCP server and `doctor` need only this |
+| `TAB_BOOK_ADDRESS`, `SERVICE_REGISTRY_ADDRESS`, `AGENT_REGISTRY_ADDRESS`, `BOND_ADDRESS` | resolving credit, Services and Bond. All four are in `deployments.json` |
+| `NEXT_PUBLIC_REGISTRY_API_URL` | the Service directory and the Agent's history, if you use the read API rather than the chain |
+| `ETHEREUM_SEPOLIA_RPC_URLS` | broadcasting a Settlement. Comma-separated, because endpoints disagree about `eth_getLogs` ranges |
+| `AGENT_ETHEREUM_PRIVATE_KEY` | broadcasting a Settlement, and nothing else. Never written to a configuration file |
+
+Addresses in `deployments.json` were read back off the chain by a script that holds no key, so the file is checkable by anyone with an RPC endpoint rather than only by whoever deployed it.
+
+## What the rail refuses
+
+Ten cases run against the deployed contracts rather than against a mock, in `packages/contracts/test/live/`.
+Five of them are refusals, and they are the useful half: they establish what an Agent cannot do to the verifier.
+
+| Case | What it establishes |
+| --- | --- |
+| `forged-merkle-root` | a root the Agent invented does not verify |
+| `replayed-settlement` | one log cannot be spent twice; replay keys are claimed per deployment |
+| `wrong-chain-key` | a Settlement cannot be moved between Source Chains |
+| `reverted-source-transaction` | a failed Ethereum transaction settles nothing |
+| `unregistered-recipient` | a payment to an address the registry does not know is not a Settlement |
+
+The other five are acceptances that pin behaviour easy to get wrong, including `payer-from-topic`, which is the case where the Ethereum sender is not the payer, and `two-recognised-logs`, where one `settle` call emits both a `Transfer` and a `TabSettled` and must be counted once.
+
+Recorded outcomes and transaction hashes are in `test/live/results.json`.
+**That file is historical evidence and is never rewritten**, so it still names the `SettlementVerifier` those runs were made against, which the 2026-09-06 redeployment superseded.
+Re-running the suite against the current deployment produces a new record rather than editing that one.
+
+## Check any of this yourself
+
+```bash
+pnpm tab:verify
+```
+
+No private key, no funded account, no write.
+It removes every secret-shaped variable from its own environment before the first chain read and prints which ones it removed, so keylessness is a property of the run rather than a claim about it.
