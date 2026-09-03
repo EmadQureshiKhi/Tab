@@ -1,0 +1,120 @@
+---
+title: "Using the Dashboard"
+description: "Finding a tool, calling one, binding an address, registering a Service, and posting a Bond, all from the browser."
+---
+
+Everything the SDK does from a terminal, the Dashboard does from a browser. Every page reads the chain and shows what it read; two of them sign, and they say so before they do.
+
+<Cards>
+  <Card title="Browse" href="http://localhost:3000/browse" external>
+    Every priced tool, what it costs, and a call you can make.
+  </Card>
+  <Card title="Bind an address" href="http://localhost:3000/register" external>
+    Prove you control an address on the Source Chain, by paying rather than by signing.
+  </Card>
+  <Card title="Register a Service" href="http://localhost:3000/services/new" external>
+    Put your own tools on the rail and set their prices.
+  </Card>
+  <Card title="Post a Bond" href="http://localhost:3000/services/bond" external>
+    Stake behind your Service so a clearing can apply before the proof lands.
+  </Card>
+</Cards>
+
+## What needs a wallet, and what does not
+
+Six of the eight routes read only, and none of them will ever ask for a wallet. Nothing on this site reads through one: a wallet here signs, and only when you press something that says it will.
+
+| Page | Wallet |
+| --- | --- |
+| Browse, Explorer, Agents, Services, Analytics | not needed |
+| Trying a tool from Browse | not needed, because nothing is paid to call |
+| Bind an address | needed, to send `requestBinding` on Creditcoin |
+| Register a Service, Post a Bond | needed, on Creditcoin and on the Source Chain |
+
+Connecting picks from the wallets your browser announces. Signing on Creditcoin costs CTC for gas, and there is no fee to this project and no token to hold.
+
+## Finding and calling a tool
+
+<Steps>
+  <Step n="01" title="Open Browse">
+    Every row is a tool priced on chain. The price, the Asset, the Settlement Window, the tier and the Bond behind it are read from `ServiceRegistry` through the index, not quoted.
+  </Step>
+  <Step n="02" title="Read its terms">
+    Press Run on any card. The first tab is what the chain holds about that tool, including the free Bond the Service can put behind a clearing in that Asset.
+  </Step>
+  <Step n="03" title="Take the commands">
+    The second tab is the setup, filled in for that tool rather than shown as a template: the connect command, a prompt for any client that speaks MCP, and the call itself.
+  </Step>
+  <Step n="04" title="Or call it here">
+    The third tab calls the Service for real. It needs no wallet, no balance and no approval, because nothing is paid to make the call. It takes about a minute: the delivery is recorded on Creditcoin before the Service answers, so the wait is a block rather than a queue.
+  </Step>
+</Steps>
+
+The charge that follows appears against the Agent it was billed to, and the Settlement that pays it down appears in the explorer. That is the whole loop, and every step of it is readable by anyone.
+
+## Binding an address
+
+An Agent's identity on Creditcoin and its address on a Source Chain are two different keys. A binding ties them together, and it does it by payment rather than by signature.
+
+<Steps>
+  <Step n="01" title="Ask for a nonce">
+    Enter the Creditcoin account that will hold the credit and the Source Chain address you are claiming. The registry answers with an exact amount whose last four digits are your nonce.
+  </Step>
+  <Step n="02" title="Settle exactly that amount">
+    Pay it from the address you are claiming, using your own wallet, entirely outside this page.
+  </Step>
+  <Step n="03" title="The proof is the payment">
+    A Verified Settlement of exactly that figure from exactly that address completes the binding. No component of Tab is trusted for it, and nobody can bind an address they cannot spend from.
+  </Step>
+</Steps>
+
+## Registering a Service
+
+Registration is permissionless. Nobody approves it and nothing asks for a review. You sign one Creditcoin transaction that records who operates the Service, which Assets it takes, where it collects them, what each tool costs, and how long a tab may stay open.
+
+<Steps>
+  <Step n="01" title="Connect the account that will operate it">
+    The sender becomes the operator, and there is no setter afterwards. Whichever account signs is the only one that will ever be able to queue a change, so connect the one you mean to keep.
+  </Step>
+  <Step n="02" title="Name it and set the window">
+    The name is stored as 31 bytes of ascii, which is why it is short and why this site can show it as a word. The Settlement Window is how long a tab may run before it is delinquent.
+  </Step>
+  <Step n="03" title="Add Assets and tools">
+    An Asset is a token on a Source Chain plus the Collection Address that receives it. That address is yours: Tab never holds a payment. Prices are base units, never decimals.
+  </Step>
+  <Step n="04" title="Read the review, then sign">
+    The last step shows the argument list as the contract will receive it, including the price ordering, which is the one mistake the form could make that would not revert.
+  </Step>
+</Steps>
+
+A new Service is Permissionless, which is a tier and not a judgement: it is registered, metered and paid exactly like a Curated one. The tier decides only how much weight its Settlement history carries toward an Agent's Credit Limit.
+
+## Posting a Bond
+
+A Bond is stake a Service puts at risk so a clearing can apply in its favour before the Settlement behind it has been proved.
+
+<Bounded
+  title="A Bond is funded by proven deposit"
+  bound="The stake appears once the deposit has been observed, proved against the BlockProver Precompile, and accepted, which is the same path every Settlement takes."
+>
+  `Bond` has no deposit function. Stake is credited only from a Settlement that has already been verified, so you pay on a Source Chain exactly as an Agent does, and the stake follows. Two transactions on two chains, and a wait between the second one and the result that no page can shorten.
+</Bounded>
+
+Where an Asset already has a Bond collection registered, the first transaction is skipped rather than offered: paying gas to write a value already on chain is worse than an extra click.
+
+## Reading the rest
+
+<Cards>
+  <Card title="Explorer" href="http://localhost:3000/explorer" external>
+    Every Verified Settlement by its four coordinates, its clearing lineage, and the Provisional Clearings anyone may reverse.
+  </Card>
+  <Card title="Agents" href="http://localhost:3000/agents" external>
+    Credit Limit, Open Tab and headroom per Asset, served only where an on-chain cross-check agrees.
+  </Card>
+  <Card title="Services" href="http://localhost:3000/services" external>
+    Every registered Service, its terms, its Bond, and any queued change with the time left on its hold.
+  </Card>
+  <Card title="Analytics" href="http://localhost:3000/analytics" external>
+    Settled volume and counts, split by whether the address they came from is one this project controls.
+  </Card>
+</Cards>
