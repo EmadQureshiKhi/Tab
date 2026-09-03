@@ -1,0 +1,126 @@
+---
+title: "Introduction"
+description: "What Tab is, what it refuses to do, and why that refusal is the design."
+---
+
+<img
+  src="/banner.png"
+  alt="Tab: post-paid billing and a credit facility for agents"
+  className="not-prose w-full rounded-xl border border-fd-border"
+/>
+
+<div className="flex flex-wrap justify-center gap-x-3 gap-y-1 text-sm">
+  [Dashboard](http://localhost:3000) · [Explorer](http://localhost:3000/explorer) · [Services](http://localhost:3000/services) · [Analytics](http://localhost:3000/analytics)
+</div>
+
+---
+
+Tab is post-paid billing and a credit facility for autonomous agents.
+
+A Service meters usage into an Open Tab on Creditcoin.
+The Agent settles later, in USDC, on Ethereum, with keys nobody else holds.
+A Creditcoin contract then verifies that Ethereum transaction itself.
+
+The last sentence is the whole product.
+
+<Steps>
+  <Step n="01" title="The work is delivered first">
+    An Agent calls a metered tool. Nothing is prepaid, no balance is checked against a deposit, and no payment stands between the request and the result.
+  </Step>
+  <Step n="02" title="The charge lands on an Open Tab">
+    The Service records the delivery on Creditcoin. The tab is the record of what is owed, and it is readable by anyone.
+  </Step>
+  <Step n="03" title="The Agent settles with its own keys">
+    Payment moves in USDC on Ethereum, signed by the Agent. Nothing in Tab can move an Agent's funds, because nothing in Tab ever holds them.
+  </Step>
+  <Step n="04" title="A contract verifies the payment itself">
+    `SettlementVerifier` hands the BlockProver Precompile the Ethereum transaction with its proofs. The precompile returns true or reverts, and only then does the tab fall.
+  </Step>
+</Steps>
+
+<Cards>
+  <Card title="How the rail works" href="/how-it-works">
+    The full path of one settlement, from the metered call to the cleared tab.
+  </Card>
+  <Card title="Build on it" href="/integration">
+    The MCP tools, the SDK, and the surfaces a Service meters through.
+  </Card>
+  <Card title="What is trusted" href="/threat-model">
+    Every trusted party, and the bound on what each one can do.
+  </Card>
+  <Card title="Where the edges are" href="/limitations">
+    What Tab does not do, each with the bound that says how far it reaches.
+  </Card>
+</Cards>
+
+## Nobody asserts that money arrived
+
+Every system that lets one chain react to a payment on another chain has to answer one question: who says the payment happened.
+The usual answers are a bridge, an oracle, a relayer, or a signed webhook.
+All four are the same answer wearing different clothes, which is that some party is trusted to make the claim, and that party can lie or be compromised.
+
+Tab does not answer the question, because it does not ask it.
+
+The Attestcoin Protocol makes finalized Source Chain transaction history verifiable inside a Creditcoin smart contract.
+Tab's `SettlementVerifier` hands the BlockProver Precompile an encoded Ethereum transaction with a Merkle Proof and a Continuity Proof, and the precompile returns true or reverts.
+No component of Tab is trusted to say a Settlement occurred.
+There is deliberately no such component to compromise.
+
+The [threat model](/threat-model) states the trusted set in full, along with the bound on what each member can do.
+The short version is that the trusted parties can slow the system down, admit a counterparty, or waste their own Bond.
+None of them can claim that money arrived.
+
+## The removal test
+
+The test that decides whether a protocol is load-bearing or decorative is to remove it and see what breaks.
+
+Remove the Attestcoin Protocol and a Creditcoin contract cannot learn that an Ethereum payment occurred.
+Something has to tell it, and that something is a trusted facilitator, which is the design Tab exists to avoid.
+The [integration page](/attestcoin-integration) names every protocol surface Tab calls and states what each one is load-bearing for.
+
+## Why post-paid
+
+Prepayment is the obvious way to bill an agent and it is the wrong way.
+
+An agent that must fund an account before its first call cannot start work it was dispatched to do.
+An agent that must top up mid-task stalls at the moment it is least able to ask for help.
+Prepayment also puts the Service in custody of the Agent's money, which is a liability the Service did not want and a risk the Agent did not agree to.
+
+Post-paid billing inverts all three.
+The Agent calls first and settles afterwards, holding its own funds the entire time.
+The Service carries the balance for a Settlement Window and is protected by a Credit Limit rather than by a deposit.
+
+Credit is the hard part, and it is where the Bond comes in.
+An Agent's Credit Limit is computed from its own Verified Settlement history and from Bond that Services have staked, so extending credit costs the party extending it.
+A ring of colluding accounts cannot manufacture credit without locking strictly more value than the credit it unlocks.
+
+## What Tab proves, and what it does not
+
+The Attestcoin Protocol proves transaction history: transactions, receipts, and event logs, from finalized Source Chain blocks.
+It establishes neither state, nor balances, nor the absence of an event.
+
+Three consequences shape the design rather than being papered over.
+
+Tab cannot prove that an Agent holds funds, only that a transfer occurred, so credit is backed by Service Bonds and never by Agent balances.
+Tab cannot prove that an Agent did not settle, so a Settlement Window that closes unsettled zeroes the Agent's Credit Limit rather than slashing anybody.
+Tab cannot read an ERC-20 balance, so a Bond is funded by proven deposit rather than by a checked balance.
+
+The [boundaries page](/limitations) carries the rest, each with the bound that says how far it reaches.
+
+## Where it runs
+
+Tab runs on Creditcoin CC3 Testnet, chain id 102031.
+Ethereum Sepolia is `chainKey` 1 and Ethereum Mainnet is `chainKey` 3.
+
+The whole loop has run on chain: meter, settle, observe, provisionally clear, prove, confirm.
+Deployed addresses are published in the repository's `deployments.json`, and the evidence is reproducible with no key and no funded account.
+
+## Read further
+
+These pages are the working documentation: what runs, how to build on it, and where the edges are.
+
+Two documents sit outside them and are worth the detour.
+
+The [whitepaper](https://github.com/EmadQureshiKhi/Tab/blob/main/WHITEPAPER.md) is the long argument, in twelve sections: why cross-chain credit has needed a trusted party until now, the protocol mechanics in full, the credit model with its arithmetic written out, the security analysis, and every result measured against the live network with the reasoning that produced it.
+
+The [repository README](https://github.com/EmadQureshiKhi/Tab#readme) is the short one, and it is where the deployed addresses, the explorer links and the four ways to run this yourself live.

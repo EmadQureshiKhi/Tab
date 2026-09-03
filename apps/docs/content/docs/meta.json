@@ -1,0 +1,16 @@
+{
+  "title": "Tab",
+  "pages": [
+    "---Start here---",
+    "index",
+    "how-it-works",
+    "dashboard",
+    "---Build---",
+    "integration",
+    "style-guide",
+    "---Disclosure---",
+    "attestcoin-integration",
+    "threat-model",
+    "limitations"
+  ]
+}

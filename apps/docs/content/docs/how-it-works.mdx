@@ -1,0 +1,97 @@
+---
+title: "How the rail works"
+description: "One metered call, one payment, and the six steps that turn the second into credit for the first."
+---
+
+One metered call and one payment, and the six steps that turn the second into credit for the first.
+
+## The parties
+
+| Party | Holds | Can do |
+| --- | --- | --- |
+| **Agent** | its own Creditcoin identity and its own Ethereum keys | consume metered Services, set a spending authorisation, settle whenever it chooses |
+| **Service** | a Collection Address per Asset, a price list, a Settlement Window, a Bond | record a Metered Delivery inside the Agent's authorisation, at its own applied prices |
+| **Watcher** | a Creditcoin key that spends gas | observe Source Chain Settlements, obtain and re-derive proofs, submit them |
+| **`SettlementVerifier`** | nothing | hand a transaction to the BlockProver Precompile and apply the result |
+
+The Watcher is the only component that spends, and it is not trusted with anything.
+It can delay a Verified Settlement and it can apply a Provisional Clearing that nothing confirms, which slashes the Service's Bond rather than the Agent's balance.
+It cannot create a Verified Settlement, alter an amount, or credit the wrong Agent.
+
+## The six steps
+
+### 1. The Agent authorises spending
+
+Before any Service can charge it, the Agent sets a ceiling on Creditcoin: this Service, this Asset, this much, until this time.
+The ceiling is the Agent's, not the Service's, and letting it lapse is how an Agent stops a relationship.
+
+### 2. The Service records a Metered Delivery
+
+A priced unit of work is attributed to the Agent on Creditcoin.
+The charge is checked against the applied price list, against the authorisation, and against the Agent's Credit Limit.
+
+Two things happen here that are easy to misread.
+A delivery spends the Agent's prepaid credit before it raises the Open Tab, so a delivery against a tab holding prepaid credit can move the Open Tab by nothing at all.
+And the Credit Limit is tested against the shortfall only, because prepaid credit is already paid for and borrows nothing.
+
+### 3. The Agent settles on Ethereum
+
+The Agent transfers the Asset to the Service's Collection Address, signing with its own keys.
+
+On Ethereum Mainnet this is a plain USDC transfer and Tab deploys no contract.
+On Ethereum Sepolia it goes through a settlement contract that emits `TabSettled`, carrying the Agent in `topics[1]` so intent is explicit rather than inferred.
+
+Nothing on Creditcoin knows about this yet.
+That is the gap the next three steps close, and closing it without a trusted party is the entire problem Tab solves.
+
+### 4. The Watcher observes, and clears provisionally
+
+The Watcher sees the Ethereum transaction long before it is finalized and long before it is attested.
+
+It may reduce the Open Tab immediately, against the Service's Bond, which is a Provisional Clearing.
+The Bond is reserved rather than spent, the clearing carries a deadline, and the reduction is visible as provisional everywhere it is shown.
+
+The party at risk here is the Service, which is correct: the Service is the one that benefits from crediting the Agent early.
+If no Verified Settlement arrives before the deadline, anybody at all may crank the reversal, the Open Tab is restored, and the pledged Bond is slashed to the Agent as prepaid credit.
+Reversal is permissionless precisely so that its liveness does not depend on the party that would rather it never happened.
+
+### 5. Attestation, and then proof
+
+Creditcoin attests finalized Source Chain blocks.
+Once the Settlement's block is attested, proof material for it can be obtained.
+
+The Watcher does not trust that material.
+It re-derives the Merkle root locally from the sibling path, and it cross-checks the transaction index against the precompile's own `calculateTxIndex`.
+Only where its own derivation agrees does it spend gas.
+Material that disagrees is withheld and the alternate builder is asked instead.
+
+Two properties of the proof are worth stating because both have cost real time.
+One Continuity Proof proves exactly one height, so material is fetched close to submission.
+And proof material perishes as attestations age onto the checkpoint grid, so material held too long stops being usable.
+
+### 6. The contract verifies it, and nobody is asked
+
+The `SettlementVerifier` hands the encoded transaction and both proofs to the BlockProver Precompile.
+The precompile returns true, or it reverts.
+
+On true, the contract decodes the receipt itself, recognises the Settlement logs, and applies them.
+The Open Tab falls, the Verified Settlement joins the Agent's history, the Credit Limit is recomputed from that history, and any Provisional Clearing over the same Settlement moves from applied to confirmed with its Bond released rather than reduced twice.
+
+Every step of that is state change inside one Creditcoin transaction, gated on a precompile returning true.
+At no point does any party assert that the payment happened.
+
+## Identity, and one thing it is not
+
+A Settlement names the Agent in the log, not in the Ethereum transaction's `from` field.
+
+Those differ whenever an Agent settles through a smart account, a forwarder, or a relayer, which is the normal case for an autonomous agent rather than an exotic one.
+Credit therefore lands on the Agent bound to the log's `topics[1]`, and the address that broadcast the transaction receives nothing.
+
+## What is left over
+
+Excess settlement does not vanish and it is not refunded.
+It becomes prepaid credit on the tab, which the next Metered Delivery spends before it borrows anything.
+
+Slashed Bond value reaches the Agent the same way, as prepaid credit in the same Asset.
+Returning it to an Ethereum address would require writing to a Source Chain, and that capability is unavailable on CC3 Testnet.
+The [boundaries page](/limitations) says so in those terms rather than implying otherwise.
