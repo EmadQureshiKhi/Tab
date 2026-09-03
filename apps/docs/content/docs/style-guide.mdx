@@ -1,0 +1,107 @@
+---
+title: "Style guide"
+description: "The canonical nouns and the approved verbs, and the gate that enforces them."
+---
+
+Every document, comment, identifier, and string in this project speaks about Creditcoin, the Attestcoin Protocol, and Tab, in Creditcoin's own vocabulary.
+
+This page is the positive half of that rule: the nouns to use and the verbs to write.
+The negative half is a gate that runs in the build and fails it, and the two are described together at the end.
+
+## The canonical nouns
+
+Capitalisation is part of the term.
+A capitalised noun in this list names a protocol concept with an exact definition; the same word in lower case is ordinary English and means something looser.
+
+### The chain and the protocol
+
+| Term | What it names |
+| --- | --- |
+| **Creditcoin** | the chain Tab's contracts run on |
+| **CC3 Testnet** | the network Tab is deployed to, chain id 102031 |
+| **Attestcoin Protocol** | the Creditcoin protocol that makes finalized Source Chain transaction history verifiable inside a Creditcoin contract |
+| **Attestcoin Smart Contract** | a Creditcoin contract that submits Source Chain transaction data with proofs and applies logic to the verified result. In Tab this is the `SettlementVerifier` |
+| **BlockProver Precompile** | the Creditcoin precompile exposing `verifyAndEmit` and `calculateTxIndex` |
+| **ChainInfo Precompile** | the Creditcoin precompile exposing Source Chain attestation metadata |
+| **Attestation** | the Creditcoin-side commitment to a finalized Source Chain block |
+| **Readability** | the capability that lets a Creditcoin contract verify Source Chain transaction history. It costs Creditcoin gas and carries no protocol fee |
+| **Writability** | the return direction, where Creditcoin writes to a Source Chain. On the protocol's announced roadmap rather than live on CC3 Testnet. Tab is built not to need it, and `IOutboxAdapter` is the seam left for it |
+| **Source Chain** | a chain whose finalized history CC3 Testnet attests |
+| **chainKey** | the `uint64` identifier of a Source Chain. Always lower case, because it is a field name |
+| **Merkle Proof** | the root and sibling path proving a transaction's place in a block |
+| **Continuity Proof** | the proof linking a Source Chain block height to an Attestation |
+| **Proof Builder** | the service that supplies proof material |
+
+### The product
+
+| Term | What it names |
+| --- | --- |
+| **Tab** | the product: contracts, settlement surfaces, services, and client tooling together |
+| **tab** | one accounting record, per Agent, per Service, per Asset. Lower case, because it is a row and not the product |
+| **Open Tab** | the unsettled balance of a tab, in a single Asset |
+| **Agent** | an autonomous client holding its own Creditcoin identity and its own Ethereum keys |
+| **Service** | a metered provider registered with a Collection Address, prices, a Settlement Window, and a Bond |
+| **Asset** | an ERC-20 token on a Source Chain used for Settlement |
+| **Collection Address** | the Ethereum address, one per Service and Asset, that receives Settlements |
+| **Metered Delivery** | a Creditcoin record attributing a priced unit of work to an Agent |
+| **Settlement** | an Ethereum transaction transferring an Asset, intended to reduce an Open Tab |
+| **Verified Settlement** | a Settlement proven to the BlockProver Precompile and accepted by the `SettlementVerifier` |
+| **Settlement Window** | the maximum time between a charge and a Verified Settlement being required for it |
+| **Provisional Clearing** | the Bond-covered reduction of an Open Tab applied before the Verified Settlement exists |
+| **Confirmed Clearing** | the replacement of a Provisional Clearing by a Verified Settlement for the same Settlement |
+| **Credit Limit** | the maximum aggregate Open Tab, per Asset, that an Agent may hold |
+| **Bond** | Asset-denominated stake posted on Creditcoin by a Service operator |
+| **Slashing** | the transfer of Bond value away from the bonded party. It never applies to an Agent failing to settle |
+| **Delinquent tab** | an Open Tab that passed its Settlement Window unsettled |
+| **Curated Tier** | the Services and Assets eligible to contribute to Credit Limit computation |
+| **Permissionless Tier** | Services and Assets that may meter usage but contribute zero weight to credit |
+
+### The components
+
+| Term | What it names |
+| --- | --- |
+| **Watcher** | the worker that observes Settlements, re-derives proofs, and submits them |
+| **Dashboard** | the web application presenting credit, registry, settlement, and analytics views |
+| **Documentation Site** | this site |
+| **SDK** | the published TypeScript package |
+| **CLI** | the published command-line entry point |
+| **MCP Server** | the Model Context Protocol server exposing Tab to MCP clients |
+| **Proof Service** | the proof-generation service Tab sells over its own rail as a metered Service |
+
+## The verbs
+
+Work is described with one of four words: **Implement**, **Build**, **Create**, **Define**.
+
+They are not synonyms chosen for variety.
+Each says something different about what already existed.
+
+- **Define** states a thing that had no prior existence: a type, an interface, a term.
+- **Create** brings a new artefact into being where there was none.
+- **Build** assembles something out of parts that already exist.
+- **Implement** gives an existing definition a working body.
+
+A task that says "implement" against something never defined is a task with a missing step, so the verb is a check on the work as well as a label for it.
+
+## Two rules about tone
+
+**State the bound, not just the claim.**
+A limitation named without its bound reads as either worse or better than it is.
+Every entry on the [boundaries page](/limitations) carries the bound that says how far it reaches, and new ones are expected to.
+
+**Do not write a hedge in place of a fact.**
+Where a figure was read from the chain, name it and name the block.
+Where it was not, say that instead of rounding a guess into confident prose.
+A read that failed is reported as unavailable with its reason, never as a zero, because a zero will be believed.
+
+## The gate
+
+The prohibited terms are enforced rather than trusted.
+`scripts/vocab-check.mjs` scans every path the repository tracks, and every untracked path it does not ignore, in file contents and in file and directory names alike.
+A match fails the build.
+
+The denylist itself is not committed.
+It is materialised from an environment variable into a gitignored file at the start of a job, so the prohibited terms never appear in the tree, including inside the tool that enforces their absence.
+Where the file is absent the gate exits with an error rather than passing, because a gate that passes vacuously is worse than no gate at all.
+
+The gate can only remove words.
+Choosing the right ones is what this page is for.
