@@ -1,0 +1,34 @@
+/*
+ * The documentation theme.
+ *
+ * Fumadocs' neutral preset, which is what the reference uses, so the two sites
+ * share a type scale and a sidebar shape without either one restating the other.
+ * The teal below is the product's accent, and it is the only value overridden:
+ * everything else is the preset as shipped.
+ */
+
+@import "tailwindcss";
+@import "fumadocs-ui/css/neutral.css";
+@import "fumadocs-ui/css/preset.css";
+
+/*
+ * The layout grid puts a flexible gutter outside the sidebar and outside the
+ * table of contents, and centres the whole thing inside `--fd-layout-width`. The
+ * sidebar element spans its gutter as well as its own column and right-aligns
+ * what it holds, so at the shipped 97rem a 1920px window drew 184px of sidebar
+ * ground with nothing in it, which reads as a stray indent rather than as a
+ * margin. 120rem puts the gutter at zero up to 1920 and leaves a real margin
+ * above that. The article keeps its own 900px measure either way, so widening
+ * the frame does not widen the prose.
+ */
+#nd-docs-layout {
+  --fd-layout-width: 120rem;
+}
+
+:root {
+  --color-fd-primary: #0f766e;
+}
+
+.dark {
+  --color-fd-primary: #5eead4;
+}
