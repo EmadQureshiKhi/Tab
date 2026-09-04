@@ -1,0 +1,52 @@
+/*
+ * Light colour tokens.
+ *
+ * Generated from assets/palette.json. Do not edit by hand: edit the palette
+ * and run `pnpm --filter @tabai/app theme:tokens`.
+ *
+ * The lint task renders this file in memory and fails when what is on disk
+ * differs, so the theme cannot drift from the palette the brand assets are
+ * drawn in.
+ *
+ * Requirements: 24.8, 24.10
+ */
+
+/*
+ * Light is the default set, so it lands on :root unconditionally and is
+ * reasserted for an explicit light choice.
+ */
+:root,
+[data-tab-theme="light"] {
+  color-scheme: light;
+
+  /* page background */
+  --tab-surface: #FFFFFF;
+  /* card, panel, and table-header background */
+  --tab-surface-raised: #F1F4F8;
+  /* body and numeric ink */
+  --tab-text: #0B1220;
+  /* secondary ink, labels, units */
+  --tab-text-muted: #46536B;
+  /* accent ink, primary chart series, accent-filled badge */
+  --tab-accent: #0B6B62;
+  /* control boundary, table rule, outline of every raised surface */
+  --tab-stroke: #55637D;
+  /* clearing state Applied */
+  --tab-clearing-applied: #8A5A00;
+  /* clearing state Confirmed */
+  --tab-clearing-confirmed: #1A6E3C;
+  /* clearing state Reversed */
+  --tab-clearing-reversed: #A4262C;
+  /* clearing state Declined */
+  --tab-clearing-declined: #4E5665;
+  /* clearing state Superseded */
+  --tab-clearing-superseded: #6B3FA0;
+  /* alias of accent */
+  --tab-tier-curated: var(--tab-accent);
+  /* alias of text-muted */
+  --tab-tier-permissionless: var(--tab-text-muted);
+  /* alias of surface */
+  --tab-badge-ink: var(--tab-surface);
+  /* alias of accent */
+  --tab-focus-ring: var(--tab-accent);
+}

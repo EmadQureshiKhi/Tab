@@ -1,0 +1,314 @@
+/*
+ * The presentation layer, mapped from the reference one to one.
+ *
+ * Every value below is the reference's own, read out of its stylesheet rather
+ * than approximated: the two surfaces, the two card fills, the muted pair, the
+ * hairline border, the radius, and the teal the product accents with. The names
+ * are the reference's names too, so a component written against that design
+ * reads the same here and a divergence is a diff rather than a judgement call.
+ *
+ * This is loaded after `theme.css`, which keeps the generated token set and the
+ * focus ring the contrast gate checks. Those tokens are still defined; the
+ * surface and text roles below simply win, and the roles that carry meaning
+ * rather than decoration - the five clearing states - keep coming from the
+ * generated set, because their contrast floors are checked and the reference has
+ * no equivalent to borrow.
+ */
+
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted-2: var(--muted-2);
+  /*
+   * `accent` is deliberately not remapped. In the reference's vocabulary it is a
+   * near-white neutral used for a ghost hover; in this product it is the teal that
+   * carries meaning, and it is one of the pairs the contrast gate measures. Taking
+   * the reference's name would have turned every accented link on the site into
+   * white on white, which is exactly what it did before this note was written.
+   * Ghost hovers below use `muted-2` instead, which is the reference's own surface.
+   */
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-gray-200: var(--gray-200);
+  --color-gray-400: var(--gray-400);
+  --color-gray-600: var(--gray-600);
+  --color-gray-800: var(--gray-800);
+
+  --font-sans: var(--font-inter);
+  --font-host: var(--font-host-grotesk);
+  --font-mono: var(--font-geist-mono);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+/*
+ * The ramps the reference's design actually uses.
+ *
+ * `tokens.theme.css` clears Tailwind's default palette with `--color-*: initial`,
+ * so that an unchecked colour cannot reach a component by accident. That rule is
+ * worth keeping, and it means every shade the reference reaches for has to be
+ * declared rather than assumed: without this block `text-teal-700` and
+ * `fill-teal-600` compile to nothing at all and the accents render as the
+ * inherited foreground, which is what they did before this was written.
+ *
+ * Only the steps in use are here. A ramp declared in full would be eleven colours
+ * nobody checked, which is the thing the clearing rule exists to prevent.
+ */
+@theme {
+  --color-teal-200: #99f6e4;
+  --color-teal-300: #5eead4;
+  --color-teal-400: #2dd4bf;
+  --color-teal-500: #14b8a6;
+  --color-teal-600: #0d9488;
+  --color-teal-700: #0f766e;
+  --color-teal-800: #115e59;
+  --color-neutral-400: #a3a3a3;
+  --color-amber-400: #fbbf24;
+  --color-amber-500: #f59e0b;
+  --color-amber-600: #d97706;
+  /*
+   * The syntax palette, and only the steps the one code sample on the site uses.
+   * A code block that inherits the page's two text colours is unreadable as code,
+   * so these are the exception to drawing everything from the surface roles. They
+   * are still declared rather than assumed, for the same reason the teal steps are.
+   */
+  --color-slate-300: #cbd5e1;
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #64748b;
+  --color-slate-600: #475569;
+  --color-slate-700: #334155;
+  --color-blue-400: #60a5fa;
+  --color-blue-600: #2563eb;
+  --color-white: #ffffff;
+  --color-black: #000000;
+  --color-transparent: transparent;
+  --color-current: currentColor;
+}
+
+:root {
+  --radius: 0.625rem;
+  --background: white;
+  --foreground: black;
+  --card: #f2f5f6;
+  --card-foreground: black;
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: #d8dddf;
+  --muted-foreground: #4d5353;
+  --muted-2: #e2e7e9;
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.93 0.01 256);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --gray-200: #e5e7eb;
+  --gray-400: #9ca3af;
+  --gray-600: #4b5563;
+  --gray-800: #1f2937;
+}
+
+.dark {
+  --background: black;
+  --foreground: white;
+  --card: #0d1416;
+  --card-foreground: white;
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: #1c2123;
+  --muted-foreground: #8a8f8f;
+  --muted-2: #13181a;
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(0.28 0.04 260);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+}
+
+@layer base {
+  html {
+    background-color: var(--background);
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  }
+
+  .font-host {
+    font-family: var(--font-host-grotesk), ui-sans-serif, system-ui, sans-serif;
+  }
+
+  .font-mono {
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background-color: var(--gray-200);
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--gray-400);
+    border-radius: 4px;
+  }
+  .dark ::-webkit-scrollbar-track {
+    background-color: var(--gray-800);
+  }
+  .dark ::-webkit-scrollbar-thumb {
+    background-color: var(--gray-600);
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--gray-400) var(--gray-200);
+  }
+  .dark * {
+    scrollbar-color: var(--gray-600) var(--gray-800);
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  ::selection {
+    background-color: rgb(20 184 166 / 0.1);
+    color: rgb(13 148 136);
+  }
+
+  .dark ::selection {
+    background-color: rgb(20 184 166 / 0.1);
+    color: rgb(153 246 228);
+  }
+}
+
+/*
+ * The glare that runs across a surface once on reveal. The reference uses it on
+ * its cards; it is held here so a component asks for `animate-glare` rather than
+ * restating the keyframes.
+ */
+@keyframes glare {
+  0%,
+  75% {
+    transform: translateX(-100%) skewX(-20deg);
+  }
+  100% {
+    transform: translateX(300%) skewX(-20deg);
+  }
+}
+
+/*
+ * One preference, obeyed once, for everything. Motion, GSAP and the scroll
+ * smoother each read `prefers-reduced-motion` in their own code as well; this is
+ * the floor under all three, so an animation added later cannot escape it by
+ * forgetting to ask.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/*
+ * `raised-panel` in the reference's surfaces.
+ *
+ * The utility is declared in `theme.css` against the generated tokens, which the
+ * contrast gate reads and which must stay as they are. Redeclaring it here keeps
+ * the compensating mechanism the gate requires - a boundary rather than a fill
+ * separates a raised surface from the page - while drawing it in the surfaces the
+ * rest of the site now uses. Without this a lifted panel kept the old navy card
+ * and sat visibly apart from every panel beside it in dark.
+ */
+/*
+ * `--panel` is `bg-muted/30` over the page, resolved to one opaque colour.
+ *
+ * Panels on this site are written as a translucent muted fill over the page
+ * ground. That is correct until one of them sits inside another, at which point
+ * the fill applies twice and the inner surface reads a step lighter than
+ * everything around it - which is what put a pale band across the Service card's
+ * four figures. An opaque equivalent stacks without compounding. `var()` inside
+ * a custom property is substituted where the property is used, so this resolves
+ * against whichever theme is in scope without being declared twice.
+ *
+ * `in srgb` rather than oklab, because this has to land on the same colour a
+ * browser produces when it composites a 30% fill over the page. Compositing is
+ * linear in the encoded channels; an oklab mix interpolates perceptual lightness
+ * and came out two steps lighter, which is exactly the mismatch this exists to
+ * remove.
+ */
+:root {
+  --panel: color-mix(in srgb, var(--muted) 30%, var(--background));
+}
+
+@utility raised-panel {
+  /*
+   * The muted fill blended into the page rather than the card token.
+   *
+   * `--card` is the reference's own raised surface and in dark it is a
+   * teal-cast near-black. Every panel written since then reaches for
+   * `bg-muted/30` over the page ground instead, which is neutral, and beside one
+   * of those the card token reads as a green tint - most obviously on the Bond
+   * ledger, which is the one block on the page that is about money. Blended
+   * rather than translucent, so a panel nested inside another does not darken
+   * twice.
+   *
+   * The boundary is what the contrast gate requires of a raised surface, and it
+   * is still here. Only the fill changed, and it moved closer to the page, which
+   * is the direction the boundary exists to compensate for.
+   */
+  background-color: var(--panel);
+  border: 1px solid color-mix(in oklab, var(--border) 60%, transparent);
+}
+
+/*
+ * Content is never hidden by an animation that cannot run.
+ *
+ * Entrance animations are server-rendered with their hidden state already in the
+ * style attribute, which is what makes them start from the right place. It also
+ * means a reader whose script never arrives, or arrives broken, would be left
+ * looking at an empty page. The boot script marks the document `js`; without that
+ * mark every revealed element is simply visible.
+ */
+html:not(.js) [data-reveal] {
+  opacity: 1 !important;
+  transform: none !important;
+}

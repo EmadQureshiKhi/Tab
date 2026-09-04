@@ -1,0 +1,91 @@
+/*
+ * Dark colour tokens.
+ *
+ * Generated from assets/palette.json. Do not edit by hand: edit the palette
+ * and run `pnpm --filter @tabai/app theme:tokens`.
+ *
+ * The lint task renders this file in memory and fails when what is on disk
+ * differs, so the theme cannot drift from the palette the brand assets are
+ * drawn in.
+ *
+ * Requirements: 24.8, 24.10
+ */
+
+/*
+ * Dark is a distinct set rather than a transform of light: the accent moves
+ * hue between the two modes, which no filter over the light set can produce.
+ *
+ * The system preference applies unless a light choice is pinned on the root,
+ * and an explicit dark choice applies regardless of the system preference.
+ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tab-theme="light"]) {
+    color-scheme: dark;
+
+    /* page background */
+    --tab-surface: #0B1220;
+    /* card, panel, and table-header background */
+    --tab-surface-raised: #172033;
+    /* body and numeric ink */
+    --tab-text: #F2F5FA;
+    /* secondary ink, labels, units */
+    --tab-text-muted: #A9B4C8;
+    /* accent ink, primary chart series, accent-filled badge */
+    --tab-accent: #57D8C8;
+    /* control boundary, table rule, outline of every raised surface */
+    --tab-stroke: #7E8FA8;
+    /* clearing state Applied */
+    --tab-clearing-applied: #F0C14B;
+    /* clearing state Confirmed */
+    --tab-clearing-confirmed: #62D493;
+    /* clearing state Reversed */
+    --tab-clearing-reversed: #FF9A9A;
+    /* clearing state Declined */
+    --tab-clearing-declined: #B3BECE;
+    /* clearing state Superseded */
+    --tab-clearing-superseded: #C7A6F2;
+    /* alias of accent */
+    --tab-tier-curated: var(--tab-accent);
+    /* alias of text-muted */
+    --tab-tier-permissionless: var(--tab-text-muted);
+    /* alias of surface */
+    --tab-badge-ink: var(--tab-surface);
+    /* alias of accent */
+    --tab-focus-ring: var(--tab-accent);
+  }
+}
+
+[data-tab-theme="dark"] {
+  color-scheme: dark;
+
+  /* page background */
+  --tab-surface: #0B1220;
+  /* card, panel, and table-header background */
+  --tab-surface-raised: #172033;
+  /* body and numeric ink */
+  --tab-text: #F2F5FA;
+  /* secondary ink, labels, units */
+  --tab-text-muted: #A9B4C8;
+  /* accent ink, primary chart series, accent-filled badge */
+  --tab-accent: #57D8C8;
+  /* control boundary, table rule, outline of every raised surface */
+  --tab-stroke: #7E8FA8;
+  /* clearing state Applied */
+  --tab-clearing-applied: #F0C14B;
+  /* clearing state Confirmed */
+  --tab-clearing-confirmed: #62D493;
+  /* clearing state Reversed */
+  --tab-clearing-reversed: #FF9A9A;
+  /* clearing state Declined */
+  --tab-clearing-declined: #B3BECE;
+  /* clearing state Superseded */
+  --tab-clearing-superseded: #C7A6F2;
+  /* alias of accent */
+  --tab-tier-curated: var(--tab-accent);
+  /* alias of text-muted */
+  --tab-tier-permissionless: var(--tab-text-muted);
+  /* alias of surface */
+  --tab-badge-ink: var(--tab-surface);
+  /* alias of accent */
+  --tab-focus-ring: var(--tab-accent);
+}

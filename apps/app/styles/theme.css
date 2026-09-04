@@ -1,0 +1,68 @@
+/*
+ * The Dashboard theme entry point.
+ *
+ * Tailwind v4 is configured in CSS, so this file is the configuration: there is
+ * no JavaScript token object anywhere in `apps/app`. The four imported
+ * stylesheets are generated from assets/palette.json by
+ * `pnpm --filter @tabai/app theme:tokens`, and `pnpm --filter @tabai/app lint`
+ * regenerates them in memory and fails on any difference.
+ *
+ * Requirements: 24.8, 24.10
+ */
+
+@import "tailwindcss";
+
+@import "./tokens.base.css";
+@import "./tokens.light.css";
+@import "./tokens.dark.css";
+@import "./tokens.theme.css";
+
+@layer base {
+  html {
+    background-color: var(--tab-surface);
+  }
+
+  body {
+    background-color: var(--tab-surface);
+    color: var(--tab-text);
+  }
+
+  /*
+   * One ring, defined once, from tokens: 2 px at a 2 px offset, in the accent.
+   * The offset gap shows the surface behind the control, so the ring is always
+   * adjacent to the surface even on a filled control, which is the pair the
+   * contrast gate checks. `outline: none` is never set anywhere in this theme.
+   */
+  :focus-visible {
+    outline: var(--tab-focus-ring-width) var(--tab-focus-ring-style)
+      var(--tab-focus-ring);
+    outline-offset: var(--tab-focus-ring-offset);
+  }
+}
+
+/*
+ * Motion is expressed through the motion tokens, which collapse under a reduced
+ * motion preference. The sweep below catches anything that sets a duration
+ * directly, so an animation cannot escape the preference by accident.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: var(--tab-motion-instant) !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: var(--tab-motion-instant) !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/*
+ * The two surfaces sit close together on purpose, so a raised surface is
+ * separated from the page by its boundary rather than by its fill. Anything that
+ * lifts off the page takes this utility, which is the compensating mechanism the
+ * contrast gate requires for the surface pair it allows below the 3:1 floor.
+ */
+@utility raised-panel {
+  background-color: var(--tab-surface-raised);
+  border: var(--tab-raised-outline-width) solid var(--tab-stroke);
+}

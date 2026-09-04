@@ -1,0 +1,40 @@
+/*
+ * Mode-independent design tokens.
+ *
+ * Generated from assets/palette.json. Do not edit by hand: edit the palette
+ * and run `pnpm --filter @tabai/app theme:tokens`.
+ *
+ * The lint task renders this file in memory and fails when what is on disk
+ * differs, so the theme cannot drift from the palette the brand assets are
+ * drawn in.
+ *
+ * Requirements: 24.8, 24.10
+ */
+
+:root {
+  /* :focus-visible outline width */
+  --tab-focus-ring-width: 2px;
+  /* :focus-visible outline offset */
+  --tab-focus-ring-offset: 2px;
+  /* :focus-visible outline style */
+  --tab-focus-ring-style: solid;
+  /* outline that separates a raised surface from the page */
+  --tab-raised-outline-width: 1px;
+  /* hover, focus, and press transitions */
+  --tab-motion-fast: 120ms;
+  /* panel, drawer, and reveal transitions */
+  --tab-motion-base: 240ms;
+  /* duration substituted under prefers-reduced-motion: reduce */
+  --tab-motion-instant: 0.01ms;
+}
+
+/*
+ * Reduced motion collapses the motion tokens rather than removing motion at
+ * the call site, so a component never has to ask about the preference.
+ */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --tab-motion-fast: var(--tab-motion-instant);
+    --tab-motion-base: var(--tab-motion-instant);
+  }
+}

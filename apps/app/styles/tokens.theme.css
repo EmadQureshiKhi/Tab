@@ -1,0 +1,43 @@
+/*
+ * Tailwind colour namespace.
+ *
+ * Generated from assets/palette.json. Do not edit by hand: edit the palette
+ * and run `pnpm --filter @tabai/app theme:tokens`.
+ *
+ * The lint task renders this file in memory and fails when what is on disk
+ * differs, so the theme cannot drift from the palette the brand assets are
+ * drawn in.
+ *
+ * Requirements: 24.8, 24.10
+ */
+
+/*
+ * The default colour namespace is cleared first, so the only colour
+ * utilities that exist are the tokens the contrast check evaluates. An
+ * unchecked colour cannot reach a component by accident.
+ */
+@theme {
+  --color-*: initial;
+}
+
+/*
+ * `inline` keeps the var() reference in the utility instead of resolving it
+ * at build time, which is what lets one utility follow the mode.
+ */
+@theme inline {
+  --color-surface: var(--tab-surface);
+  --color-surface-raised: var(--tab-surface-raised);
+  --color-text: var(--tab-text);
+  --color-text-muted: var(--tab-text-muted);
+  --color-accent: var(--tab-accent);
+  --color-stroke: var(--tab-stroke);
+  --color-clearing-applied: var(--tab-clearing-applied);
+  --color-clearing-confirmed: var(--tab-clearing-confirmed);
+  --color-clearing-reversed: var(--tab-clearing-reversed);
+  --color-clearing-declined: var(--tab-clearing-declined);
+  --color-clearing-superseded: var(--tab-clearing-superseded);
+  --color-tier-curated: var(--tab-tier-curated);
+  --color-tier-permissionless: var(--tab-tier-permissionless);
+  --color-badge-ink: var(--tab-badge-ink);
+  --color-focus-ring: var(--tab-focus-ring);
+}
