@@ -1,0 +1,31 @@
+{
+  "//": [
+    "The config the test runner transpiles against.",
+    "",
+    "`tsx` applies compiler options only to files the resolved project covers, and",
+    "the three build projects each cover one directory: `src`, `components/ui`, or",
+    "`components/custom-ui`. A test that imports across all of them therefore had",
+    "no single project to be read under, and the components were transpiled with",
+    "the classic JSX runtime, so every render threw `React is not defined`.",
+    "",
+    "This project spans the whole package for that one purpose. It emits nothing,",
+    "and `tsc -b` never builds it.",
+    "",
+    "Requirements: 24.9"
+  ],
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["react", "node"],
+    "noEmit": true,
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "incremental": false
+  },
+  "include": ["src/**/*.ts", "components/**/*.ts", "components/**/*.tsx", "test/**/*.ts"],
+  "exclude": ["node_modules", "dist", ".next"]
+}

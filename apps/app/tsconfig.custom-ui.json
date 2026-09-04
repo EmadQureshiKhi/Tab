@@ -1,0 +1,21 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "module": "Preserve",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["react"],
+    "rootDir": "components",
+    "outDir": "dist/custom-ui",
+    "emitDeclarationOnly": true,
+    "tsBuildInfoFile": "dist/.tsbuildinfo-custom-ui"
+  },
+  "include": [
+    "components/custom-ui/**/*.ts",
+    "components/custom-ui/**/*.tsx",
+    "components/views/**/*.ts",
+    "components/views/**/*.tsx"
+  ],
+  "references": [{ "path": "./tsconfig.ui.json" }, { "path": "../../packages/shared" }]
+}

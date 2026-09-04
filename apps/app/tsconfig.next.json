@@ -1,0 +1,41 @@
+{
+  "//": [
+    "The Next.js program: the one view of this package that sees the routes,",
+    "the components and the framework-free core together, which is what `next",
+    "build` itself compiles.",
+    "",
+    "It is deliberately not a composite project and emits nothing. The three",
+    "`tsc -b` projects beside it own emit and declaration output for the library",
+    "halves; this one exists so the routes are typechecked at all. Without it the",
+    "`app/` directory would sit outside every program, and the package would build",
+    "green while checking none of its own pages, which is the trap task 20 already",
+    "recorded once.",
+    "",
+    "Requirements: 24.8, 24.9"
+  ],
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "preserve",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["react", "node"],
+    "allowJs": true,
+    "noEmit": true,
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "incremental": false,
+    "plugins": [{ "name": "next" }]
+  },
+  "include": [
+    "next-env.d.ts",
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    "components/**/*.ts",
+    "components/**/*.tsx",
+    "src/**/*.ts",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": ["node_modules", "dist", ".next"]
+}
