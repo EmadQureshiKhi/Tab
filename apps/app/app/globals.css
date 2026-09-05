@@ -1,0 +1,12 @@
+/*
+ * The stylesheet every route loads.
+ *
+ * Two imports, in this order and for this reason. `theme.css` carries the
+ * generated token set and the single focus-ring definition the contrast gate
+ * checks, so it stays. `reference.css` is the presentation layer mapped from the
+ * reference, and it is second because where the two disagree about a surface or
+ * a text colour, the reference wins.
+ */
+
+@import "../styles/theme.css";
+@import "../styles/reference.css";
