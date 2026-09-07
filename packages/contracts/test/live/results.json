@@ -1,0 +1,2237 @@
+{
+  "$comment": [
+    "Live negative-path results for Tab, produced by test/live/run.mts against the deployed",
+    "contracts on Creditcoin CC3 Testnet with proof material from the Proof Builder.",
+    "",
+    "Every case records the raw revert returndata alongside the decoded custom error. The bytes are",
+    "the evidence and the decoding is a convenience: anybody holding this file can decode them again",
+    "against the ABI in out/ and check the harness rather than trust it.",
+    "",
+    "Records merge by case identifier. A run of one case leaves the other records untouched, so this",
+    "file accumulates rather than being rewritten, and lastRun describes only the most recent run.",
+    "",
+    "A case recorded as blocked has not run: it needs a Source Chain Settlement that did not exist",
+    "when the run was made. Its record carries the recipe and the command to run once one does.",
+    "",
+    "Reproduce a case with no key, no funded account, and no gas, from the repository root:",
+    "  pnpm tsx packages/contracts/test/live/run.mts --preflight --case <id>"
+  ],
+  "schemaVersion": 2,
+  "lastRun": {
+    "startedAt": "2026-09-06T09:02:34.061Z",
+    "finishedAt": "2026-09-06T09:04:02.433Z",
+    "mode": "broadcast",
+    "commit": "50f0758d37e6881c54e8b28e57974d6779e6a3a4",
+    "casesRun": [
+      "two-recognised-logs",
+      "zero-topic-log-ingested"
+    ],
+    "casesBlocked": [],
+    "registeredCases": [
+      "forged-merkle-root",
+      "tampered-encoded-transaction",
+      "wrong-chain-key",
+      "reverted-source-transaction",
+      "unregistered-recipient",
+      "zero-topic-log-skipped",
+      "replayed-settlement",
+      "payer-from-topic",
+      "two-recognised-logs",
+      "zero-topic-log-ingested"
+    ],
+    "network": {
+      "network": "Creditcoin CC3 Testnet",
+      "chainId": 102031,
+      "rpcUrl": "https://rpc.cc3-testnet.creditcoin.network",
+      "settlementVerifier": "0xc5c83782f315b321Cd8e18B4C2e05df4050C3854",
+      "blockProverPrecompile": "0x0000000000000000000000000000000000000FD2",
+      "proofBuilder": "https://prover.cc3-testnet.creditcoin.network",
+      "addressSource": "the environment, checked against deployments.json before the run started",
+      "agreesWithDeploymentRecord": true
+    },
+    "chainContext": {
+      "chainId": 102031,
+      "blockNumber": 5439697,
+      "blockGasLimit": "75000000",
+      "gasPriceWei": "500000000",
+      "settlementVerifierCodeBytes": 9704,
+      "blockProverCodeBytes": 0,
+      "submitter": "0xE5eaB26CaE0855BcCaBBb9A64faFce28C8432b37",
+      "submitterBalanceWei": "1999985231530979879881",
+      "submitterBalanceCtc": "1999.985231530979879881"
+    },
+    "gasLimitPerSubmission": "3000000",
+    "errorDictionary": {
+      "knownErrors": 85,
+      "assembledFrom": [
+        "SettlementVerifier (17 new)",
+        "TabAscBase (0 new)",
+        "TabBook (33 new)",
+        "AgentRegistry (10 new)",
+        "Bond (8 new)",
+        "ServiceRegistry (17 new)"
+      ],
+      "builtins": [
+        "Error(string)",
+        "Panic(uint256)"
+      ]
+    },
+    "spend": {
+      "transactionsSent": 2,
+      "feeSpentWei": "1069264000000000",
+      "note": "Testnet CTC, spent by this run alone. A refused submission unwinds and refunds the unused gas."
+    }
+  },
+  "cases": {
+    "forged-merkle-root": {
+      "id": "forged-merkle-root",
+      "title": "Forged Merkle root",
+      "requirements": [
+        "27.4"
+      ],
+      "expectation": "The deployment must refuse a submission whose claimed transaction-trie root the sibling path cannot reproduce. `ProofRejected` is the refusal the contract raises when the precompile answers false; a string revert from the precompile itself is the other shape this can take, and both are recorded rather than one being assumed.",
+      "expectedRefusals": [
+        "ProofRejected",
+        "Error(string)"
+      ],
+      "recordedAt": "2026-08-31T18:39:46.285Z",
+      "mode": "broadcast",
+      "target": {
+        "chainKey": 3,
+        "sourceTxHash": "0xe644fbd48f71010fa80f65d4549c0f8fa1f0d5cd9db4b22d21b89845d1ed6fea",
+        "blockHeight": 25876970,
+        "txIndexFromSourceRpc": 7,
+        "logIndexInTx": 0,
+        "asset": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        "payerFromTopic1": "0x2744dfd9898f0babbc570cc594bbbc84b487a22b",
+        "recipientFromTopic2": "0x1b610c9758280659e2742cd176bb8b2429a36384",
+        "amountBaseUnits": "129330000",
+        "txFrom": "0x05ff6964d21e5dae3b1010d5ae0465b3c450f381",
+        "payerDiffersFromTxFrom": true,
+        "receiptLogCount": 1,
+        "attestedFrontierAtSelection": 25877070,
+        "sourceEndpoint": "https://eth.drpc.org",
+        "note": "Historical Ethereum Mainnet USDC Transfer, 100 blocks below the attested frontier at selection time. Nothing was sent to Ethereum: the transaction already existed."
+      },
+      "proofMaterial": {
+        "source": "https://prover.cc3-testnet.creditcoin.network",
+        "txIndexFromProofBuilder": 7,
+        "cached": true,
+        "generatedAt": "2026-08-31T18:39:30.057341632Z"
+      },
+      "mutation": {
+        "field": "merkleProof.root",
+        "genuine": "0x2d72e37c7d7dc2f5fec2b412e9464d3fd42b197b2d505d252a70d610ff5ce434",
+        "submitted": "0x2441e0bf509ab7edeafc5022a55795d8fbd322aa05e282b5c9e625eb807a94eb",
+        "rationale": "The sibling path, the encoded transaction, and the Continuity Proof are all genuine. Only the root claimed for the transaction trie is invented, so the proof cannot reproduce it and inclusion is unproven."
+      },
+      "keylessControls": {
+        "genuineMaterial": {
+          "method": "eth_call verifyAndEmit on the BlockProver Precompile",
+          "verified": true,
+          "rawReturnData": "0x0000000000000000000000000000000000000000000000000000000000000001",
+          "reverted": false,
+          "nodeMessage": null
+        },
+        "asSubmitted": {
+          "method": "eth_call verifyAndEmit on the BlockProver Precompile",
+          "verified": null,
+          "rawReturnData": "0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001e4d65726b6c652070726f6f662076616c69646174696f6e206661696c65640000",
+          "reverted": true,
+          "nodeMessage": "execution reverted: \"Merkle proof validation failed\""
+        }
+      },
+      "submitted": {
+        "chainKey": 3,
+        "blockHeight": 25876970,
+        "encodedTransaction": "0x0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000028000000000000000000000000000000000000000000000000000000000000003a0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000001ae33c000000000000000000000000000000000000000000000000000000000001db1200000000000000000000000005ff6964d21e5dae3b1010d5ae0465b3c450f38100000000000000000000000000000000000000000000000000000000000000000000000000000000000000002744dfd9898f0babbc570cc594bbbc84b487a22b000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000000e4b61d27f6000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000044a9059cbb0000000000000000000000001b610c9758280659e2742cd176bb8b2429a363840000000000000000000000000000000000000000000000000000000007b56b500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000077359400000000000000000000000000000000000000000000000000000000008766c99800000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000001b2d15f72651cdd47d60dd6090a1bbf95d293efe185b1aa7d4bea216064327fcd452d999edacf9508e24ee4d6b3cf291c6f9887593dfcf5b6754a84d1cb1ba35800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000135b3000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000001e000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000020000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000003ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef0000000000000000000000002744dfd9898f0babbc570cc594bbbc84b487a22b0000000000000000000000001b610c9758280659e2742cd176bb8b2429a3638400000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000007b56b50000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000200000000000000000000000000000000000008000008000000800000000020000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000040000000000000010000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000002000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "encodedTransactionByteLength": 1824,
+        "merkleProof": {
+          "root": "0x2441e0bf509ab7edeafc5022a55795d8fbd322aa05e282b5c9e625eb807a94eb",
+          "siblings": [
+            {
+              "hash": "0xeda0f5bc8ee2b408e496b19eb12533ef42f710800f09322e8aa30805fd8561b3",
+              "isLeft": true
+            },
+            {
+              "hash": "0x41a789c7b2693c0fde1625493ac84c745b3043e460b1dc03b5c86580d4d4ea27",
+              "isLeft": true
+            },
+            {
+              "hash": "0x31aaf469e6f7382e82c2cc79bce44b8cf27df8904f3052d56b6078dcb454719a",
+              "isLeft": true
+            },
+            {
+              "hash": "0xcc1dea44ad474284c4a66d51fd19bc7ad0c94e362c51459efe22779ac7661010",
+              "isLeft": false
+            },
+            {
+              "hash": "0xc0869536720551eb675a05ec4cfc57229266e762f06932ed43b104755022b59b",
+              "isLeft": false
+            },
+            {
+              "hash": "0x4e07343f597099a5bf3eb7107d0e765e5c2efded5baba6336e186dd28aad6b7f",
+              "isLeft": false
+            },
+            {
+              "hash": "0xfbf59c242eec5e7387a6e2588f7506789d1692388fa3ac05a0cab68454818f2e",
+              "isLeft": false
+            },
+            {
+              "hash": "0x76818115ba612fc57b69d48f348e41ad357ebb2bb28e5f2363b462ce75048c8f",
+              "isLeft": false
+            },
+            {
+              "hash": "0x25bef5a9db3827a4bdbc4ac422c1ba6d85efce874c947460160d4773dfa55bc2",
+              "isLeft": false
+            }
+          ],
+          "siblingCount": 9
+        },
+        "continuityProof": {
+          "lowerEndpointDigest": "0xfe1f47d0ba211f661c21ace76702a883a5c9837ff35e39664dfd0fc9175f3392",
+          "roots": [
+            "0x2d72e37c7d7dc2f5fec2b412e9464d3fd42b197b2d505d252a70d610ff5ce434"
+          ],
+          "rootCount": 1
+        }
+      },
+      "submission": {
+        "from": "0xb67c73fd513adF5d270d1102F04eb8327F218FE7",
+        "to": "0xc5c83782f315b321Cd8e18B4C2e05df4050C3854",
+        "selector": "0x6481b17c",
+        "calldataByteLength": 2852,
+        "calldataKeccak": "0x37ee9ddfe207c27d23d3baf8c0e44aef4b4912495142285c2f91eda1725061c9",
+        "gasLimit": "3000000"
+      },
+      "keylessPreflight": {
+        "raw": "0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001e4d65726b6c652070726f6f662076616c69646174696f6e206661696c65640000",
+        "rawByteLength": 100,
+        "decoded": {
+          "kind": "errorString",
+          "selector": "0x08c379a0",
+          "signature": "Error(string)",
+          "message": "Merkle proof validation failed"
+        },
+        "nodeMessage": "execution reverted: \"Merkle proof validation failed\"",
+        "method": "eth_call",
+        "blockTag": "latest",
+        "accepted": false
+      },
+      "onChain": {
+        "transactionHash": "0xe452970f5777397104093655cafd0064ba7a00d81ddcdac862a7e590dfc1ac64",
+        "nonce": 16,
+        "blockNumber": 5407522,
+        "blockHash": "0x37f44b9d001af1e3dd8df932b472a8976339cfa5f2dce4ad31d245adf1394460",
+        "status": 0,
+        "gasLimit": "3000000",
+        "gasUsed": "190036",
+        "outOfGas": false,
+        "effectiveGasPriceWei": "500000000",
+        "feeSpentWei": "95018000000000",
+        "feeSpentCtc": "0.000095018",
+        "explorerUrl": "https://creditcoin-testnet.blockscout.com/tx/0xe452970f5777397104093655cafd0064ba7a00d81ddcdac862a7e590dfc1ac64",
+        "revertData": {
+          "raw": "0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001e4d65726b6c652070726f6f662076616c69646174696f6e206661696c65640000",
+          "rawByteLength": 100,
+          "decoded": {
+            "kind": "errorString",
+            "selector": "0x08c379a0",
+            "signature": "Error(string)",
+            "message": "Merkle proof validation failed"
+          },
+          "nodeMessage": "execution reverted: \"Merkle proof validation failed\"",
+          "method": "eth_call replayed at the mined block",
+          "blockTag": "0x528322"
+        }
+      },
+      "verdict": {
+        "outcome": "refused-as-expected",
+        "basis": "on-chain transaction",
+        "observedRefusal": "Error(string)",
+        "matchesExpectation": true,
+        "note": "the transaction reverted with Error(string), which is what this case expects."
+      }
+    },
+    "tampered-encoded-transaction": {
+      "id": "tampered-encoded-transaction",
+      "title": "Tampered encoded transaction payload",
+      "requirements": [
+        "27.5"
+      ],
+      "expectation": "The deployment must refuse a submission whose payload has been altered after the proof was built. One inverted byte is enough: the leaf no longer matches the sibling path, so inclusion of *these* bytes is unproven even though inclusion of the original bytes is a fact.",
+      "expectedRefusals": [
+        "ProofRejected",
+        "Error(string)"
+      ],
+      "recordedAt": "2026-08-31T18:40:03.243Z",
+      "mode": "broadcast",
+      "target": {
+        "chainKey": 3,
+        "sourceTxHash": "0xe644fbd48f71010fa80f65d4549c0f8fa1f0d5cd9db4b22d21b89845d1ed6fea",
+        "blockHeight": 25876970,
+        "txIndexFromSourceRpc": 7,
+        "logIndexInTx": 0,
+        "asset": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        "payerFromTopic1": "0x2744dfd9898f0babbc570cc594bbbc84b487a22b",
+        "recipientFromTopic2": "0x1b610c9758280659e2742cd176bb8b2429a36384",
+        "amountBaseUnits": "129330000",
+        "txFrom": "0x05ff6964d21e5dae3b1010d5ae0465b3c450f381",
+        "payerDiffersFromTxFrom": true,
+        "receiptLogCount": 1,
+        "attestedFrontierAtSelection": 25877070,
+        "sourceEndpoint": "https://eth.drpc.org",
+        "note": "Historical Ethereum Mainnet USDC Transfer, 100 blocks below the attested frontier at selection time. Nothing was sent to Ethereum: the transaction already existed."
+      },
+      "proofMaterial": {
+        "source": "https://prover.cc3-testnet.creditcoin.network",
+        "txIndexFromProofBuilder": 7,
+        "cached": true,
+        "generatedAt": "2026-08-31T18:39:30.057341632Z"
+      },
+      "mutation": {
+        "field": "encodedTransaction byte 912 of 1824",
+        "genuine": "0x00",
+        "submitted": "0xff",
+        "rationale": "One byte inverted in an otherwise genuine payload. The proof material is untouched, so the submitted bytes no longer hash to the leaf the sibling path commits to and the transaction under proof is not the transaction supplied."
+      },
+      "keylessControls": {
+        "genuineMaterial": {
+          "method": "eth_call verifyAndEmit on the BlockProver Precompile",
+          "verified": true,
+          "rawReturnData": "0x0000000000000000000000000000000000000000000000000000000000000001",
+          "reverted": false,
+          "nodeMessage": null
+        },
+        "asSubmitted": {
+          "method": "eth_call verifyAndEmit on the BlockProver Precompile",
+          "verified": null,
+          "rawReturnData": "0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001e4d65726b6c652070726f6f662076616c69646174696f6e206661696c65640000",
+          "reverted": true,
+          "nodeMessage": "execution reverted: \"Merkle proof validation failed\""
+        }
+      },
+      "submitted": {
+        "chainKey": 3,
+        "blockHeight": 25876970,
+        "encodedTransaction": "0x0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000028000000000000000000000000000000000000000000000000000000000000003a0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000001ae33c000000000000000000000000000000000000000000000000000000000001db1200000000000000000000000005ff6964d21e5dae3b1010d5ae0465b3c450f38100000000000000000000000000000000000000000000000000000000000000000000000000000000000000002744dfd9898f0babbc570cc594bbbc84b487a22b000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000000e4b61d27f6000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000044a9059cbb0000000000000000000000001b610c9758280659e2742cd176bb8b2429a363840000000000000000000000000000000000000000000000000000000007b56b500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000077359400000000000000000000000000000000000000000000000000000000008766c99800000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000ff000000000000000000000000000001b2d15f72651cdd47d60dd6090a1bbf95d293efe185b1aa7d4bea216064327fcd452d999edacf9508e24ee4d6b3cf291c6f9887593dfcf5b6754a84d1cb1ba35800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000135b3000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000001e000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000020000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000003ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef0000000000000000000000002744dfd9898f0babbc570cc594bbbc84b487a22b0000000000000000000000001b610c9758280659e2742cd176bb8b2429a3638400000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000007b56b50000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000200000000000000000000000000000000000008000008000000800000000020000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000040000000000000010000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000002000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "encodedTransactionByteLength": 1824,
+        "merkleProof": {
+          "root": "0x2d72e37c7d7dc2f5fec2b412e9464d3fd42b197b2d505d252a70d610ff5ce434",
+          "siblings": [
+            {
+              "hash": "0xeda0f5bc8ee2b408e496b19eb12533ef42f710800f09322e8aa30805fd8561b3",
+              "isLeft": true
+            },
+            {
+              "hash": "0x41a789c7b2693c0fde1625493ac84c745b3043e460b1dc03b5c86580d4d4ea27",
+              "isLeft": true
+            },
+            {
+              "hash": "0x31aaf469e6f7382e82c2cc79bce44b8cf27df8904f3052d56b6078dcb454719a",
+              "isLeft": true
+            },
+            {
+              "hash": "0xcc1dea44ad474284c4a66d51fd19bc7ad0c94e362c51459efe22779ac7661010",
+              "isLeft": false
+            },
+            {
+              "hash": "0xc0869536720551eb675a05ec4cfc57229266e762f06932ed43b104755022b59b",
+              "isLeft": false
+            },
+            {
+              "hash": "0x4e07343f597099a5bf3eb7107d0e765e5c2efded5baba6336e186dd28aad6b7f",
+              "isLeft": false
+            },
+            {
+              "hash": "0xfbf59c242eec5e7387a6e2588f7506789d1692388fa3ac05a0cab68454818f2e",
+              "isLeft": false
+            },
+            {
+              "hash": "0x76818115ba612fc57b69d48f348e41ad357ebb2bb28e5f2363b462ce75048c8f",
+              "isLeft": false
+            },
+            {
+              "hash": "0x25bef5a9db3827a4bdbc4ac422c1ba6d85efce874c947460160d4773dfa55bc2",
+              "isLeft": false
+            }
+          ],
+          "siblingCount": 9
+        },
+        "continuityProof": {
+          "lowerEndpointDigest": "0xfe1f47d0ba211f661c21ace76702a883a5c9837ff35e39664dfd0fc9175f3392",
+          "roots": [
+            "0x2d72e37c7d7dc2f5fec2b412e9464d3fd42b197b2d505d252a70d610ff5ce434"
+          ],
+          "rootCount": 1
+        }
+      },
+      "submission": {
+        "from": "0xb67c73fd513adF5d270d1102F04eb8327F218FE7",
+        "to": "0xc5c83782f315b321Cd8e18B4C2e05df4050C3854",
+        "selector": "0x6481b17c",
+        "calldataByteLength": 2852,
+        "calldataKeccak": "0xfda86aaad9cfe53fc310aa33569e40d131181326bd1a10fb88e2ae57fadb2636",
+        "gasLimit": "3000000"
+      },
+      "keylessPreflight": {
+        "raw": "0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001e4d65726b6c652070726f6f662076616c69646174696f6e206661696c65640000",
+        "rawByteLength": 100,
+        "decoded": {
+          "kind": "errorString",
+          "selector": "0x08c379a0",
+          "signature": "Error(string)",
+          "message": "Merkle proof validation failed"
+        },
+        "nodeMessage": "execution reverted: \"Merkle proof validation failed\"",
+        "method": "eth_call",
+        "blockTag": "latest",
+        "accepted": false
+      },
+      "onChain": {
+        "transactionHash": "0x68617e35cc8bf8db5d43a94f7dcfc2d1094e67cfdbe74b619f522313b574c3ca",
+        "nonce": 17,
+        "blockNumber": 5407523,
+        "blockHash": "0x7ddf1bb4e561e05264b875f5ea22c7d38b7abc581ac51b1c565d46c8b4137497",
+        "status": 0,
+        "gasLimit": "3000000",
+        "gasUsed": "190036",
+        "outOfGas": false,
+        "effectiveGasPriceWei": "500000000",
+        "feeSpentWei": "95018000000000",
+        "feeSpentCtc": "0.000095018",
+        "explorerUrl": "https://creditcoin-testnet.blockscout.com/tx/0x68617e35cc8bf8db5d43a94f7dcfc2d1094e67cfdbe74b619f522313b574c3ca",
+        "revertData": {
+          "raw": "0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001e4d65726b6c652070726f6f662076616c69646174696f6e206661696c65640000",
+          "rawByteLength": 100,
+          "decoded": {
+            "kind": "errorString",
+            "selector": "0x08c379a0",
+            "signature": "Error(string)",
+            "message": "Merkle proof validation failed"
+          },
+          "nodeMessage": "execution reverted: \"Merkle proof validation failed\"",
+          "method": "eth_call replayed at the mined block",
+          "blockTag": "0x528323"
+        }
+      },
+      "verdict": {
+        "outcome": "refused-as-expected",
+        "basis": "on-chain transaction",
+        "observedRefusal": "Error(string)",
+        "matchesExpectation": true,
+        "note": "the transaction reverted with Error(string), which is what this case expects."
+      }
+    },
+    "wrong-chain-key": {
+      "id": "wrong-chain-key",
+      "title": "Genuine Mainnet material submitted under the Sepolia chainKey",
+      "requirements": [
+        "27.6"
+      ],
+      "expectation": "The deployment must refuse a proof submitted under a chainKey other than the one authorising its emitter. Two defences stand in the way and either is a correct refusal: the precompile, whose Sepolia registry holds no Mainnet digest to chain the Continuity Proof to, and the verifier, which reverts `UnauthorizedSourceChain` when an emitter is authorised on a different chainKey. Which one answered is recorded, not assumed.",
+      "expected": "refusal",
+      "expectedRefusals": [
+        "UnauthorizedSourceChain",
+        "ProofRejected",
+        "Error(string)"
+      ],
+      "recordedAt": "2026-09-06T07:41:01.585Z",
+      "mode": "broadcast",
+      "status": "ran",
+      "target": {
+        "chainKey": 3,
+        "sourceTxHash": "0xf5e8bef42c5777dce754c779f80cbc3cd011e70b0827d1a099cd841293bb4958",
+        "blockHeight": 25916730,
+        "txIndexFromSourceRpc": 3,
+        "txFrom": "0x286fb9114c441f464dc3a41ec3917d7d76297b0a",
+        "receiptStatus": 1,
+        "receiptLogCount": 1,
+        "settlementLog": {
+          "ordinal": 0,
+          "emitter": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+          "signature": "Transfer",
+          "topicCount": 3,
+          "payerFromTopic1": "0x286fb9114c441f464dc3a41ec3917d7d76297b0a",
+          "recipientFromTopic2": "0x0668c9bf6a6936b9eb5a19f61c663070beff2f9b",
+          "amountBaseUnits": "348635637"
+        },
+        "settlementLogs": [
+          {
+            "ordinal": 0,
+            "emitter": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+            "signature": "Transfer",
+            "topicCount": 3,
+            "payerFromTopic1": "0x286fb9114c441f464dc3a41ec3917d7d76297b0a",
+            "recipientFromTopic2": "0x0668c9bf6a6936b9eb5a19f61c663070beff2f9b",
+            "amountBaseUnits": "348635637"
+          }
+        ],
+        "zeroTopicLogOrdinals": [],
+        "payerDiffersFromTxFrom": false,
+        "attestedFrontierAtSelection": 25916830,
+        "sourceEndpoint": "https://eth.drpc.org",
+        "selection": "the successful Mainnet transaction carrying a USDC Transfer with the fewest logs, below the frontier",
+        "note": "Historical Ethereum Mainnet transaction, 100 blocks below the attested frontier at selection time. Nothing was sent to Ethereum: the transaction already existed."
+      },
+      "proofMaterial": {
+        "source": "https://prover.cc3-testnet.creditcoin.network",
+        "txIndexFromProofBuilder": 3,
+        "cached": true,
+        "generatedAt": "2026-09-06T07:40:52.786575672Z"
+      },
+      "mutation": {
+        "field": "chainKey",
+        "genuine": "3",
+        "submitted": "1",
+        "rationale": "Genuine Ethereum Mainnet material, claimed to be Sepolia history. The Continuity Proof chains to a Mainnet attestation digest that the Sepolia attestation registry does not hold, and even if the precompile accepted it, the emitter is authorised as a Mainnet Asset and not a Sepolia one."
+      },
+      "keylessControls": {
+        "genuineMaterial": {
+          "method": "eth_call verifyAndEmit on the BlockProver Precompile",
+          "verified": true,
+          "rawReturnData": "0x0000000000000000000000000000000000000000000000000000000000000001",
+          "reverted": false,
+          "nodeMessage": null
+        },
+        "asSubmitted": {
+          "method": "eth_call verifyAndEmit on the BlockProver Precompile",
+          "verified": null,
+          "rawReturnData": "0x08c379a000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000039436f6e74696e756974792070726f6f6620646f6573206e6f74206d61746368206174746573746174696f6e206f7220636865636b706f696e7400000000000000",
+          "reverted": true,
+          "nodeMessage": "execution reverted: \"Continuity proof does not match attestation or checkpoint\""
+        }
+      },
+      "expectedIngestions": [
+        {
+          "ordinal": 0,
+          "signature": "Transfer",
+          "emitter": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+          "payerFromTopic1": "0x286fb9114c441f464dc3a41ec3917d7d76297b0a",
+          "recipientFromTopic2": "0x0668c9bf6a6936b9eb5a19f61c663070beff2f9b",
+          "amountBaseUnits": "348635637",
+          "replayKey": "0x000000000000000300000000018b753a00000000000000030000000000000000",
+          "recognised": true,
+          "collectionRegistered": false,
+          "serviceId": null,
+          "asset": null
+        }
+      ],
+      "stateBefore": null,
+      "submitted": {
+        "chainKey": 1,
+        "blockHeight": 25916730,
+        "encodedTransaction": "0x000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000001e000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000000160000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000186a0000000000000000000000000286fb9114c441f464dc3a41ec3917d7d76297b0a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000044a9059cbb0000000000000000000000000668c9bf6a6936b9eb5a19f61c663070beff2f9b0000000000000000000000000000000000000000000000000000000014c7c1f50000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000009502f900000000000000000000000000000000000000000000000000000000009a49768f00000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000000017e5fed7f12d7a98772dd21a18a784a1a7daa61b6ad3b793c08e5a82cbf06fa9a1df6a1e688a48b6db5af7dcc18cf342911e9a70dec201f577fea68808d3f4e830000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000009da8000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000001e000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000020000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000003ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef000000000000000000000000286fb9114c441f464dc3a41ec3917d7d76297b0a0000000000000000000000000668c9bf6a6936b9eb5a19f61c663070beff2f9b00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000014c7c1f5000000000000000000000000000000000000000000000000000000000000010000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000800000000000000000000000008000008000000000000000000000000000000000000020000000000000000000000000000000000000100000000000000000010000000000000000000000000200000000000000000000000010000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000002000000000040000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "encodedTransactionByteLength": 1664,
+        "merkleProof": {
+          "root": "0xc133be0f8d4e12e9d369ed76fe33543db51686015f52bd0da884f0b3c44eef14",
+          "siblings": [
+            {
+              "hash": "0x86b7a0fd85a5aa38762bb05c1c33f2510becc1bdbe489cee81a3b87919c7042e",
+              "isLeft": true
+            },
+            {
+              "hash": "0xea6fcb9dc3552c713fa67803b64e79613fcf128d719f15996e62510a79d32b07",
+              "isLeft": true
+            },
+            {
+              "hash": "0x33491bca73d59b28d08a8d03bbb54b2efaa0df9e3496d183e9ca213f73316c1e",
+              "isLeft": false
+            },
+            {
+              "hash": "0x3c5202940a0f4862dd04c01b9afb6d6c05c7c1d487b34471b234d0350a833319",
+              "isLeft": false
+            },
+            {
+              "hash": "0xb7c6709eb61263c50f62fb75e7a3b14d92425d39887ab25e8aeea2a101996d7a",
+              "isLeft": false
+            },
+            {
+              "hash": "0x53846e70db0de22eb335ab6e96003cef435e453d744d1d95af2230297c122510",
+              "isLeft": false
+            },
+            {
+              "hash": "0xcb0afae6314a93d409ec2c6f14557d76072f553425dc942d575710ba2706104f",
+              "isLeft": false
+            },
+            {
+              "hash": "0x22e5473b3b2171c9b5c6b4a1f5d73df00ab430e1e1518191749e04719bed18f2",
+              "isLeft": false
+            }
+          ],
+          "siblingCount": 8
+        },
+        "continuityProof": {
+          "lowerEndpointDigest": "0x1d9f7a2ddbbb0d28e72d8116f15922348a2ef3f9a1131b3dc438284d7649547d",
+          "roots": [
+            "0xc133be0f8d4e12e9d369ed76fe33543db51686015f52bd0da884f0b3c44eef14"
+          ],
+          "rootCount": 1
+        }
+      },
+      "submission": {
+        "from": "0xE5eaB26CaE0855BcCaBBb9A64faFce28C8432b37",
+        "to": "0xc5c83782f315b321Cd8e18B4C2e05df4050C3854",
+        "selector": "0x6481b17c",
+        "calldataByteLength": 2628,
+        "calldataKeccak": "0x2923f907bf000412330578a26c696226024f76e676f43ed36d36c0ba0bd590fb",
+        "gasLimit": "3000000"
+      },
+      "keylessPreflight": {
+        "raw": "0x08c379a000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000039436f6e74696e756974792070726f6f6620646f6573206e6f74206d61746368206174746573746174696f6e206f7220636865636b706f696e7400000000000000",
+        "rawByteLength": 132,
+        "decoded": {
+          "kind": "errorString",
+          "selector": "0x08c379a0",
+          "signature": "Error(string)",
+          "message": "Continuity proof does not match attestation or checkpoint"
+        },
+        "nodeMessage": "execution reverted: \"Continuity proof does not match attestation or checkpoint\"",
+        "method": "eth_call",
+        "blockTag": "latest",
+        "accepted": false
+      },
+      "onChain": {
+        "transactionHash": "0xdf44cc967ed26802e8f67efc0ba45e50b4a9d6454ba72827117fe6ec6d9d0ebc",
+        "nonce": 22,
+        "blockNumber": 5439371,
+        "blockHash": "0x90a75a8e5c66fea0aa7026a0bb1e1bd62729caad70c8b74b849f8c7fcdfdcac4",
+        "status": 0,
+        "gasLimit": "3000000",
+        "gasUsed": "186900",
+        "outOfGas": false,
+        "effectiveGasPriceWei": "500000000",
+        "feeSpentWei": "93450000000000",
+        "feeSpentCtc": "0.00009345",
+        "explorerUrl": "https://creditcoin-testnet.blockscout.com/tx/0xdf44cc967ed26802e8f67efc0ba45e50b4a9d6454ba72827117fe6ec6d9d0ebc",
+        "revertData": {
+          "raw": "0x08c379a000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000039436f6e74696e756974792070726f6f6620646f6573206e6f74206d61746368206174746573746174696f6e206f7220636865636b706f696e7400000000000000",
+          "rawByteLength": 132,
+          "decoded": {
+            "kind": "errorString",
+            "selector": "0x08c379a0",
+            "signature": "Error(string)",
+            "message": "Continuity proof does not match attestation or checkpoint"
+          },
+          "nodeMessage": "execution reverted: \"Continuity proof does not match attestation or checkpoint\"",
+          "method": "eth_call replayed at the mined block",
+          "blockTag": "0x52ff8b"
+        }
+      },
+      "verdict": {
+        "outcome": "refused-as-expected",
+        "basis": "on-chain transaction",
+        "observedRefusal": "Error(string)",
+        "matchesExpectation": true,
+        "note": "the transaction reverted with Error(string), which is what this case expects."
+      },
+      "assertions": null,
+      "assertionsHold": null
+    },
+    "reverted-source-transaction": {
+      "id": "reverted-source-transaction",
+      "title": "Source Chain transaction whose receipt status is zero",
+      "requirements": [
+        "27.8"
+      ],
+      "expectation": "A reverted Ethereum transaction is genuine history and its proof verifies, and it must still credit nothing. The verifier decodes `receiptStatus` before it reads a single log and reverts `SourceTransactionReverted` on anything but 1, so a failed payment never reduces an Open Tab.",
+      "expected": "refusal",
+      "expectedRefusals": [
+        "SourceTransactionReverted"
+      ],
+      "recordedAt": "2026-09-06T07:41:18.386Z",
+      "mode": "broadcast",
+      "status": "ran",
+      "target": {
+        "chainKey": 3,
+        "sourceTxHash": "0xfc9a197444fdb8783aebefc85f56ddc76ce72923c1754aaf87106af5ae3be32c",
+        "blockHeight": 25916730,
+        "txIndexFromSourceRpc": 130,
+        "txFrom": "0x4db9c160e2ef429ade99ca98e1c9056ef76c8ac6",
+        "receiptStatus": 0,
+        "receiptLogCount": 0,
+        "settlementLog": null,
+        "settlementLogs": [],
+        "zeroTopicLogOrdinals": [],
+        "payerDiffersFromTxFrom": null,
+        "attestedFrontierAtSelection": 25916830,
+        "sourceEndpoint": "https://eth.drpc.org",
+        "selection": "the first reverted Mainnet transaction below the frontier",
+        "note": "Historical Ethereum Mainnet transaction, 100 blocks below the attested frontier at selection time. Nothing was sent to Ethereum: the transaction already existed."
+      },
+      "proofMaterial": {
+        "source": "https://prover.cc3-testnet.creditcoin.network",
+        "txIndexFromProofBuilder": 130,
+        "cached": true,
+        "generatedAt": "2026-09-06T07:41:05.490478424Z"
+      },
+      "mutation": null,
+      "keylessControls": {
+        "genuineMaterial": {
+          "method": "eth_call verifyAndEmit on the BlockProver Precompile",
+          "verified": true,
+          "rawReturnData": "0x0000000000000000000000000000000000000000000000000000000000000001",
+          "reverted": false,
+          "nodeMessage": null
+        },
+        "asSubmitted": {
+          "method": "eth_call verifyAndEmit on the BlockProver Precompile",
+          "verified": true,
+          "rawReturnData": "0x0000000000000000000000000000000000000000000000000000000000000001",
+          "reverted": false,
+          "nodeMessage": null
+        }
+      },
+      "expectedIngestions": [],
+      "stateBefore": null,
+      "submitted": {
+        "chainKey": 3,
+        "blockHeight": 25916730,
+        "encodedTransaction": "0x00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000260000000000000000000000000000000000000000000000000000000000000038000000000000000000000000000000000000000000000000000000000000001e00000000000000000000000000000000000000000000000000000000000003b7c00000000000000000000000000000000000000000000000000000000000927c00000000000000000000000004db9c160e2ef429ade99ca98e1c9056ef76c8ac60000000000000000000000000000000000000000000000000000000000000000000000000000000000000000278d858f05b94576c1e6f73285886876ff6ef8d2000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000000c742e3dcf300000000000000000000000000000000000000000000001ff375c0a920cc4800000000000000000000000000d533a949740bb3306d119cc777fa900ba034cd5200000000000000000000000000000000000000000000000001397a5351199f6b0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000919fa96e88d67499339577fa202345436bcdaf79000000000000000000000000000000000000000000000000000000006a9d130a00001200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000002faf0810000000000000000000000000000000000000000000000000000000008a1018e00000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000000004e24ea148237dd35bf4314ecb9249c06024c9770a1364fe21f20fc33d9cea47700604177891ce528252522c68f1a8dd2ba0bc7cedbb5301f482855c5f1a26f98000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001c000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000020977000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "encodedTransactionByteLength": 1472,
+        "merkleProof": {
+          "root": "0xc133be0f8d4e12e9d369ed76fe33543db51686015f52bd0da884f0b3c44eef14",
+          "siblings": [
+            {
+              "hash": "0x0e00f9f162f7375cb06dfe473327a36e31426d970ec3dcc9c71ffc32bf0185e2",
+              "isLeft": false
+            },
+            {
+              "hash": "0x424ab1e3cbf4f0a1deebc07be4b784416516280c20de32607b50c7d5c8cc6eae",
+              "isLeft": true
+            },
+            {
+              "hash": "0x69b47c1c815bf29c8b41eb71f501af2379a9351356bf57b23234aa3f002d5473",
+              "isLeft": false
+            },
+            {
+              "hash": "0xc150cd80182d57481d61f30cc7f3d037a3df4988c5f5e99eb6d43fea66fe0fe6",
+              "isLeft": false
+            },
+            {
+              "hash": "0xcd819f90a52b1aa57ecb14f092a20b92e044fa9ec0f1acabe906214f09984f7d",
+              "isLeft": false
+            },
+            {
+              "hash": "0x735a327f6c62010f4d31f0af36a8b15feb4035bbdcc07266430a8c1a555fdb29",
+              "isLeft": false
+            },
+            {
+              "hash": "0xf86ed4e18149acdc52d0b834ec5034cd3bac3d53c470430beab5a39060b5c943",
+              "isLeft": false
+            },
+            {
+              "hash": "0xaef9de8cc68919d4b789d1a74efb7d86bb92b4b487f1188cfa1024716f992637",
+              "isLeft": true
+            }
+          ],
+          "siblingCount": 8
+        },
+        "continuityProof": {
+          "lowerEndpointDigest": "0x1d9f7a2ddbbb0d28e72d8116f15922348a2ef3f9a1131b3dc438284d7649547d",
+          "roots": [
+            "0xc133be0f8d4e12e9d369ed76fe33543db51686015f52bd0da884f0b3c44eef14"
+          ],
+          "rootCount": 1
+        }
+      },
+      "submission": {
+        "from": "0xE5eaB26CaE0855BcCaBBb9A64faFce28C8432b37",
+        "to": "0xc5c83782f315b321Cd8e18B4C2e05df4050C3854",
+        "selector": "0x6481b17c",
+        "calldataByteLength": 2436,
+        "calldataKeccak": "0xe9722e4f5dc3fd4fe2b9a9dfa41e203c46886e7ace0bf67015acb0a6c1de9341",
+        "gasLimit": "3000000"
+      },
+      "keylessPreflight": {
+        "raw": "0x34f9514e000000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000018b753a0000000000000000000000000000000000000000000000000000000000000082",
+        "rawByteLength": 100,
+        "decoded": {
+          "kind": "customError",
+          "selector": "0x34f9514e",
+          "name": "SourceTransactionReverted",
+          "signature": "SourceTransactionReverted(uint64,uint64,uint64)",
+          "args": {
+            "chainKey": "3",
+            "blockHeight": "25916730",
+            "txIndex": "130"
+          }
+        },
+        "nodeMessage": "execution reverted (unknown custom error)",
+        "method": "eth_call",
+        "blockTag": "latest",
+        "accepted": false
+      },
+      "onChain": {
+        "transactionHash": "0x788aa12553f753f6634b3d2581ca99ea43e6ec8473a9e739ecdf782bb1d96b54",
+        "nonce": 23,
+        "blockNumber": 5439372,
+        "blockHash": "0x2110a5ed7b39d3c588fdd20947ea84e9bb764f03e560c059cc302f6d5b403dfe",
+        "status": 0,
+        "gasLimit": "3000000",
+        "gasUsed": "375522",
+        "outOfGas": false,
+        "effectiveGasPriceWei": "500000000",
+        "feeSpentWei": "187761000000000",
+        "feeSpentCtc": "0.000187761",
+        "explorerUrl": "https://creditcoin-testnet.blockscout.com/tx/0x788aa12553f753f6634b3d2581ca99ea43e6ec8473a9e739ecdf782bb1d96b54",
+        "revertData": {
+          "raw": "0x34f9514e000000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000018b753a0000000000000000000000000000000000000000000000000000000000000082",
+          "rawByteLength": 100,
+          "decoded": {
+            "kind": "customError",
+            "selector": "0x34f9514e",
+            "name": "SourceTransactionReverted",
+            "signature": "SourceTransactionReverted(uint64,uint64,uint64)",
+            "args": {
+              "chainKey": "3",
+              "blockHeight": "25916730",
+              "txIndex": "130"
+            }
+          },
+          "nodeMessage": "execution reverted (unknown custom error)",
+          "method": "eth_call replayed at the mined block",
+          "blockTag": "0x52ff8c"
+        }
+      },
+      "verdict": {
+        "outcome": "refused-as-expected",
+        "basis": "on-chain transaction",
+        "observedRefusal": "SourceTransactionReverted",
+        "matchesExpectation": true,
+        "note": "the transaction reverted with SourceTransactionReverted, which is what this case expects."
+      },
+      "assertions": null,
+      "assertionsHold": null
+    },
+    "unregistered-recipient": {
+      "id": "unregistered-recipient",
+      "title": "Genuine Transfer to a recipient no Service registered",
+      "requirements": [
+        "27.9"
+      ],
+      "expectation": "A verified USDC Transfer to an address no Service registered for that Asset is recognised as a Settlement shape and then refused by name: `UnknownCollectionAddress` carries the chainKey, the recipient, and the Asset. The proof is genuine and unchanged, so the refusal is attributable to the registry lookup alone.",
+      "expected": "refusal",
+      "expectedRefusals": [
+        "UnknownCollectionAddress"
+      ],
+      "recordedAt": "2026-09-06T07:41:31.744Z",
+      "mode": "broadcast",
+      "status": "ran",
+      "target": {
+        "chainKey": 3,
+        "sourceTxHash": "0xf5e8bef42c5777dce754c779f80cbc3cd011e70b0827d1a099cd841293bb4958",
+        "blockHeight": 25916730,
+        "txIndexFromSourceRpc": 3,
+        "txFrom": "0x286fb9114c441f464dc3a41ec3917d7d76297b0a",
+        "receiptStatus": 1,
+        "receiptLogCount": 1,
+        "settlementLog": {
+          "ordinal": 0,
+          "emitter": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+          "signature": "Transfer",
+          "topicCount": 3,
+          "payerFromTopic1": "0x286fb9114c441f464dc3a41ec3917d7d76297b0a",
+          "recipientFromTopic2": "0x0668c9bf6a6936b9eb5a19f61c663070beff2f9b",
+          "amountBaseUnits": "348635637"
+        },
+        "settlementLogs": [
+          {
+            "ordinal": 0,
+            "emitter": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+            "signature": "Transfer",
+            "topicCount": 3,
+            "payerFromTopic1": "0x286fb9114c441f464dc3a41ec3917d7d76297b0a",
+            "recipientFromTopic2": "0x0668c9bf6a6936b9eb5a19f61c663070beff2f9b",
+            "amountBaseUnits": "348635637"
+          }
+        ],
+        "zeroTopicLogOrdinals": [],
+        "payerDiffersFromTxFrom": false,
+        "attestedFrontierAtSelection": 25916830,
+        "sourceEndpoint": "https://eth.drpc.org",
+        "selection": "the successful Mainnet transaction carrying a USDC Transfer with the fewest logs, below the frontier",
+        "note": "Historical Ethereum Mainnet transaction, 100 blocks below the attested frontier at selection time. Nothing was sent to Ethereum: the transaction already existed."
+      },
+      "proofMaterial": {
+        "source": "https://prover.cc3-testnet.creditcoin.network",
+        "txIndexFromProofBuilder": 3,
+        "cached": true,
+        "generatedAt": "2026-09-06T07:40:52.786575672Z"
+      },
+      "mutation": null,
+      "keylessControls": {
+        "genuineMaterial": {
+          "method": "eth_call verifyAndEmit on the BlockProver Precompile",
+          "verified": true,
+          "rawReturnData": "0x0000000000000000000000000000000000000000000000000000000000000001",
+          "reverted": false,
+          "nodeMessage": null
+        },
+        "asSubmitted": {
+          "method": "eth_call verifyAndEmit on the BlockProver Precompile",
+          "verified": true,
+          "rawReturnData": "0x0000000000000000000000000000000000000000000000000000000000000001",
+          "reverted": false,
+          "nodeMessage": null
+        }
+      },
+      "expectedIngestions": [
+        {
+          "ordinal": 0,
+          "signature": "Transfer",
+          "emitter": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+          "payerFromTopic1": "0x286fb9114c441f464dc3a41ec3917d7d76297b0a",
+          "recipientFromTopic2": "0x0668c9bf6a6936b9eb5a19f61c663070beff2f9b",
+          "amountBaseUnits": "348635637",
+          "replayKey": "0x000000000000000300000000018b753a00000000000000030000000000000000",
+          "recognised": true,
+          "collectionRegistered": false,
+          "serviceId": null,
+          "asset": null
+        }
+      ],
+      "stateBefore": null,
+      "submitted": {
+        "chainKey": 3,
+        "blockHeight": 25916730,
+        "encodedTransaction": "0x000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000001e000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000000160000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000186a0000000000000000000000000286fb9114c441f464dc3a41ec3917d7d76297b0a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000044a9059cbb0000000000000000000000000668c9bf6a6936b9eb5a19f61c663070beff2f9b0000000000000000000000000000000000000000000000000000000014c7c1f50000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000009502f900000000000000000000000000000000000000000000000000000000009a49768f00000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000000017e5fed7f12d7a98772dd21a18a784a1a7daa61b6ad3b793c08e5a82cbf06fa9a1df6a1e688a48b6db5af7dcc18cf342911e9a70dec201f577fea68808d3f4e830000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000009da8000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000001e000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000020000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000003ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef000000000000000000000000286fb9114c441f464dc3a41ec3917d7d76297b0a0000000000000000000000000668c9bf6a6936b9eb5a19f61c663070beff2f9b00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000014c7c1f5000000000000000000000000000000000000000000000000000000000000010000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000800000000000000000000000008000008000000000000000000000000000000000000020000000000000000000000000000000000000100000000000000000010000000000000000000000000200000000000000000000000010000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000002000000000040000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "encodedTransactionByteLength": 1664,
+        "merkleProof": {
+          "root": "0xc133be0f8d4e12e9d369ed76fe33543db51686015f52bd0da884f0b3c44eef14",
+          "siblings": [
+            {
+              "hash": "0x86b7a0fd85a5aa38762bb05c1c33f2510becc1bdbe489cee81a3b87919c7042e",
+              "isLeft": true
+            },
+            {
+              "hash": "0xea6fcb9dc3552c713fa67803b64e79613fcf128d719f15996e62510a79d32b07",
+              "isLeft": true
+            },
+            {
+              "hash": "0x33491bca73d59b28d08a8d03bbb54b2efaa0df9e3496d183e9ca213f73316c1e",
+              "isLeft": false
+            },
+            {
+              "hash": "0x3c5202940a0f4862dd04c01b9afb6d6c05c7c1d487b34471b234d0350a833319",
+              "isLeft": false
+            },
+            {
+              "hash": "0xb7c6709eb61263c50f62fb75e7a3b14d92425d39887ab25e8aeea2a101996d7a",
+              "isLeft": false
+            },
+            {
+              "hash": "0x53846e70db0de22eb335ab6e96003cef435e453d744d1d95af2230297c122510",
+              "isLeft": false
+            },
+            {
+              "hash": "0xcb0afae6314a93d409ec2c6f14557d76072f553425dc942d575710ba2706104f",
+              "isLeft": false
+            },
+            {
+              "hash": "0x22e5473b3b2171c9b5c6b4a1f5d73df00ab430e1e1518191749e04719bed18f2",
+              "isLeft": false
+            }
+          ],
+          "siblingCount": 8
+        },
+        "continuityProof": {
+          "lowerEndpointDigest": "0x1d9f7a2ddbbb0d28e72d8116f15922348a2ef3f9a1131b3dc438284d7649547d",
+          "roots": [
+            "0xc133be0f8d4e12e9d369ed76fe33543db51686015f52bd0da884f0b3c44eef14"
+          ],
+          "rootCount": 1
+        }
+      },
+      "submission": {
+        "from": "0xE5eaB26CaE0855BcCaBBb9A64faFce28C8432b37",
+        "to": "0xc5c83782f315b321Cd8e18B4C2e05df4050C3854",
+        "selector": "0x6481b17c",
+        "calldataByteLength": 2628,
+        "calldataKeccak": "0xb49ae2415d1a0e62405984d0c0d3d0fa892235c8d42c4db823e73381cff52d1d",
+        "gasLimit": "3000000"
+      },
+      "keylessPreflight": {
+        "raw": "0xca5e043600000000000000000000000000000000000000000000000000000000000000030000000000000000000000000668c9bf6a6936b9eb5a19f61c663070beff2f9b000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        "rawByteLength": 100,
+        "decoded": {
+          "kind": "customError",
+          "selector": "0xca5e0436",
+          "name": "UnknownCollectionAddress",
+          "signature": "UnknownCollectionAddress(uint64,address,address)",
+          "args": {
+            "chainKey": "3",
+            "recipient": "0x0668C9Bf6A6936B9Eb5a19f61C663070befF2f9b",
+            "asset": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          }
+        },
+        "nodeMessage": "execution reverted (unknown custom error)",
+        "method": "eth_call",
+        "blockTag": "latest",
+        "accepted": false
+      },
+      "onChain": {
+        "transactionHash": "0x1142cc74e3afa2800733da8209595f4f3c69799374f150c00002e81c18afe653",
+        "nonce": 24,
+        "blockNumber": 5439373,
+        "blockHash": "0x9ddbe7e105df891db61f5c21e400ca995932fcfb9bb46a197b7f1707b087f495",
+        "status": 0,
+        "gasLimit": "3000000",
+        "gasUsed": "540330",
+        "outOfGas": false,
+        "effectiveGasPriceWei": "500000000",
+        "feeSpentWei": "270165000000000",
+        "feeSpentCtc": "0.000270165",
+        "explorerUrl": "https://creditcoin-testnet.blockscout.com/tx/0x1142cc74e3afa2800733da8209595f4f3c69799374f150c00002e81c18afe653",
+        "revertData": {
+          "raw": "0xca5e043600000000000000000000000000000000000000000000000000000000000000030000000000000000000000000668c9bf6a6936b9eb5a19f61c663070beff2f9b000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+          "rawByteLength": 100,
+          "decoded": {
+            "kind": "customError",
+            "selector": "0xca5e0436",
+            "name": "UnknownCollectionAddress",
+            "signature": "UnknownCollectionAddress(uint64,address,address)",
+            "args": {
+              "chainKey": "3",
+              "recipient": "0x0668C9Bf6A6936B9Eb5a19f61C663070befF2f9b",
+              "asset": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+            }
+          },
+          "nodeMessage": "execution reverted (unknown custom error)",
+          "method": "eth_call replayed at the mined block",
+          "blockTag": "0x52ff8d"
+        }
+      },
+      "verdict": {
+        "outcome": "refused-as-expected",
+        "basis": "on-chain transaction",
+        "observedRefusal": "UnknownCollectionAddress",
+        "matchesExpectation": true,
+        "note": "the transaction reverted with UnknownCollectionAddress, which is what this case expects."
+      },
+      "assertions": null,
+      "assertionsHold": null
+    },
+    "zero-topic-log-skipped": {
+      "id": "zero-topic-log-skipped",
+      "title": "Zero-topic log ahead of a recognised log, skipped rather than choked on",
+      "requirements": [
+        "27.12"
+      ],
+      "expectation": "A receipt carrying an anonymous log before a USDC Transfer. The ordinal sweep skips the log with no topics and carries on; reaching the Transfer is proven by the refusal coming from *its* handler, `UnknownCollectionAddress`, because on this deployment every Mainnet recipient is unregistered. This establishes the skip and the continuation; the ingestion half of 27.12 is the `zero-topic-log-ingested` case, which needs a Sepolia Settlement.",
+      "expected": "refusal",
+      "expectedRefusals": [
+        "UnknownCollectionAddress"
+      ],
+      "recordedAt": "2026-09-06T07:41:48.971Z",
+      "mode": "broadcast",
+      "status": "ran",
+      "target": {
+        "chainKey": 3,
+        "sourceTxHash": "0xef6920f3fb52cba4bfaa71cac462dc69eb50a797de097b3f3dfc1e2216935d8a",
+        "blockHeight": 25916730,
+        "txIndexFromSourceRpc": 55,
+        "txFrom": "0x27c2a1733f14e1247c5feb1c37cd52ae7d0d2bf2",
+        "receiptStatus": 1,
+        "receiptLogCount": 2,
+        "settlementLog": {
+          "ordinal": 1,
+          "emitter": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+          "signature": "Transfer",
+          "topicCount": 3,
+          "payerFromTopic1": "0x140022b7000081000001094700609300d2187dab",
+          "recipientFromTopic2": "0x00000000000014aa86c5d3c41765bb24e11bd701",
+          "amountBaseUnits": "1636044911"
+        },
+        "settlementLogs": [
+          {
+            "ordinal": 1,
+            "emitter": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+            "signature": "Transfer",
+            "topicCount": 3,
+            "payerFromTopic1": "0x140022b7000081000001094700609300d2187dab",
+            "recipientFromTopic2": "0x00000000000014aa86c5d3c41765bb24e11bd701",
+            "amountBaseUnits": "1636044911"
+          }
+        ],
+        "zeroTopicLogOrdinals": [
+          0
+        ],
+        "payerDiffersFromTxFrom": true,
+        "attestedFrontierAtSelection": 25916830,
+        "sourceEndpoint": "https://eth.drpc.org",
+        "selection": "a successful Mainnet transaction with a zero-topic log ahead of a USDC Transfer, below the frontier",
+        "note": "Historical Ethereum Mainnet transaction, 100 blocks below the attested frontier at selection time. Nothing was sent to Ethereum: the transaction already existed."
+      },
+      "proofMaterial": {
+        "source": "https://prover.cc3-testnet.creditcoin.network",
+        "txIndexFromProofBuilder": 55,
+        "cached": true,
+        "generatedAt": "2026-09-06T07:41:35.527815354Z"
+      },
+      "mutation": null,
+      "keylessControls": {
+        "genuineMaterial": {
+          "method": "eth_call verifyAndEmit on the BlockProver Precompile",
+          "verified": true,
+          "rawReturnData": "0x0000000000000000000000000000000000000000000000000000000000000001",
+          "reverted": false,
+          "nodeMessage": null
+        },
+        "asSubmitted": {
+          "method": "eth_call verifyAndEmit on the BlockProver Precompile",
+          "verified": true,
+          "rawReturnData": "0x0000000000000000000000000000000000000000000000000000000000000001",
+          "reverted": false,
+          "nodeMessage": null
+        }
+      },
+      "expectedIngestions": [
+        {
+          "ordinal": 1,
+          "signature": "Transfer",
+          "emitter": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+          "payerFromTopic1": "0x140022b7000081000001094700609300d2187dab",
+          "recipientFromTopic2": "0x00000000000014aa86c5d3c41765bb24e11bd701",
+          "amountBaseUnits": "1636044911",
+          "replayKey": "0x000000000000000300000000018b753a00000000000000370000000000000001",
+          "recognised": true,
+          "collectionRegistered": false,
+          "serviceId": null,
+          "asset": null
+        }
+      ],
+      "stateBefore": null,
+      "submitted": {
+        "chainKey": 3,
+        "blockHeight": 25916730,
+        "encodedTransaction": "0x000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000002a000000000000000000000000000000000000000000000000000000000000007600000000000000000000000000000000000000000000000000000000000000220000000000000000000000000000000000000000000000000000000000000a6550000000000000000000000000000000000000000000000000000000000028ff200000000000000000000000027c2a1733f14e1247c5feb1c37cd52ae7d0d2bf20000000000000000000000000000000000000000000000000000000000000000000000000000000000000000140022b7000081000001094700609300d2187dab000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e0000000000000000000000000000000000000000000000000000000000000012017d26f20001a72a18c002b00e6710000d68700ce00010400000000001d8a79620000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48517e506700271aea091b02f42756f5e174af52300000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000006184106f0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000ffffffffffffffff000000000000000000000000000000000000000000000000099079210000000000000000000000000000000000000000000000000000000000000000000004a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000001e284b56d00000000000000000000000000000000000000000000000000000001e284b56d00000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000000da2c794bb5f34f7ab0e811408968ca3baaea1057b9ad36ad9b44b787625c9ebe6732dfba1a7fa464bae9aa13487e483e0b47b1dacc4c6210c75efc301b31a4f4000000000000000000000000000000000000000000000000000000000000000500000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000012000000000000000000000000000000000000000000000000000000000000001800000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000034000000000000000000000000000000000000014aa86c5d3c41765bb24e11bd7010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000140f28acb8adc041aa51c8db8f21a9ccac0ee359075b01e1b432c238bb4e6c7eb00000000000000000000000043506849d7c04f9138d1a2050bbf3a0c054402dd00000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000517e506700271aea091b02f42756f5e174af5230000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000014621f066d26c296b34acf8ce6a9f3246c2fade7b861e198212806a7d6534450b000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb4800000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000007000000000000000000000000000000000000000000000000000000000000000110d6a54a4754c8869d6886b5f5d7fbfa5b4522237ea5c60d11bc4e7a1ff9390b22c7245332dafbffb8849ddacb64dd070273b2d49c670a7a6f09d80447bf44db68ddb33d1d7b40a25271ee7b501a105a93c065fca7ea0788653b449846eac2677050c9e0f4ca769c69bd3a8ef740bc37934f8e2c036e5a723fd8ee048ed3f8c3780044d12f8e10000471ecdc186fb0b758f904cfdb3faf6f1d9f8882ec2f8a84bbdf99a18ea52d7c28e7e6e5c0965f9b0c74e9042311188ad54c522168af5e2c000000000000000000000000d26f20001a72a18c002b00e6710000d68700ce00000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000440000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000178b40000000000000000000000000000000000000000000000000000000000000080000000000000000000000000000000000000000000000000000000000000032000000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000016000000000000000000000000000000000000014aa86c5d3c41765bb24e11bd7010000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000074d26f20001a72a18c002b00e6710000d68700ce0040f28acb8adc041aa51c8db8f21a9ccac0ee359075b01e1b432c238bb4e6c7ebfffffffffffffffff66f86dedc2554ea0000000000000000000000006184106f4000d1c13c58c726b444b548fed1c6700000000000000000000249a9523eb202000000000000000000000000000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000003ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef000000000000000000000000140022b7000081000001094700609300d2187dab00000000000000000000000000000000000014aa86c5d3c41765bb24e11bd7010000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000006184106f000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000002000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000008004008040000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000010000000000000000000000000000000000000000040000000010080000000000000000020000000000000200000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "encodedTransactionByteLength": 3104,
+        "merkleProof": {
+          "root": "0xc133be0f8d4e12e9d369ed76fe33543db51686015f52bd0da884f0b3c44eef14",
+          "siblings": [
+            {
+              "hash": "0xd29cc82fb3af82bcf61863f29df731b702d148545a94ce94428f1de00845c8fb",
+              "isLeft": true
+            },
+            {
+              "hash": "0x277a956aede140966fd75b94fa09f84337ebd5a023698d08ce5d08380f9f04e1",
+              "isLeft": true
+            },
+            {
+              "hash": "0xf671832baf5ea457166033365d0fe95e82201d67f79cadee5530203d29ad6c40",
+              "isLeft": true
+            },
+            {
+              "hash": "0x3fdc67948f45220035fd5fcc129c0c17df73e7fc0d8a14cf68f88ae04021a2f5",
+              "isLeft": false
+            },
+            {
+              "hash": "0xedbe30e896f2241b5066c58a66f0a59dddc609eb39fa2ac6f624e2496d543f6b",
+              "isLeft": true
+            },
+            {
+              "hash": "0xb259b7a9a0e5657e1117ff14ad0562d56f6b2a28b82e27280acb2124bd60f111",
+              "isLeft": true
+            },
+            {
+              "hash": "0xcb0afae6314a93d409ec2c6f14557d76072f553425dc942d575710ba2706104f",
+              "isLeft": false
+            },
+            {
+              "hash": "0x22e5473b3b2171c9b5c6b4a1f5d73df00ab430e1e1518191749e04719bed18f2",
+              "isLeft": false
+            }
+          ],
+          "siblingCount": 8
+        },
+        "continuityProof": {
+          "lowerEndpointDigest": "0x1d9f7a2ddbbb0d28e72d8116f15922348a2ef3f9a1131b3dc438284d7649547d",
+          "roots": [
+            "0xc133be0f8d4e12e9d369ed76fe33543db51686015f52bd0da884f0b3c44eef14"
+          ],
+          "rootCount": 1
+        }
+      },
+      "submission": {
+        "from": "0xE5eaB26CaE0855BcCaBBb9A64faFce28C8432b37",
+        "to": "0xc5c83782f315b321Cd8e18B4C2e05df4050C3854",
+        "selector": "0x6481b17c",
+        "calldataByteLength": 4068,
+        "calldataKeccak": "0x16be5f65690835e44407f50c2c67a095560196a49182d6d84f01e4e8862813a7",
+        "gasLimit": "3000000"
+      },
+      "keylessPreflight": {
+        "raw": "0xca5e0436000000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000014aa86c5d3c41765bb24e11bd701000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        "rawByteLength": 100,
+        "decoded": {
+          "kind": "customError",
+          "selector": "0xca5e0436",
+          "name": "UnknownCollectionAddress",
+          "signature": "UnknownCollectionAddress(uint64,address,address)",
+          "args": {
+            "chainKey": "3",
+            "recipient": "0x00000000000014aA86C5d3c41765bb24e11bd701",
+            "asset": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          }
+        },
+        "nodeMessage": "execution reverted (unknown custom error)",
+        "method": "eth_call",
+        "blockTag": "latest",
+        "accepted": false
+      },
+      "onChain": {
+        "transactionHash": "0x343932c0ddb9dfb788829c92f1b974f40f687885a3e78e8e3fff95ef3179938b",
+        "nonce": 25,
+        "blockNumber": 5439374,
+        "blockHash": "0xd5e1863110cad229d7f919b094c1c842c9ae99c3b462c63399f33a76f7049931",
+        "status": 0,
+        "gasLimit": "3000000",
+        "gasUsed": "560490",
+        "outOfGas": false,
+        "effectiveGasPriceWei": "500000000",
+        "feeSpentWei": "280245000000000",
+        "feeSpentCtc": "0.000280245",
+        "explorerUrl": "https://creditcoin-testnet.blockscout.com/tx/0x343932c0ddb9dfb788829c92f1b974f40f687885a3e78e8e3fff95ef3179938b",
+        "revertData": {
+          "raw": "0xca5e0436000000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000014aa86c5d3c41765bb24e11bd701000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+          "rawByteLength": 100,
+          "decoded": {
+            "kind": "customError",
+            "selector": "0xca5e0436",
+            "name": "UnknownCollectionAddress",
+            "signature": "UnknownCollectionAddress(uint64,address,address)",
+            "args": {
+              "chainKey": "3",
+              "recipient": "0x00000000000014aA86C5d3c41765bb24e11bd701",
+              "asset": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+            }
+          },
+          "nodeMessage": "execution reverted (unknown custom error)",
+          "method": "eth_call replayed at the mined block",
+          "blockTag": "0x52ff8e"
+        }
+      },
+      "verdict": {
+        "outcome": "refused-as-expected",
+        "basis": "on-chain transaction",
+        "observedRefusal": "UnknownCollectionAddress",
+        "matchesExpectation": true,
+        "note": "the transaction reverted with UnknownCollectionAddress, which is what this case expects."
+      },
+      "assertions": null,
+      "assertionsHold": null
+    },
+    "two-recognised-logs": {
+      "id": "two-recognised-logs",
+      "title": "Two recognised Settlement logs in one Source Chain transaction",
+      "requirements": [
+        "27.11"
+      ],
+      "expectation": "One Source Chain transaction carrying two or more recognised Settlement logs. Every recognised log must be ingested under its own replay key, each key distinct in its logIndex, and one SettlementRecorded per key, so batching never silently loses a payment behind a replay guard.",
+      "expected": "acceptance",
+      "expectedRefusals": [
+        "AlreadyClaimed"
+      ],
+      "recordedAt": "2026-09-06T09:03:31.609Z",
+      "mode": "broadcast",
+      "status": "ran",
+      "target": {
+        "chainKey": 1,
+        "sourceTxHash": "0x597a322865583a80307cbf7875979e954b2f6aad36df865c76b5462a9195fc32",
+        "blockHeight": 11646206,
+        "txIndexFromSourceRpc": 166,
+        "txFrom": "0xa302940db97345c5adaf8da23ff46ae63613d728",
+        "receiptStatus": 1,
+        "receiptLogCount": 2,
+        "settlementLog": {
+          "ordinal": 0,
+          "emitter": "0x1c7d4b196cb0c7b01d743fbc6116a902379c7238",
+          "signature": "Transfer",
+          "topicCount": 3,
+          "payerFromTopic1": "0x623b7059c9e67c690594085d280d50449eb7d1d9",
+          "recipientFromTopic2": "0x952acc70e6f54ce87dca963193a5957bcb27729e",
+          "amountBaseUnits": "50000"
+        },
+        "settlementLogs": [
+          {
+            "ordinal": 0,
+            "emitter": "0x1c7d4b196cb0c7b01d743fbc6116a902379c7238",
+            "signature": "Transfer",
+            "topicCount": 3,
+            "payerFromTopic1": "0x623b7059c9e67c690594085d280d50449eb7d1d9",
+            "recipientFromTopic2": "0x952acc70e6f54ce87dca963193a5957bcb27729e",
+            "amountBaseUnits": "50000"
+          },
+          {
+            "ordinal": 1,
+            "emitter": "0x1c7d4b196cb0c7b01d743fbc6116a902379c7238",
+            "signature": "Transfer",
+            "topicCount": 3,
+            "payerFromTopic1": "0x623b7059c9e67c690594085d280d50449eb7d1d9",
+            "recipientFromTopic2": "0x952acc70e6f54ce87dca963193a5957bcb27729e",
+            "amountBaseUnits": "60000"
+          }
+        ],
+        "zeroTopicLogOrdinals": [],
+        "payerDiffersFromTxFrom": true,
+        "attestedFrontierAtSelection": 11646230,
+        "sourceEndpoint": "https://ethereum-sepolia-rpc.publicnode.com",
+        "selection": "the Source Chain transaction named on the command line, chainKey 1",
+        "note": "A Settlement produced on the Source Chain by the Watcher lane during this wave and handed over by hash. The harness read its receipt back from the Source Chain and sent nothing to Ethereum itself."
+      },
+      "proofMaterial": {
+        "source": "https://prover.cc3-testnet.creditcoin.network",
+        "txIndexFromProofBuilder": 166,
+        "cached": true,
+        "generatedAt": "2026-09-06T09:02:39.864328990Z"
+      },
+      "mutation": null,
+      "keylessControls": {
+        "genuineMaterial": {
+          "method": "eth_call verifyAndEmit on the BlockProver Precompile",
+          "verified": true,
+          "rawReturnData": "0x0000000000000000000000000000000000000000000000000000000000000001",
+          "reverted": false,
+          "nodeMessage": null
+        },
+        "asSubmitted": {
+          "method": "eth_call verifyAndEmit on the BlockProver Precompile",
+          "verified": true,
+          "rawReturnData": "0x0000000000000000000000000000000000000000000000000000000000000001",
+          "reverted": false,
+          "nodeMessage": null
+        }
+      },
+      "expectedIngestions": [
+        {
+          "ordinal": 0,
+          "signature": "Transfer",
+          "emitter": "0x1c7d4b196cb0c7b01d743fbc6116a902379c7238",
+          "payerFromTopic1": "0x623b7059c9e67c690594085d280d50449eb7d1d9",
+          "recipientFromTopic2": "0x952acc70e6f54ce87dca963193a5957bcb27729e",
+          "amountBaseUnits": "50000",
+          "replayKey": "0x00000000000000010000000000b1b4fe00000000000000a60000000000000000",
+          "recognised": true,
+          "collectionRegistered": true,
+          "serviceId": "0x7461622e70726f6f662d73657276696365000000000000000000000000000000",
+          "asset": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238"
+        },
+        {
+          "ordinal": 1,
+          "signature": "Transfer",
+          "emitter": "0x1c7d4b196cb0c7b01d743fbc6116a902379c7238",
+          "payerFromTopic1": "0x623b7059c9e67c690594085d280d50449eb7d1d9",
+          "recipientFromTopic2": "0x952acc70e6f54ce87dca963193a5957bcb27729e",
+          "amountBaseUnits": "60000",
+          "replayKey": "0x00000000000000010000000000b1b4fe00000000000000a60000000000000001",
+          "recognised": true,
+          "collectionRegistered": true,
+          "serviceId": "0x7461622e70726f6f662d73657276696365000000000000000000000000000000",
+          "asset": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238"
+        }
+      ],
+      "stateBefore": {
+        "payer": {
+          "ethAddress": "0x623b7059c9e67c690594085d280d50449eb7d1d9",
+          "agent": "0xE5eaB26CaE0855BcCaBBb9A64faFce28C8432b37",
+          "bound": true,
+          "history": {
+            "root": "0x0fe4d071cc94ff86521890037968cf8d4afa3cf424edac8c54d8e238d4b81184",
+            "count": 1
+          }
+        },
+        "sender": {
+          "ethAddress": "0xa302940db97345c5adaf8da23ff46ae63613d728",
+          "agent": "0x1F6f797Edc2EECb02BD54009B805fb2E99F80542",
+          "bound": true,
+          "history": {
+            "root": "0x1df3cbeb826de17d7890c34ce476ddedf1d5c93b7c954e77eba14a603d9657c5",
+            "count": 1
+          }
+        },
+        "claimed": {
+          "0x00000000000000010000000000b1b4fe00000000000000a60000000000000000": false,
+          "0x00000000000000010000000000b1b4fe00000000000000a60000000000000001": false
+        }
+      },
+      "submitted": {
+        "chainKey": 1,
+        "blockHeight": 11646206,
+        "encodedTransaction": "0x00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000220000000000000000000000000000000000000000000000000000000000000034000000000000000000000000000000000000000000000000000000000000001a00000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000dd9e000000000000000000000000a302940db97345c5adaf8da23ff46ae63613d7280000000000000000000000000000000000000000000000000000000000000000000000000000000000000000623b7059c9e67c690594085d280d50449eb7d1d9000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e0000000000000000000000000000000000000000000000000000000000000008478dfa0070000000000000000000000001c7d4b196cb0c7b01d743fbc6116a902379c7238000000000000000000000000952acc70e6f54ce87dca963193a5957bcb27729e000000000000000000000000000000000000000000000000000000000000c350000000000000000000000000000000000000000000000000000000000000ea600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000aa36a700000000000000000000000000000000000000000000000000000000000f4240000000000000000000000000000000000000000000000000000000007854eef400000000000000000000000000000000000000000000000000000000000000e0000000000000000000000000000000000000000000000000000000000000000187aa668318b89d5f555fe245b1a04932264faf542bd5f071e936549959d643ee3fe4e124fea68063c48e2d41f011c6bb5ef002626bd5d8a7ba94131f04063afe000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004400000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000da79000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000003200000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000001600000000000000000000000001c7d4b196cb0c7b01d743fbc6116a902379c7238000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000003ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef000000000000000000000000623b7059c9e67c690594085d280d50449eb7d1d9000000000000000000000000952acc70e6f54ce87dca963193a5957bcb27729e0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000c3500000000000000000000000001c7d4b196cb0c7b01d743fbc6116a902379c7238000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000003ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef000000000000000000000000623b7059c9e67c690594085d280d50449eb7d1d9000000000000000000000000952acc70e6f54ce87dca963193a5957bcb27729e0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000ea60000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000400000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000008000000000004000000000002000000000000000000000800000000000000000000000100000000000000000000000010000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002000000000000000080000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000",
+        "encodedTransactionByteLength": 2048,
+        "merkleProof": {
+          "root": "0xa45752284bce8fce7edbf8472e51e4ad3d6554923172a8545217a1f29cf39fac",
+          "siblings": [
+            {
+              "hash": "0x31e1663399fbed55ea313bc531befff8eaa7436343827e51171312b3daf2b913",
+              "isLeft": false
+            },
+            {
+              "hash": "0xa169c09d7af325a44c2ba73876839c6a82ba2b3a330f00b126d66c5288f196b1",
+              "isLeft": true
+            },
+            {
+              "hash": "0x80b91440221bd586516b4d66e388638415010c0c73c98ca4f310b3aebb69a597",
+              "isLeft": true
+            },
+            {
+              "hash": "0xd402c91d4e3d6f72413a4124cf8d15944341c0e0aac28ce571dca2b85095ee11",
+              "isLeft": false
+            },
+            {
+              "hash": "0x0f101c860f7b83b34dd6a5a51914cf4d929bc9f2e95c7308a47cc14f8c1dc292",
+              "isLeft": false
+            },
+            {
+              "hash": "0x550b63c27db4176190295d08388c3cc9347b27c29ba9dc3843b2f956aba4657f",
+              "isLeft": true
+            },
+            {
+              "hash": "0x0ffc2c4cb555b860e2b9b309127fd69f5d0ca1269f3dcc36ef2cb2629e88041a",
+              "isLeft": false
+            },
+            {
+              "hash": "0x22d50b54f02b0b1577fede7985fdb9a0f084f7bc08da4db508e5f1a4657aecce",
+              "isLeft": true
+            }
+          ],
+          "siblingCount": 8
+        },
+        "continuityProof": {
+          "lowerEndpointDigest": "0x9d5b220e53a6f5b97a75b7ae0857e17fa81a7ad5b3d9b72224968d9341b5ac71",
+          "roots": [
+            "0xa45752284bce8fce7edbf8472e51e4ad3d6554923172a8545217a1f29cf39fac",
+            "0x07161da11ba0f0e6914bde58bcb2eac21fcf36d3a46af63782e4f5de4b960e86",
+            "0xe02a4247cace77d1cf4d7914b20ac1a8a89eb047f40ac01889bb10992396346c",
+            "0x28bcd9a07d48f580fe26f0411ed7e529b124fe7660a5cb576842dbdaf1e4ef9d",
+            "0xe870aaccc5938508c902f88fae9d390a9569ce89a9cb8fe2d6697e75cb732165"
+          ],
+          "rootCount": 5
+        }
+      },
+      "submission": {
+        "from": "0xE5eaB26CaE0855BcCaBBb9A64faFce28C8432b37",
+        "to": "0xc5c83782f315b321Cd8e18B4C2e05df4050C3854",
+        "selector": "0x6481b17c",
+        "calldataByteLength": 3140,
+        "calldataKeccak": "0x814cc396d211e6fa8e3fe410c193bb22fa4c1817f571d213f4fdf194660aab09",
+        "gasLimit": "3000000"
+      },
+      "keylessPreflight": {
+        "raw": null,
+        "rawByteLength": null,
+        "decoded": {
+          "kind": "none",
+          "note": "the call returned 0x0000000000000000000000000000000000000000000000000000000000000002 without reverting"
+        },
+        "nodeMessage": null,
+        "method": "eth_call",
+        "blockTag": "latest",
+        "accepted": true
+      },
+      "onChain": {
+        "transactionHash": "0xb8f26a24cd23fb44fe0d7d21e361a3bcd82baa8982c0530a1a37570df5d96874",
+        "nonce": 29,
+        "blockNumber": 5439699,
+        "blockHash": "0x1d47e1b31b85e6fc112c6baec25edffe972fed51e986538e61741aa936b4abab",
+        "status": 1,
+        "gasLimit": "3000000",
+        "gasUsed": "1086932",
+        "outOfGas": false,
+        "effectiveGasPriceWei": "500000000",
+        "feeSpentWei": "543466000000000",
+        "feeSpentCtc": "0.000543466",
+        "explorerUrl": "https://creditcoin-testnet.blockscout.com/tx/0xb8f26a24cd23fb44fe0d7d21e361a3bcd82baa8982c0530a1a37570df5d96874",
+        "revertData": {
+          "raw": "0xc842648400000000000000010000000000b1b4fe00000000000000a60000000000000000",
+          "rawByteLength": 36,
+          "decoded": {
+            "kind": "customError",
+            "selector": "0xc8426484",
+            "name": "AlreadyClaimed",
+            "signature": "AlreadyClaimed(bytes32)",
+            "args": {
+              "key": "0x00000000000000010000000000b1b4fe00000000000000a60000000000000000"
+            }
+          },
+          "nodeMessage": "execution reverted (unknown custom error)",
+          "method": "eth_call replayed at the mined block",
+          "blockTag": "0x5300d3"
+        }
+      },
+      "verdict": {
+        "outcome": "accepted-as-expected",
+        "basis": "on-chain transaction",
+        "observedRefusal": null,
+        "matchesExpectation": true,
+        "note": "the deployment accepted the submission, which is what this case expects. The assertions say what it did with it."
+      },
+      "assertions": [
+        {
+          "claim": "the target carries at least one log the deployment recognises and can credit",
+          "holds": true,
+          "evidence": "2 of 2 Settlement-shaped log(s) are recognised with a registered Collection Address"
+        },
+        {
+          "claim": "replay key 0x0000…fe00000000000000a60000000000000000 for log 0 (Transfer) is recorded as claimed",
+          "holds": true,
+          "evidence": "claimedLog answered true"
+        },
+        {
+          "claim": "exactly one SettlementRecorded exists for 0x0000…fe00000000000000a60000000000000000 and credits the agent bound to topics[1] 0x623b7059c9e67c690594085d280d50449eb7d1d9",
+          "holds": true,
+          "evidence": "1 event(s); the first credits 0xE5eaB26CaE0855BcCaBBb9A64faFce28C8432b37 in Creditcoin tx 0xb8f26a24cd23fb44fe0d7d21e361a3bcd82baa8982c0530a1a37570df5d96874; AgentRegistry.agentOf(topics[1]) is 0xE5eaB26CaE0855BcCaBBb9A64faFce28C8432b37"
+        },
+        {
+          "claim": "replay key 0x0000…fe00000000000000a60000000000000001 for log 1 (Transfer) is recorded as claimed",
+          "holds": true,
+          "evidence": "claimedLog answered true"
+        },
+        {
+          "claim": "exactly one SettlementRecorded exists for 0x0000…fe00000000000000a60000000000000001 and credits the agent bound to topics[1] 0x623b7059c9e67c690594085d280d50449eb7d1d9",
+          "holds": true,
+          "evidence": "1 event(s); the first credits 0xE5eaB26CaE0855BcCaBBb9A64faFce28C8432b37 in Creditcoin tx 0xb8f26a24cd23fb44fe0d7d21e361a3bcd82baa8982c0530a1a37570df5d96874; AgentRegistry.agentOf(topics[1]) is 0xE5eaB26CaE0855BcCaBBb9A64faFce28C8432b37"
+        },
+        {
+          "claim": "the transaction carries at least two recognised, creditable logs",
+          "holds": true,
+          "evidence": "2 creditable log(s) at ordinals 0, 1"
+        },
+        {
+          "claim": "every creditable log spends a distinct replay key",
+          "holds": true,
+          "evidence": "2 distinct key(s) for 2 log(s)"
+        }
+      ],
+      "assertionsHold": true
+    },
+    "replayed-settlement": {
+      "id": "replayed-settlement",
+      "title": "Replay of an accepted replay key",
+      "requirements": [
+        "27.7"
+      ],
+      "expectation": "A Settlement the deployment already accepted, submitted again with fresh proof material. The proof verifies again, the receipt decodes again, and the sweep reverts `AlreadyClaimed` with the packed key the moment it reaches the recognised log, so no Settlement can credit twice however many times it is proven.",
+      "expected": "refusal",
+      "expectedRefusals": [
+        "AlreadyClaimed"
+      ],
+      "recordedAt": "2026-09-06T07:49:19.775Z",
+      "mode": "broadcast",
+      "status": "ran",
+      "target": {
+        "chainKey": 1,
+        "sourceTxHash": "0x8f84eb8af21e78e45bbb3a92a4b166801d545d92137c2c07b867d8c45e21ebe6",
+        "blockHeight": 11645848,
+        "txIndexFromSourceRpc": 75,
+        "txFrom": "0xa302940db97345c5adaf8da23ff46ae63613d728",
+        "receiptStatus": 1,
+        "receiptLogCount": 1,
+        "settlementLog": {
+          "ordinal": 0,
+          "emitter": "0x1c7d4b196cb0c7b01d743fbc6116a902379c7238",
+          "signature": "Transfer",
+          "topicCount": 3,
+          "payerFromTopic1": "0xa302940db97345c5adaf8da23ff46ae63613d728",
+          "recipientFromTopic2": "0x952acc70e6f54ce87dca963193a5957bcb27729e",
+          "amountBaseUnits": "101000"
+        },
+        "settlementLogs": [
+          {
+            "ordinal": 0,
+            "emitter": "0x1c7d4b196cb0c7b01d743fbc6116a902379c7238",
+            "signature": "Transfer",
+            "topicCount": 3,
+            "payerFromTopic1": "0xa302940db97345c5adaf8da23ff46ae63613d728",
+            "recipientFromTopic2": "0x952acc70e6f54ce87dca963193a5957bcb27729e",
+            "amountBaseUnits": "101000"
+          }
+        ],
+        "zeroTopicLogOrdinals": [],
+        "payerDiffersFromTxFrom": false,
+        "attestedFrontierAtSelection": 11645870,
+        "sourceEndpoint": "https://ethereum-sepolia-rpc.publicnode.com",
+        "selection": "the Source Chain transaction named on the command line, chainKey 1",
+        "note": "A Settlement produced on the Source Chain by the Watcher lane during this wave and handed over by hash. The harness read its receipt back from the Source Chain and sent nothing to Ethereum itself."
+      },
+      "proofMaterial": {
+        "source": "https://prover.cc3-testnet.creditcoin.network",
+        "txIndexFromProofBuilder": 75,
+        "cached": true,
+        "generatedAt": "2026-09-06T07:48:57.647629098Z"
+      },
+      "mutation": null,
+      "keylessControls": {
+        "genuineMaterial": {
+          "method": "eth_call verifyAndEmit on the BlockProver Precompile",
+          "verified": true,
+          "rawReturnData": "0x0000000000000000000000000000000000000000000000000000000000000001",
+          "reverted": false,
+          "nodeMessage": null
+        },
+        "asSubmitted": {
+          "method": "eth_call verifyAndEmit on the BlockProver Precompile",
+          "verified": true,
+          "rawReturnData": "0x0000000000000000000000000000000000000000000000000000000000000001",
+          "reverted": false,
+          "nodeMessage": null
+        }
+      },
+      "expectedIngestions": [
+        {
+          "ordinal": 0,
+          "signature": "Transfer",
+          "emitter": "0x1c7d4b196cb0c7b01d743fbc6116a902379c7238",
+          "payerFromTopic1": "0xa302940db97345c5adaf8da23ff46ae63613d728",
+          "recipientFromTopic2": "0x952acc70e6f54ce87dca963193a5957bcb27729e",
+          "amountBaseUnits": "101000",
+          "replayKey": "0x00000000000000010000000000b1b398000000000000004b0000000000000000",
+          "recognised": true,
+          "collectionRegistered": true,
+          "serviceId": "0x7461622e70726f6f662d73657276696365000000000000000000000000000000",
+          "asset": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238"
+        }
+      ],
+      "stateBefore": {
+        "payer": {
+          "ethAddress": "0xa302940db97345c5adaf8da23ff46ae63613d728",
+          "agent": "0x1F6f797Edc2EECb02BD54009B805fb2E99F80542",
+          "bound": true,
+          "history": {
+            "root": "0x1df3cbeb826de17d7890c34ce476ddedf1d5c93b7c954e77eba14a603d9657c5",
+            "count": 1
+          }
+        },
+        "sender": {
+          "ethAddress": "0xa302940db97345c5adaf8da23ff46ae63613d728",
+          "agent": "0x1F6f797Edc2EECb02BD54009B805fb2E99F80542",
+          "bound": true,
+          "history": {
+            "root": "0x1df3cbeb826de17d7890c34ce476ddedf1d5c93b7c954e77eba14a603d9657c5",
+            "count": 1
+          }
+        },
+        "claimed": {
+          "0x00000000000000010000000000b1b398000000000000004b0000000000000000": true
+        }
+      },
+      "submitted": {
+        "chainKey": 1,
+        "blockHeight": 11645848,
+        "encodedTransaction": "0x000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000001e0000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000001600000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000b17f000000000000000000000000a302940db97345c5adaf8da23ff46ae63613d72800000000000000000000000000000000000000000000000000000000000000000000000000000000000000001c7d4b196cb0c7b01d743fbc6116a902379c7238000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000044a9059cbb000000000000000000000000952acc70e6f54ce87dca963193a5957bcb27729e0000000000000000000000000000000000000000000000000000000000018a880000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000aa36a700000000000000000000000000000000000000000000000000000000000f4240000000000000000000000000000000000000000000000000000000008351e64c00000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000001f52a940fffdde957fc25d565a9f36d57a17250560ea94fce4a8355162e8160f5182851b1a93e2e994a2727e8c13c8a02014e483d5a365c8671b5f8f08bfaf8aa000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000b003000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000001e0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000200000000000000000000000001c7d4b196cb0c7b01d743fbc6116a902379c7238000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000003ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef000000000000000000000000a302940db97345c5adaf8da23ff46ae63613d728000000000000000000000000952acc70e6f54ce87dca963193a5957bcb27729e00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000018a88000000000000000000000000000000000000000000000000000000000000010000000000000020000000000000000000000000000000000000000000000200000000000000000000000000000000000800000000000000000000000000000000000000000000000000000008000000000004000000000002000000000000000000000000000000000000000000000100000000000000000000000010000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000000000000000010000000000200000000000000000000000000000000",
+        "encodedTransactionByteLength": 1664,
+        "merkleProof": {
+          "root": "0x85039f1414ec3c78248dbff0048f9fb76a96c860995c08a17d580f6910991b93",
+          "siblings": [
+            {
+              "hash": "0xe83b07eb13a190e1d81e866bc47280e4987278116dabeac49506dc8a0097cdf6",
+              "isLeft": true
+            },
+            {
+              "hash": "0xdb134dcabf087bbfe4af664824264c0036234fffd8ac694d300a2cfe70aeae95",
+              "isLeft": true
+            },
+            {
+              "hash": "0x8c6c8b0fd39839c83d471e3f0f84ea274e55611e619225064d60ae1e3608e7d3",
+              "isLeft": false
+            },
+            {
+              "hash": "0xc1c73e56fb64aa71675929fcea81fcccd864eb1bf4272336e7cd95caa36a6579",
+              "isLeft": true
+            },
+            {
+              "hash": "0x69af5f03fb254a81824931148c8ca1a6ccacb41f3565dc1149c1c484b5232d1a",
+              "isLeft": false
+            },
+            {
+              "hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+              "isLeft": false
+            },
+            {
+              "hash": "0xf829283ba27332ca7d16eca135904e28b29cdce08ab31f4faa7e1062b261cd64",
+              "isLeft": true
+            }
+          ],
+          "siblingCount": 7
+        },
+        "continuityProof": {
+          "lowerEndpointDigest": "0x5dd7491c16dff0ce828b986f72ebf84b3560b8ed17a910ce90f5092f95413eea",
+          "roots": [
+            "0x85039f1414ec3c78248dbff0048f9fb76a96c860995c08a17d580f6910991b93",
+            "0x8ed10f719b4757b41e6ca498ccf7584026dcc6a56bf9bc6ce98fb974ecbbbd96",
+            "0xe44e1aa25cf06f4b859a9daa5b35f621a341ff6352600cf8471bfef78abd0aea"
+          ],
+          "rootCount": 3
+        }
+      },
+      "submission": {
+        "from": "0xE5eaB26CaE0855BcCaBBb9A64faFce28C8432b37",
+        "to": "0xc5c83782f315b321Cd8e18B4C2e05df4050C3854",
+        "selector": "0x6481b17c",
+        "calldataByteLength": 2628,
+        "calldataKeccak": "0xfe86da82cdbf23891a4b25b4ad8dcf026dc054ad4f523bfdd57ee6549bd51446",
+        "gasLimit": "3000000"
+      },
+      "keylessPreflight": {
+        "raw": "0xc842648400000000000000010000000000b1b398000000000000004b0000000000000000",
+        "rawByteLength": 36,
+        "decoded": {
+          "kind": "customError",
+          "selector": "0xc8426484",
+          "name": "AlreadyClaimed",
+          "signature": "AlreadyClaimed(bytes32)",
+          "args": {
+            "key": "0x00000000000000010000000000b1b398000000000000004b0000000000000000"
+          }
+        },
+        "nodeMessage": "execution reverted (unknown custom error)",
+        "method": "eth_call",
+        "blockTag": "latest",
+        "accepted": false
+      },
+      "onChain": {
+        "transactionHash": "0xce10379419e03afb2241231c98d191f00874debb8d4c9198ab5c0bf104d313cd",
+        "nonce": 26,
+        "blockNumber": 5439404,
+        "blockHash": "0x95f4c2c10d694abc665fed0923af1c327f3a800799723d2145c6ce49cc2a7610",
+        "status": 0,
+        "gasLimit": "3000000",
+        "gasUsed": "534156",
+        "outOfGas": false,
+        "effectiveGasPriceWei": "500000000",
+        "feeSpentWei": "267078000000000",
+        "feeSpentCtc": "0.000267078",
+        "explorerUrl": "https://creditcoin-testnet.blockscout.com/tx/0xce10379419e03afb2241231c98d191f00874debb8d4c9198ab5c0bf104d313cd",
+        "revertData": {
+          "raw": "0xc842648400000000000000010000000000b1b398000000000000004b0000000000000000",
+          "rawByteLength": 36,
+          "decoded": {
+            "kind": "customError",
+            "selector": "0xc8426484",
+            "name": "AlreadyClaimed",
+            "signature": "AlreadyClaimed(bytes32)",
+            "args": {
+              "key": "0x00000000000000010000000000b1b398000000000000004b0000000000000000"
+            }
+          },
+          "nodeMessage": "execution reverted (unknown custom error)",
+          "method": "eth_call replayed at the mined block",
+          "blockTag": "0x52ffac"
+        }
+      },
+      "verdict": {
+        "outcome": "refused-as-expected",
+        "basis": "on-chain transaction",
+        "observedRefusal": "AlreadyClaimed",
+        "matchesExpectation": true,
+        "note": "the transaction reverted with AlreadyClaimed, which is what this case expects."
+      },
+      "assertions": null,
+      "assertionsHold": null
+    },
+    "payer-from-topic": {
+      "id": "payer-from-topic",
+      "title": "Transaction sender differs from the Settlement payer in topics[1]",
+      "requirements": [
+        "27.10"
+      ],
+      "expectation": "A Settlement whose transaction `from` is not the address in `topics[1]`, as with a relayer or a smart account. The deployment must credit the agent bound to `topics[1]` and nothing to the agent bound to `from`; the assertions read both histories before and after, and the SettlementRecorded event names the credited agent.",
+      "expected": "acceptance",
+      "expectedRefusals": [
+        "AlreadyClaimed"
+      ],
+      "recordedAt": "2026-09-06T09:02:17.454Z",
+      "mode": "broadcast",
+      "status": "ran",
+      "target": {
+        "chainKey": 1,
+        "sourceTxHash": "0xa69659185a67828cba9c03bab8193678505fa65cb2388bdcfcef66ad7f059413",
+        "blockHeight": 11646204,
+        "txIndexFromSourceRpc": 53,
+        "txFrom": "0xa302940db97345c5adaf8da23ff46ae63613d728",
+        "receiptStatus": 1,
+        "receiptLogCount": 1,
+        "settlementLog": {
+          "ordinal": 0,
+          "emitter": "0x1c7d4b196cb0c7b01d743fbc6116a902379c7238",
+          "signature": "Transfer",
+          "topicCount": 3,
+          "payerFromTopic1": "0x623b7059c9e67c690594085d280d50449eb7d1d9",
+          "recipientFromTopic2": "0x952acc70e6f54ce87dca963193a5957bcb27729e",
+          "amountBaseUnits": "101001"
+        },
+        "settlementLogs": [
+          {
+            "ordinal": 0,
+            "emitter": "0x1c7d4b196cb0c7b01d743fbc6116a902379c7238",
+            "signature": "Transfer",
+            "topicCount": 3,
+            "payerFromTopic1": "0x623b7059c9e67c690594085d280d50449eb7d1d9",
+            "recipientFromTopic2": "0x952acc70e6f54ce87dca963193a5957bcb27729e",
+            "amountBaseUnits": "101001"
+          }
+        ],
+        "zeroTopicLogOrdinals": [],
+        "payerDiffersFromTxFrom": true,
+        "attestedFrontierAtSelection": 11646220,
+        "sourceEndpoint": "https://ethereum-sepolia-rpc.publicnode.com",
+        "selection": "the Source Chain transaction named on the command line, chainKey 1",
+        "note": "A Settlement produced on the Source Chain by the Watcher lane during this wave and handed over by hash. The harness read its receipt back from the Source Chain and sent nothing to Ethereum itself."
+      },
+      "proofMaterial": {
+        "source": "https://prover.cc3-testnet.creditcoin.network",
+        "txIndexFromProofBuilder": 53,
+        "cached": true,
+        "generatedAt": "2026-09-06T09:01:49.638147611Z"
+      },
+      "mutation": null,
+      "keylessControls": {
+        "genuineMaterial": {
+          "method": "eth_call verifyAndEmit on the BlockProver Precompile",
+          "verified": true,
+          "rawReturnData": "0x0000000000000000000000000000000000000000000000000000000000000001",
+          "reverted": false,
+          "nodeMessage": null
+        },
+        "asSubmitted": {
+          "method": "eth_call verifyAndEmit on the BlockProver Precompile",
+          "verified": true,
+          "rawReturnData": "0x0000000000000000000000000000000000000000000000000000000000000001",
+          "reverted": false,
+          "nodeMessage": null
+        }
+      },
+      "expectedIngestions": [
+        {
+          "ordinal": 0,
+          "signature": "Transfer",
+          "emitter": "0x1c7d4b196cb0c7b01d743fbc6116a902379c7238",
+          "payerFromTopic1": "0x623b7059c9e67c690594085d280d50449eb7d1d9",
+          "recipientFromTopic2": "0x952acc70e6f54ce87dca963193a5957bcb27729e",
+          "amountBaseUnits": "101001",
+          "replayKey": "0x00000000000000010000000000b1b4fc00000000000000350000000000000000",
+          "recognised": true,
+          "collectionRegistered": true,
+          "serviceId": "0x7461622e70726f6f662d73657276696365000000000000000000000000000000",
+          "asset": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238"
+        }
+      ],
+      "stateBefore": {
+        "payer": {
+          "ethAddress": "0x623b7059c9e67c690594085d280d50449eb7d1d9",
+          "agent": "0x0000000000000000000000000000000000000000",
+          "bound": false,
+          "history": null
+        },
+        "sender": {
+          "ethAddress": "0xa302940db97345c5adaf8da23ff46ae63613d728",
+          "agent": "0x1F6f797Edc2EECb02BD54009B805fb2E99F80542",
+          "bound": true,
+          "history": {
+            "root": "0x1df3cbeb826de17d7890c34ce476ddedf1d5c93b7c954e77eba14a603d9657c5",
+            "count": 1
+          }
+        },
+        "claimed": {
+          "0x00000000000000010000000000b1b4fc00000000000000350000000000000000": false
+        }
+      },
+      "submitted": {
+        "chainKey": 1,
+        "blockHeight": 11646204,
+        "encodedTransaction": "0x00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000032000000000000000000000000000000000000000000000000000000000000001800000000000000000000000000000000000000000000000000000000000000007000000000000000000000000000000000000000000000000000000000000c27a000000000000000000000000a302940db97345c5adaf8da23ff46ae63613d7280000000000000000000000000000000000000000000000000000000000000000000000000000000000000000623b7059c9e67c690594085d280d50449eb7d1d9000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000064c4b1d38f0000000000000000000000001c7d4b196cb0c7b01d743fbc6116a902379c7238000000000000000000000000952acc70e6f54ce87dca963193a5957bcb27729e0000000000000000000000000000000000000000000000000000000000018a890000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000aa36a700000000000000000000000000000000000000000000000000000000000f424000000000000000000000000000000000000000000000000000000000807bba8200000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000000011b878bbc65e9fc5cc949d50bb7e23a436c90023679a6d8ad3b73d75a53a56456760ed6f159c07e4f0ab2d7dee27ad82318b9198bdbb902a2959c3f40d2501704000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000c0f5000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000001e0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000200000000000000000000000001c7d4b196cb0c7b01d743fbc6116a902379c7238000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000003ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef000000000000000000000000623b7059c9e67c690594085d280d50449eb7d1d9000000000000000000000000952acc70e6f54ce87dca963193a5957bcb27729e00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000018a89000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000400000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000008000000000004000000000002000000000000000000000800000000000000000000000100000000000000000000000010000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002000000000000000080000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000",
+        "encodedTransactionByteLength": 1696,
+        "merkleProof": {
+          "root": "0xfe1ccc98ab4252fa752f080f70c2146a239339757e667b45321d05ca9dd7f9d5",
+          "siblings": [
+            {
+              "hash": "0xcdd554a48cbc60bc5fda91a9aab4eb73cffd7b5050f3e79c5491185ac3eea565",
+              "isLeft": true
+            },
+            {
+              "hash": "0xf208d0b5a198511728938475457764a6fd5593277667df401e59c48bf772ccfb",
+              "isLeft": false
+            },
+            {
+              "hash": "0x965a31ec58e059471bf5aabc485d4ae7770f203def8c1805815a8e5f061dca17",
+              "isLeft": true
+            },
+            {
+              "hash": "0x47e12068fe48e408e2f685350f23a31ff57aecc87746439a5b24a3119b8f6307",
+              "isLeft": false
+            },
+            {
+              "hash": "0x736093022284fa41c84580ece9bb4643851b87f68a0dba4dd7843bdf5daebd41",
+              "isLeft": true
+            },
+            {
+              "hash": "0x9893ade20d71f90b2bbd2845aaf130b5c0cce53cfe130b668cbb0e40365668ae",
+              "isLeft": true
+            },
+            {
+              "hash": "0xe6ee93ce7e3a1b3f3f2ae099b0fcbe295fcc573cf28bbcb4ebc0fa8e0274c1b0",
+              "isLeft": false
+            }
+          ],
+          "siblingCount": 7
+        },
+        "continuityProof": {
+          "lowerEndpointDigest": "0xed962915ca3b2f4713c51620cf0fca6248fa6df925ca01c79d3f6069889cbb6b",
+          "roots": [
+            "0xfe1ccc98ab4252fa752f080f70c2146a239339757e667b45321d05ca9dd7f9d5",
+            "0x07c4724f015dd78463f9abb6bd9b309072eb0b8b4496fc22fdb9eddf63e1ef9b",
+            "0xa45752284bce8fce7edbf8472e51e4ad3d6554923172a8545217a1f29cf39fac",
+            "0x07161da11ba0f0e6914bde58bcb2eac21fcf36d3a46af63782e4f5de4b960e86",
+            "0xe02a4247cace77d1cf4d7914b20ac1a8a89eb047f40ac01889bb10992396346c",
+            "0x28bcd9a07d48f580fe26f0411ed7e529b124fe7660a5cb576842dbdaf1e4ef9d",
+            "0xe870aaccc5938508c902f88fae9d390a9569ce89a9cb8fe2d6697e75cb732165"
+          ],
+          "rootCount": 7
+        }
+      },
+      "submission": {
+        "from": "0xE5eaB26CaE0855BcCaBBb9A64faFce28C8432b37",
+        "to": "0xc5c83782f315b321Cd8e18B4C2e05df4050C3854",
+        "selector": "0x6481b17c",
+        "calldataByteLength": 2788,
+        "calldataKeccak": "0xedcde6bd578c480e2293cc9cd2dcca177f9534afb4b599969c4306e1ae095ccf",
+        "gasLimit": "3000000"
+      },
+      "keylessPreflight": {
+        "raw": null,
+        "rawByteLength": null,
+        "decoded": {
+          "kind": "none",
+          "note": "the call returned 0x0000000000000000000000000000000000000000000000000000000000000001 without reverting"
+        },
+        "nodeMessage": null,
+        "method": "eth_call",
+        "blockTag": "latest",
+        "accepted": true
+      },
+      "onChain": {
+        "transactionHash": "0x1eb4298d4b630990253e13f4d8ce6d973105f0c55853b51164a1749c0f9f95bb",
+        "nonce": 28,
+        "blockNumber": 5439695,
+        "blockHash": "0x97b8ad3a5758a6dcfcbc24c4ad4a00a246d29b282e93431ad3bf438fddb3b462",
+        "status": 1,
+        "gasLimit": "3000000",
+        "gasUsed": "1070916",
+        "outOfGas": false,
+        "effectiveGasPriceWei": "500000000",
+        "feeSpentWei": "535458000000000",
+        "feeSpentCtc": "0.000535458",
+        "explorerUrl": "https://creditcoin-testnet.blockscout.com/tx/0x1eb4298d4b630990253e13f4d8ce6d973105f0c55853b51164a1749c0f9f95bb",
+        "revertData": {
+          "raw": "0xc842648400000000000000010000000000b1b4fc00000000000000350000000000000000",
+          "rawByteLength": 36,
+          "decoded": {
+            "kind": "customError",
+            "selector": "0xc8426484",
+            "name": "AlreadyClaimed",
+            "signature": "AlreadyClaimed(bytes32)",
+            "args": {
+              "key": "0x00000000000000010000000000b1b4fc00000000000000350000000000000000"
+            }
+          },
+          "nodeMessage": "execution reverted (unknown custom error)",
+          "method": "eth_call replayed at the mined block",
+          "blockTag": "0x5300cf"
+        }
+      },
+      "verdict": {
+        "outcome": "accepted-as-expected",
+        "basis": "on-chain transaction",
+        "observedRefusal": null,
+        "matchesExpectation": true,
+        "note": "the deployment accepted the submission, which is what this case expects. The assertions say what it did with it."
+      },
+      "assertions": [
+        {
+          "claim": "the target carries at least one log the deployment recognises and can credit",
+          "holds": true,
+          "evidence": "1 of 1 Settlement-shaped log(s) are recognised with a registered Collection Address"
+        },
+        {
+          "claim": "replay key 0x0000…fc00000000000000350000000000000000 for log 0 (Transfer) is recorded as claimed",
+          "holds": true,
+          "evidence": "claimedLog answered true"
+        },
+        {
+          "claim": "exactly one SettlementRecorded exists for 0x0000…fc00000000000000350000000000000000 and credits the agent bound to topics[1] 0x623b7059c9e67c690594085d280d50449eb7d1d9",
+          "holds": true,
+          "evidence": "1 event(s); the first credits 0xE5eaB26CaE0855BcCaBBb9A64faFce28C8432b37 in Creditcoin tx 0x1eb4298d4b630990253e13f4d8ce6d973105f0c55853b51164a1749c0f9f95bb; AgentRegistry.agentOf(topics[1]) is 0xE5eaB26CaE0855BcCaBBb9A64faFce28C8432b37"
+        },
+        {
+          "claim": "the transaction sender and the payer in topics[1] are different addresses",
+          "holds": true,
+          "evidence": "from 0xa302940db97345c5adaf8da23ff46ae63613d728, topics[1] 0x623b7059c9e67c690594085d280d50449eb7d1d9"
+        },
+        {
+          "claim": "the payer in topics[1] resolves to a bound Creditcoin agent",
+          "holds": true,
+          "evidence": "AgentRegistry.agentOf(1, 0x623b7059c9e67c690594085d280d50449eb7d1d9) is 0xE5eaB26CaE0855BcCaBBb9A64faFce28C8432b37"
+        },
+        {
+          "claim": "every credited agent is the one bound to topics[1]",
+          "holds": true,
+          "evidence": "credited 0xE5eaB26CaE0855BcCaBBb9A64faFce28C8432b37; bound to topics[1] is 0xE5eaB26CaE0855BcCaBBb9A64faFce28C8432b37"
+        },
+        {
+          "claim": "the agent bound to `from`, if any and if distinct, received no credit",
+          "holds": true,
+          "evidence": "agentOf(from) is 0x1F6f797Edc2EECb02BD54009B805fb2E99F80542; history count before 1, after 1"
+        }
+      ],
+      "assertionsHold": true
+    },
+    "zero-topic-log-ingested": {
+      "id": "zero-topic-log-ingested",
+      "title": "Zero-topic log beside a recognised log, with the recognised log ingested",
+      "requirements": [
+        "27.12"
+      ],
+      "expectation": "A Source Chain transaction that carries a log with no topics beside a recognised Settlement log to a registered Collection Address. The sweep must skip the anonymous log and ingest the recognised one, which the claim ledger and the SettlementRecorded event establish afterwards.",
+      "expected": "acceptance",
+      "expectedRefusals": [
+        "AlreadyClaimed"
+      ],
+      "recordedAt": "2026-09-06T09:04:02.433Z",
+      "mode": "broadcast",
+      "status": "ran",
+      "target": {
+        "chainKey": 1,
+        "sourceTxHash": "0x7a177ab0a6988b75183079ed6a4b72b873c294c8c92ab98ef82d43a7e29c9a04",
+        "blockHeight": 11646207,
+        "txIndexFromSourceRpc": 60,
+        "txFrom": "0xa302940db97345c5adaf8da23ff46ae63613d728",
+        "receiptStatus": 1,
+        "receiptLogCount": 2,
+        "settlementLog": {
+          "ordinal": 1,
+          "emitter": "0x1c7d4b196cb0c7b01d743fbc6116a902379c7238",
+          "signature": "Transfer",
+          "topicCount": 3,
+          "payerFromTopic1": "0x623b7059c9e67c690594085d280d50449eb7d1d9",
+          "recipientFromTopic2": "0x952acc70e6f54ce87dca963193a5957bcb27729e",
+          "amountBaseUnits": "70000"
+        },
+        "settlementLogs": [
+          {
+            "ordinal": 1,
+            "emitter": "0x1c7d4b196cb0c7b01d743fbc6116a902379c7238",
+            "signature": "Transfer",
+            "topicCount": 3,
+            "payerFromTopic1": "0x623b7059c9e67c690594085d280d50449eb7d1d9",
+            "recipientFromTopic2": "0x952acc70e6f54ce87dca963193a5957bcb27729e",
+            "amountBaseUnits": "70000"
+          }
+        ],
+        "zeroTopicLogOrdinals": [
+          0
+        ],
+        "payerDiffersFromTxFrom": true,
+        "attestedFrontierAtSelection": 11646230,
+        "sourceEndpoint": "https://ethereum-sepolia-rpc.publicnode.com",
+        "selection": "the Source Chain transaction named on the command line, chainKey 1",
+        "note": "A Settlement produced on the Source Chain by the Watcher lane during this wave and handed over by hash. The harness read its receipt back from the Source Chain and sent nothing to Ethereum itself."
+      },
+      "proofMaterial": {
+        "source": "https://prover.cc3-testnet.creditcoin.network",
+        "txIndexFromProofBuilder": 60,
+        "cached": true,
+        "generatedAt": "2026-09-06T09:03:35.148393677Z"
+      },
+      "mutation": null,
+      "keylessControls": {
+        "genuineMaterial": {
+          "method": "eth_call verifyAndEmit on the BlockProver Precompile",
+          "verified": true,
+          "rawReturnData": "0x0000000000000000000000000000000000000000000000000000000000000001",
+          "reverted": false,
+          "nodeMessage": null
+        },
+        "asSubmitted": {
+          "method": "eth_call verifyAndEmit on the BlockProver Precompile",
+          "verified": true,
+          "rawReturnData": "0x0000000000000000000000000000000000000000000000000000000000000001",
+          "reverted": false,
+          "nodeMessage": null
+        }
+      },
+      "expectedIngestions": [
+        {
+          "ordinal": 1,
+          "signature": "Transfer",
+          "emitter": "0x1c7d4b196cb0c7b01d743fbc6116a902379c7238",
+          "payerFromTopic1": "0x623b7059c9e67c690594085d280d50449eb7d1d9",
+          "recipientFromTopic2": "0x952acc70e6f54ce87dca963193a5957bcb27729e",
+          "amountBaseUnits": "70000",
+          "replayKey": "0x00000000000000010000000000b1b4ff000000000000003c0000000000000001",
+          "recognised": true,
+          "collectionRegistered": true,
+          "serviceId": "0x7461622e70726f6f662d73657276696365000000000000000000000000000000",
+          "asset": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238"
+        }
+      ],
+      "stateBefore": {
+        "payer": {
+          "ethAddress": "0x623b7059c9e67c690594085d280d50449eb7d1d9",
+          "agent": "0xE5eaB26CaE0855BcCaBBb9A64faFce28C8432b37",
+          "bound": true,
+          "history": {
+            "root": "0xadf940ffbdad07cecc54e5d4276b27d9ab1798a771d61e27e19fce537def7edf",
+            "count": 3
+          }
+        },
+        "sender": {
+          "ethAddress": "0xa302940db97345c5adaf8da23ff46ae63613d728",
+          "agent": "0x1F6f797Edc2EECb02BD54009B805fb2E99F80542",
+          "bound": true,
+          "history": {
+            "root": "0x1df3cbeb826de17d7890c34ce476ddedf1d5c93b7c954e77eba14a603d9657c5",
+            "count": 1
+          }
+        },
+        "claimed": {
+          "0x00000000000000010000000000b1b4ff000000000000003c0000000000000001": false
+        }
+      },
+      "submitted": {
+        "chainKey": 1,
+        "blockHeight": 11646207,
+        "encodedTransaction": "0x00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000032000000000000000000000000000000000000000000000000000000000000001800000000000000000000000000000000000000000000000000000000000000009000000000000000000000000000000000000000000000000000000000000c513000000000000000000000000a302940db97345c5adaf8da23ff46ae63613d7280000000000000000000000000000000000000000000000000000000000000000000000000000000000000000623b7059c9e67c690594085d280d50449eb7d1d9000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000064e1c03de40000000000000000000000001c7d4b196cb0c7b01d743fbc6116a902379c7238000000000000000000000000952acc70e6f54ce87dca963193a5957bcb27729e00000000000000000000000000000000000000000000000000000000000111700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000aa36a700000000000000000000000000000000000000000000000000000000000f4240000000000000000000000000000000000000000000000000000000007ce9c56600000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000000012c4825d8b00c34bb1e06f307309b9fdd980eced712c45ef9381126bf7a8198435515027fcd91df3b2c8e407d0bac6792122771c9d156a80cc20de8defdefd669000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003e00000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000c38d000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000002c0000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000100000000000000000000000000623b7059c9e67c690594085d280d50449eb7d1d9000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000010000000000000000000000001c7d4b196cb0c7b01d743fbc6116a902379c7238000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000003ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef000000000000000000000000623b7059c9e67c690594085d280d50449eb7d1d9000000000000000000000000952acc70e6f54ce87dca963193a5957bcb27729e00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000011170000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000400000000000000000000000000000200000000000000000000000000001000000000000000000000000000000000000000000000000000000000000008000000000004000000000002000000000000000000000800000000000000000000000100000000000000000000000010000000000000000000100000000000000000000000000000000000000000000000000000010000000000000000000000000000000000004000000000000000000000000000000002000000000000000080000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000",
+        "encodedTransactionByteLength": 1920,
+        "merkleProof": {
+          "root": "0x07161da11ba0f0e6914bde58bcb2eac21fcf36d3a46af63782e4f5de4b960e86",
+          "siblings": [
+            {
+              "hash": "0x61828326b7b7dd240113c20e103f5451575bab268962df1dc607d9e03a4009f7",
+              "isLeft": false
+            },
+            {
+              "hash": "0x36f84051c3db200ca8b8645797cf65962f2a0bcedbca711627c7a2b30a0020da",
+              "isLeft": false
+            },
+            {
+              "hash": "0xe3d662073d97c05320e2df2fcd3a5d6c68fdb7246b247d12f5414b23e0749555",
+              "isLeft": true
+            },
+            {
+              "hash": "0x34b9579b47eb1a58076ec851f44b8137e1546859ba2a4d46c6b63afb1dcb3d3c",
+              "isLeft": true
+            },
+            {
+              "hash": "0x02307513a6afc17a0a74e4abc14d007041ff488ee63b5f1a42b81ab6a82b2ed2",
+              "isLeft": true
+            },
+            {
+              "hash": "0x6aa4b40f2af071b4de4c1cd8b999a42a34b314266cecd6915a01a3f6dde2e68d",
+              "isLeft": true
+            },
+            {
+              "hash": "0x57ad72040f8e684b9150fa66318b43d79db1ab42937fce8d6569f6a01021085f",
+              "isLeft": false
+            },
+            {
+              "hash": "0xbc54b08cf977577f7e863d116bb7d1b22f75a0911a993d4a6136b32ab690a445",
+              "isLeft": false
+            }
+          ],
+          "siblingCount": 8
+        },
+        "continuityProof": {
+          "lowerEndpointDigest": "0xddbc27e84ab42c1fe12f98e578ea338616d6a11afbadf852bcf30e3a1bd5156b",
+          "roots": [
+            "0x07161da11ba0f0e6914bde58bcb2eac21fcf36d3a46af63782e4f5de4b960e86",
+            "0xe02a4247cace77d1cf4d7914b20ac1a8a89eb047f40ac01889bb10992396346c",
+            "0x28bcd9a07d48f580fe26f0411ed7e529b124fe7660a5cb576842dbdaf1e4ef9d",
+            "0xe870aaccc5938508c902f88fae9d390a9569ce89a9cb8fe2d6697e75cb732165"
+          ],
+          "rootCount": 4
+        }
+      },
+      "submission": {
+        "from": "0xE5eaB26CaE0855BcCaBBb9A64faFce28C8432b37",
+        "to": "0xc5c83782f315b321Cd8e18B4C2e05df4050C3854",
+        "selector": "0x6481b17c",
+        "calldataByteLength": 2980,
+        "calldataKeccak": "0xea32c4d2c0e35ce5dc47e00d8b5da714448903786ddffcea4e5c63e14b147744",
+        "gasLimit": "3000000"
+      },
+      "keylessPreflight": {
+        "raw": null,
+        "rawByteLength": null,
+        "decoded": {
+          "kind": "none",
+          "note": "the call returned 0x0000000000000000000000000000000000000000000000000000000000000001 without reverting"
+        },
+        "nodeMessage": null,
+        "method": "eth_call",
+        "blockTag": "latest",
+        "accepted": true
+      },
+      "onChain": {
+        "transactionHash": "0x9ec33223e2962d14ebb6b25799bf2f0360b296710c5305fabdefb7fa4224ba11",
+        "nonce": 30,
+        "blockNumber": 5439702,
+        "blockHash": "0x29ae42ea5bdbfb43d8e1731af77cb4ca5b4e393a243e6a47bc77746456e17d80",
+        "status": 1,
+        "gasLimit": "3000000",
+        "gasUsed": "1051596",
+        "outOfGas": false,
+        "effectiveGasPriceWei": "500000000",
+        "feeSpentWei": "525798000000000",
+        "feeSpentCtc": "0.000525798",
+        "explorerUrl": "https://creditcoin-testnet.blockscout.com/tx/0x9ec33223e2962d14ebb6b25799bf2f0360b296710c5305fabdefb7fa4224ba11",
+        "revertData": {
+          "raw": "0xc842648400000000000000010000000000b1b4ff000000000000003c0000000000000001",
+          "rawByteLength": 36,
+          "decoded": {
+            "kind": "customError",
+            "selector": "0xc8426484",
+            "name": "AlreadyClaimed",
+            "signature": "AlreadyClaimed(bytes32)",
+            "args": {
+              "key": "0x00000000000000010000000000b1b4ff000000000000003c0000000000000001"
+            }
+          },
+          "nodeMessage": "execution reverted (unknown custom error)",
+          "method": "eth_call replayed at the mined block",
+          "blockTag": "0x5300d6"
+        }
+      },
+      "verdict": {
+        "outcome": "accepted-as-expected",
+        "basis": "on-chain transaction",
+        "observedRefusal": null,
+        "matchesExpectation": true,
+        "note": "the deployment accepted the submission, which is what this case expects. The assertions say what it did with it."
+      },
+      "assertions": [
+        {
+          "claim": "the target carries at least one log the deployment recognises and can credit",
+          "holds": true,
+          "evidence": "1 of 1 Settlement-shaped log(s) are recognised with a registered Collection Address"
+        },
+        {
+          "claim": "replay key 0x0000…ff000000000000003c0000000000000001 for log 1 (Transfer) is recorded as claimed",
+          "holds": true,
+          "evidence": "claimedLog answered true"
+        },
+        {
+          "claim": "exactly one SettlementRecorded exists for 0x0000…ff000000000000003c0000000000000001 and credits the agent bound to topics[1] 0x623b7059c9e67c690594085d280d50449eb7d1d9",
+          "holds": true,
+          "evidence": "1 event(s); the first credits 0xE5eaB26CaE0855BcCaBBb9A64faFce28C8432b37 in Creditcoin tx 0x9ec33223e2962d14ebb6b25799bf2f0360b296710c5305fabdefb7fa4224ba11; AgentRegistry.agentOf(topics[1]) is 0xE5eaB26CaE0855BcCaBBb9A64faFce28C8432b37"
+        },
+        {
+          "claim": "the receipt carries at least one log with zero topics",
+          "holds": true,
+          "evidence": "zero-topic ordinals: 0"
+        }
+      ],
+      "assertionsHold": true
+    }
+  }
+}
