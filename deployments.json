@@ -22,33 +22,43 @@
         "address": "0x10619F16E1ac73AAe41AA4C1619f1387687EED79",
         "txHash": "0x32e79b380505523b60a8978aafedfe719f7721f36453413a156dc0ef57c7f5a8",
         "envKey": "DECODER_LIBRARY_ADDRESS",
-        "note": "Pinned third-party decoding library. Five link references in SettlementVerifier resolve to this address; verified embedded in the deployed bytecode."
+        "note": "Pinned third-party decoding library. Five link references in SettlementVerifier resolve to this address; verified embedded in the deployed bytecode. Reused unchanged across the 2026-09-06 redeploy; it is a pure library with no wiring."
       },
       "ServiceRegistry": {
         "address": "0xF6Bb0d068698e504e2F21ca61c48167634a1fcAC",
         "txHash": "0x0434a304703ab32c1d15a5a260a6b2c51792772fc7afbf3717cad55a02934571",
         "envKey": "SERVICE_REGISTRY_ADDRESS",
-        "note": "Takes only the curation authority in its constructor and references no other Tab contract, which is what lets a redeployment of the rest leave the Service registration, its collections, emitters and prices standing."
+        "note": "Reused unchanged across the 2026-09-06 redeploy. It references TabBook, Bond and SettlementVerifier nowhere and takes only the curation authority in its constructor, so the Service registration, collections, emitters, prices and the queued curation change all survived."
       },
       "AgentRegistry": {
         "address": "0x4721f24974be89287F5C34aeE4D15D20389A2a8B",
         "txHash": "0xf2ca8f7b6f5eb384f5d94f7723241fc5511712de3ad1d6705bf2494090a531b4",
-        "envKey": "AGENT_REGISTRY_ADDRESS"
+        "envKey": "AGENT_REGISTRY_ADDRESS",
+        "redeployedAt": "2026-09-06",
+        "redeployReason": "tasks 10.12 and 12.6, two money defects in the previous deployment"
       },
       "Bond": {
         "address": "0xDbB6C19A4236ACdd8535E993C5fA93E6Ff1f173A",
         "txHash": "0x16f2742afec88b38e86ad7ba3659c0a098410d972522c73099f6c23b7bceaf16",
-        "envKey": "BOND_ADDRESS"
+        "envKey": "BOND_ADDRESS",
+        "redeployedAt": "2026-09-06",
+        "redeployReason": "tasks 10.12 and 12.6, two money defects in the previous deployment"
       },
       "TabBook": {
         "address": "0x047ECFB428FE706eA391B626872Ce8Deb8756c5f",
         "txHash": "0x3eda574394c4d1fa9bc49b47fbf08aa450bdcbf939275bb50fc434b60e38f439",
-        "envKey": "TAB_BOOK_ADDRESS"
+        "envKey": "TAB_BOOK_ADDRESS",
+        "redeployedAt": "2026-09-06",
+        "redeployReason": "tasks 10.12 and 12.6, two money defects in the previous deployment",
+        "note": "Redeployed 2026-09-06 carrying the task 12.6 fix: a Metered Delivery spends prepaid credit before it raises the Open Tab, so banked credit is spendable rather than stranded. Redeployed together with AgentRegistry and Bond because the wiring setters are one-shot."
       },
       "SettlementVerifier": {
         "address": "0xDf4e7F76e5821ab351877C7862117fDdbC7a44a7",
         "txHash": "0xc51dcfcb1bcf543755982d4099e1460627d695455d5901a0efe7f5c72103d0bc",
-        "envKey": "SETTLEMENT_VERIFIER_ADDRESS"
+        "envKey": "SETTLEMENT_VERIFIER_ADDRESS",
+        "note": "Redeployed 2026-09-06 carrying the task 10.12 fix: a Transfer that a TabSettled in the same receipt already accounts for is skipped, so one payment is credited once. Proven on chain by re-submitting the transaction that returned ingestedLogs = 2 against the old verifier and getting 1.",
+        "redeployedAt": "2026-09-06",
+        "redeployReason": "tasks 10.12 and 12.6, two money defects in the previous deployment"
       }
     },
     "precompiles": {
