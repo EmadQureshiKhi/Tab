@@ -1,0 +1,11 @@
+# Pinned exactly. The README art is committed output, so this is a local
+# authoring dependency and not a build or CI dependency.
+#
+# One-time bootstrap from the repository root:
+#   py -m venv tools/.venv
+#   tools/.venv/Scripts/python.exe -m pip install -r tools/requirements.txt
+#
+# The base Python install on the original authoring machine had a broken pip
+# (`No module named 'pip._vendor.packaging.version'`). A venv has its own pip and
+# works, which is why the bootstrap creates one rather than installing globally.
+Pillow==11.3.0
