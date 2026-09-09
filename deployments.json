@@ -102,6 +102,14 @@
         "address": "0xb67c73fd513adF5d270d1102F04eb8327F218FE7",
         "envKey": "WATCHER_ADDRESS",
         "note": "May apply Provisional Clearings and report reorganisations. Cannot mint credit: a Provisional Clearing is covered by Bond and is revocable for its whole life."
+      },
+      "curationMultisig": {
+        "address": "0x9fCe693cD68307a2450aB57f4654653643F01Bb6",
+        "envKey": "CURATION_MULTISIG_ADDRESS",
+        "threshold": 2,
+        "owners": 3,
+        "holdsRoleToday": false,
+        "note": "A 2-of-3 CurationMultisig, deployed 2026-09-08 and read back off chain. It holds no role on the live registry and cannot be given one: ServiceRegistry takes its authority as a constructor argument and exposes no setter, so the role moves only at a deployment. Recorded here because the contract is real and checkable, and because the address a future deployment will name should be public before that deployment rather than after it. It holds no value: there is no receive and no payable function anywhere in it."
       }
     },
     "registry": {
