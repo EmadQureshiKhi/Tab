@@ -436,6 +436,23 @@ jobs:
       # no reason to install: the browser suite exercises rendered pages, not
       # contracts. The `...` suffix is pnpm's "and its dependencies", so this stays
       # correct if the Dashboard ever draws on another workspace package.
+      # Every deployed address, read out of the tracked deployment record and put
+      # on the environment the test server inherits.
+      #
+      # Without them the Dashboard renders its unconfigured state - which is the
+      # pages behaving correctly, and is why two `/register` assertions failed
+      # against a form that was never going to appear. None of this is secret:
+      # `deployments.json` is public, every address in it was read back off the
+      # chain, and taking them from the record rather than pasting them here is
+      # what keeps this job correct through the next redeployment.
+      - name: Put the recorded deployment on the environment
+        run: |
+          set -euo pipefail
+          node scripts/env-bootstrap.mjs --print \
+            | grep -E '^(CREDITCOIN_RPC_URL|CREDITCOIN_CHAIN_ID|CREDITCOIN_EXPLORER_URL|BLOCKPROVER_PRECOMPILE|CHAININFO_PRECOMPILE|[A-Z_]*ADDRESS)=' \
+            | grep -v '=0x0\{40\}$' \
+            | tee -a "$GITHUB_ENV"
+
       - name: Build the dashboard and its dependencies
         run: pnpm --filter '@tabai/app...' build && pnpm --filter @tabai/app build:site
 
