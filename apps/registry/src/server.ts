@@ -65,6 +65,27 @@ export function createApp(deps: ServerDependencies): Hono {
   const app = new Hono();
 
   /**
+   * What this is, for whoever opened the origin in a browser.
+   *
+   * The origin is a configuration value: it is what `registryUrl` in a
+   * `tab.config` points at, and it appears as such in the documentation. That
+   * makes it a URL people click, and an API that answers a click with "Cannot
+   * GET /" tells them nothing about whether it is the right address or a broken
+   * one. This says which service it is and where to go next.
+   */
+  app.get("/", (c) =>
+    c.json({
+      service: "tab-registry",
+      description:
+        "Read API over the Tab rail on Creditcoin CC3 Testnet. Indexes registry, tab and settlement events, and serves a Credit Limit only where an on-chain cross-check agrees.",
+      routes: ["/services", "/agents/:address", "/settlements", "/adoption", "/healthz", "/readyz"],
+      dashboard: "https://trytabai.vercel.app",
+      documentation: "https://trytabai-docs.vercel.app",
+      source: "https://github.com/EmadQureshiKhi/Tab",
+    }),
+  );
+
+  /**
    * Liveness. 200 whenever the process is up, even mid-catch-up and even while the
    * database is unreachable — a host that restarts a healthy process for a
    * transient database fault turns one fault into two.

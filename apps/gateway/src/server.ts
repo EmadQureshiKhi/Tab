@@ -114,6 +114,27 @@ export function createApp(options: GatewayOptions): Hono {
   const now = options.now ?? (() => Date.now());
   const requireSignature = options.requireSignature ?? true;
 
+  /*
+    What this is, for whoever opened the origin in a browser. The origin is the
+    Service endpoint a `tab.config` names, so it is a URL people click, and an
+    API that answers a click with "Cannot GET /" cannot be told from a broken
+    one. Metered routes are not listed as an invitation: each one needs the
+    operator's signature and records a delivery on chain.
+  */
+  app.get("/", (c) =>
+    c.json({
+      service: "tab-gateway",
+      description:
+        "Metering surface for the tab.proof-service Service on Creditcoin CC3 Testnet. A metered call is delivered first and charged to an Open Tab afterwards.",
+      serviceId: options.serviceId,
+      operator: options.operator,
+      routes: ["/healthz", "/meter/:tool (operator-signed)"],
+      dashboard: "https://trytabai.vercel.app",
+      documentation: "https://trytabai-docs.vercel.app",
+      source: "https://github.com/EmadQureshiKhi/Tab",
+    }),
+  );
+
   app.get("/healthz", (c) => c.json({ status: "ok", serviceId: options.serviceId }));
 
   // Authentication runs before metering, so an unsigned request never reaches the
