@@ -47,6 +47,8 @@ import { ok } from "@tabai/shared";
 
 import { fail } from "../errors.js";
 import type { Logger } from "../logger.js";
+import { createRequire } from "node:module";
+
 import { validateJsonValue } from "./json-schema.js";
 import { field, isRecord } from "./json.js";
 import { TAB_TOOLS, tabToolByName } from "./schemas.js";
@@ -54,8 +56,28 @@ import { resolveTabMcpSettings, type TabMcpSettings, type TabMcpSettingsOptions 
 import type { RegistryFetch } from "./registry-client.js";
 import { createTabToolset, type TabToolset } from "./toolset.js";
 
-/** The name and version this server reports to a client. */
-export const TAB_MCP_SERVER_INFO = { name: "tab", version: "0.1.0" } as const;
+/**
+ * The name and version this server reports to a client.
+ *
+ * The version is read from the package rather than written here. A second copy
+ * of a version number is a copy that goes stale on the next release without
+ * anything failing, and this one already had: the package shipped 0.1.3 while
+ * every client was told 0.1.0, which is the wrong answer to give a client
+ * deciding whether it is talking to a build with a fix in it.
+ */
+const PACKAGE_VERSION: string = (() => {
+  try {
+    return (
+      createRequire(import.meta.url)("../../package.json") as { version?: string }
+    ).version ?? "0.0.0";
+  } catch {
+    // A bundler that inlines this module without the manifest beside it. Better a
+    // known-unknown than a number that was true once.
+    return "0.0.0";
+  }
+})();
+
+export const TAB_MCP_SERVER_INFO = { name: "tab", version: PACKAGE_VERSION } as const;
 
 /**
  * A logger that writes to stderr.

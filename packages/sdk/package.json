@@ -1,6 +1,6 @@
 {
   "name": "@tabai/sdk",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Post-paid billing for autonomous agents on Creditcoin. MCP server, CLI and TypeScript SDK: call a priced tool now, settle in USDC on Ethereum later, and let a Creditcoin contract verify the payment itself through the Attestcoin Protocol.",
   "keywords": [
     "creditcoin",
