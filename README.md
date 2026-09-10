@@ -12,6 +12,7 @@
   <img alt="285 contract tests passing" src="https://img.shields.io/badge/contract%20tests-285%20passing-2f8132">
   <img alt="Deployed on CC3 Testnet" src="https://img.shields.io/badge/status-deployed%20%26%20live-2f8132">
   <a href="./LICENSE"><img alt="MIT licensed" src="https://img.shields.io/badge/license-MIT-444"></a>
+  <a href="https://www.npmjs.com/package/@tabai/sdk"><img alt="npm @tabai/sdk" src="https://img.shields.io/npm/v/%40tabai%2Fsdk?label=%40tabai%2Fsdk&color=cb3837"></a>
   <img alt="BUIDL CTC 2026 Fall" src="https://img.shields.io/badge/BUIDL%20CTC-2026%20Fall-444">
 </p>
 
@@ -40,7 +41,7 @@ Live on Creditcoin CC3 Testnet / built for Creditcoin Mainnet.
 | **Whitepaper** | [`WHITEPAPER.md`](./WHITEPAPER.md) |
 | **Pitch deck** | *in progress* <!-- TODO(link): deck PDF --> |
 | **Demo video** | *recording* <!-- TODO(link): demo video --> |
-| **npm package** | `@tabai/sdk` - *publishing* |
+| **npm package** | [`@tabai/sdk`](https://www.npmjs.com/package/@tabai/sdk) - published |
 | **Deployed contracts** | [on Blockscout](#deployed-on-chain), and in [`deployments.json`](./deployments.json) |
 | **Attestcoin Protocol** | [attestcoin.org](https://attestcoin.org) · [docs](https://docs.attestcoin.org) · [ASC Dashboard](https://dashboard.cc3-testnet.creditcoin.network) |
 

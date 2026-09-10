@@ -18,6 +18,7 @@
     "coverage": "node scripts/check-coverage.mjs --run",
     "coverage:check": "node scripts/check-coverage.mjs",
     "coverage:floors": "node scripts/check-coverage.mjs --list",
+    "env:bootstrap": "node scripts/env-bootstrap.mjs",
     "env:check": "node scripts/env-check.mjs",
     "env:list": "node scripts/env-check.mjs --list",
     "deployments:check": "node scripts/deployments-check.mjs",
@@ -26,6 +27,8 @@
     "vocab:denylist": "node scripts/vocab-check.mjs --materialise",
     "tab:verify": "node scripts/tab-verify.mjs",
     "hooks:install": "git config core.hooksPath .githooks",
+    "art": "node scripts/art.mjs",
+    "art:check": "node scripts/art.mjs --check",
     "e2e": "bash scripts/e2e.sh"
   },
   "dependencies": {
