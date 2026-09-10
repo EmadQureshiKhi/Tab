@@ -31,13 +31,16 @@ export default {
   /** The Agent whose Open Tab a metered call lands on. */
   agent: process.env.DEMO_AGENT_ONE_CREDITCOIN_ADDRESS,
 
-  registryUrl: process.env.NEXT_PUBLIC_REGISTRY_API_URL ?? "http://localhost:8787",
+  // The deployed read API, so a clone that sets nothing still reads something.
+  // Point the variable at a local indexer to develop against one.
+  registryUrl:
+    process.env.NEXT_PUBLIC_REGISTRY_API_URL ?? "https://registry-production-847c.up.railway.app",
 
   services: [
     {
       serviceId: "0x7461622e70726f6f662d73657276696365000000000000000000000000000000",
       name: "tab.proof-service",
-      endpoint: process.env.GATEWAY_URL ?? "http://localhost:8788",
+      endpoint: process.env.GATEWAY_URL ?? "https://gateway-production-3ea6.up.railway.app",
     },
   ],
 
