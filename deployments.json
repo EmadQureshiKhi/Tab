@@ -115,7 +115,7 @@
     "registry": {
       "serviceId": "tab.proof-service",
       "serviceIdBytes32": "0x7461622e70726f6f662d73657276696365000000000000000000000000000000",
-      "tier": "Permissionless",
+      "tier": "Curated",
       "settlementWindowSeconds": 21600,
       "timelockSeconds": 172800,
       "creditBaselineBaseUnits": 5000000,
@@ -159,6 +159,15 @@
           "emitterChainMask": 2,
           "note": "Authorised on chainKey 1 alone, and verified unauthorised on chainKey 3. The mask is 1 << 1 exactly."
         }
+      },
+      "tierChange": {
+        "changeId": "0xad88e0f1487410963657c1ae2f09ef3f8baf4266b5535a0a7c903ce79b7cebd5",
+        "queuedAt": "2026-09-06T08:40:45Z",
+        "eta": "2026-09-08T08:40:45Z",
+        "appliedAt": "2026-09-08T23:36:00Z",
+        "txHash": "0x514640c52e00775a7de6ef29404000e3848d70a3094e73d811d209d725cb528e",
+        "blockNumber": 5454677,
+        "note": "Queued behind the registry's 48-hour hold and applied once it expired, by the curation authority. The hold is not advisory: applyChange reads block.timestamp and reverted TimelockPending until the eta, and a second application now reverts because the change is consumed. Curated Tier gates Credit Limit weight and nothing else; it confers no power over metering, any tab, or any Bond."
       }
     }
   },
