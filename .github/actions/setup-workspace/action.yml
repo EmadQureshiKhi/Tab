@@ -27,11 +27,26 @@ runs:
     - name: Install the pinned package manager
       uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
 
+    # Two steps for one runtime, and the difference is the dependency cache.
+    #
+    # `cache: pnpm` registers a post-job step that saves the pnpm store. A job
+    # that reads the tree without installing never creates that store, so the
+    # save fails with a path-validation error and takes the whole job down with
+    # it - reporting a failure for a gate whose every step passed, which is the
+    # worst kind of red. So the cache is asked for only where something will
+    # actually populate it.
     - name: Install the pinned Node runtime
+      if: inputs.install == 'true'
       uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
       with:
         node-version: ${{ inputs.node-version }}
         cache: pnpm
+
+    - name: Install the pinned Node runtime, with no dependency cache
+      if: inputs.install != 'true'
+      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      with:
+        node-version: ${{ inputs.node-version }}
 
     # The pinned runtime and the manifest's `engines.node` floor can drift apart
     # silently. This says so out loud instead.
