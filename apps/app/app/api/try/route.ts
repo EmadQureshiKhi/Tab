@@ -28,6 +28,8 @@
  */
 
 import { readFile } from "node:fs/promises";
+
+import { Wallet, encodeBytes32String } from "ethers";
 import { join } from "node:path";
 
 export const dynamic = "force-dynamic";
@@ -112,17 +114,45 @@ export async function POST(request: Request): Promise<Response> {
 
   const stop = AbortSignal.timeout(TIMEOUT_MS);
   try {
-    // The gateway meters `/meter/*` and prices by path. A metered request is
-    // authenticated by the operator's signature, which this deployment does not
-    // hold and should not: where the gateway requires one, the refusal it returns
-    // is passed straight through, and saying so is more useful than hiding it.
+    /*
+      The gateway meters `/meter/*` and prices by path, and authenticates the
+      caller as the Service operator before anything reaches the chain.
+
+      That signature is not optional on a gateway anyone can reach. Every metered
+      call records a delivery and spends the operator's gas, so an unauthenticated
+      one is a bill anybody can run up. This route therefore signs the claim when
+      it holds the key, and when it does not it sends the request unsigned and
+      passes the gateway's refusal straight back, which says what is missing
+      rather than hiding it.
+    */
     const target = `${endpoint.replace(/\/$/, "")}/meter/${encodeURIComponent(tool)}`;
+    const path = new URL(target).pathname;
+    const headers: Record<string, string> = {
+      "content-type": "application/json",
+      "Tab-Agent": agent,
+    };
+
+    const operatorKey = process.env["GATEWAY_PRIVATE_KEY"]?.trim();
+    if (operatorKey !== undefined && operatorKey !== "" && !operatorKey.startsWith("0xREPLACE")) {
+      const issuedAt = Date.now();
+      // The digest the gateway rebuilds and recovers against, field for field.
+      // `tool` is the 32-byte key the price list is keyed by, not the label.
+      const digest = [
+        "tab-metering-request",
+        "POST",
+        path,
+        agent.toLowerCase(),
+        encodeBytes32String(tool).toLowerCase(),
+        "1",
+        String(issuedAt),
+      ].join("\n");
+      headers["Tab-Operator-Signature"] = await new Wallet(operatorKey).signMessage(digest);
+      headers["Tab-Operator-Issued-At"] = String(issuedAt);
+    }
+
     const response = await fetch(target, {
       method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "Tab-Agent": agent,
-      },
+      headers,
       body: JSON.stringify({ tool }),
       signal: stop,
     });

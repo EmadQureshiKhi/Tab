@@ -21,7 +21,7 @@
       "serviceId": "0x7461622e70726f6f662d73657276696365000000000000000000000000000000",
       "name": "tab.proof-service",
       "summary": "Generates an Attestcoin Continuity Proof and Merkle Proof for a Creditcoin block height, which is what a Settlement needs before a contract will accept it.",
-      "endpoint": "http://localhost:8788",
+      "endpoint": "https://gateway-production-3ea6.up.railway.app",
       "transport": "mcp",
       "operatedBy": "this project",
       "tools": {
