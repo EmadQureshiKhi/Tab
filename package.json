@@ -15,11 +15,18 @@
     "test": "turbo run test",
     "lint": "node scripts/check-dep-direction.mjs && node scripts/env-check.mjs && turbo run lint",
     "lint:deps": "node scripts/check-dep-direction.mjs",
+    "coverage": "node scripts/check-coverage.mjs --run",
+    "coverage:check": "node scripts/check-coverage.mjs",
+    "coverage:floors": "node scripts/check-coverage.mjs --list",
     "env:check": "node scripts/env-check.mjs",
     "env:list": "node scripts/env-check.mjs --list",
+    "deployments:check": "node scripts/deployments-check.mjs",
+    "deployments:classify": "node scripts/deployments-check.mjs --list",
     "vocab:check": "node scripts/vocab-check.mjs",
     "vocab:denylist": "node scripts/vocab-check.mjs --materialise",
-    "hooks:install": "git config core.hooksPath .githooks"
+    "tab:verify": "node scripts/tab-verify.mjs",
+    "hooks:install": "git config core.hooksPath .githooks",
+    "e2e": "bash scripts/e2e.sh"
   },
   "dependencies": {
     "@gluwa/usc-sdk": "0.18.0",
