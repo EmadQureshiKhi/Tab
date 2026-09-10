@@ -1,6 +1,6 @@
 {
   "name": "@tabai/sdk",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Post-paid billing for autonomous agents on Creditcoin. MCP server, CLI and TypeScript SDK: call a priced tool now, settle in USDC on Ethereum later, and let a Creditcoin contract verify the payment itself through the Attestcoin Protocol.",
   "keywords": [
     "creditcoin",
@@ -23,6 +23,15 @@
   ],
   "license": "MIT",
   "author": "Emad Qureshi",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EmadQureshiKhi/Tab.git",
+    "directory": "packages/sdk"
+  },
+  "homepage": "https://trytabai.vercel.app",
+  "bugs": {
+    "url": "https://github.com/EmadQureshiKhi/Tab/issues"
+  },
   "type": "module",
   "engines": {
     "node": ">=20.10.0"

@@ -137,14 +137,14 @@ export default {
   // Whose Open Tab a metered call lands on.
   agent: process.env.AGENT_ADDRESS,
 
-  registryUrl: "https://registry.example",
+  registryUrl: "https://registry-production-847c.up.railway.app",
 
   // The chain records no URL for a Service, deliberately, so the address lives here.
   services: [
     {
       serviceId: "0x7461622e70726f6f662d73657276696365000000000000000000000000000000",
       name: "tab.proof-service",
-      endpoint: "https://proof.example",
+      endpoint: "https://gateway-production-3ea6.up.railway.app",
     },
   ],
 
@@ -246,6 +246,17 @@ export interface PaymentStrategy {
 `settleBatch` is optional and should stay undefined where the surface has no batch form. A plain asset `Transfer` has none, and faking one would mean claiming a guarantee the chain does not give.
 
 ---
+
+## Live deployment
+
+Everything below is running now and needs nothing installed.
+
+| | |
+| --- | --- |
+| Dashboard | [trytabai.vercel.app](https://trytabai.vercel.app) |
+| Documentation | [trytabai-docs.vercel.app](https://trytabai-docs.vercel.app) |
+| Registry read API | [`registry-production-847c.up.railway.app`](https://registry-production-847c.up.railway.app/services) |
+| Source | [github.com/EmadQureshiKhi/Tab](https://github.com/EmadQureshiKhi/Tab) |
 
 ## Network
 

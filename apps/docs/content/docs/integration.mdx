@@ -82,14 +82,14 @@ export default {
   // Whose Open Tab a metered call lands on.
   agent: process.env.AGENT_ADDRESS,
 
-  registryUrl: "http://localhost:8787",
+  registryUrl: "https://registry-production-847c.up.railway.app",
 
   // The chain records no URL for a Service, so the address lives here.
   services: [
     {
       serviceId: "0x7461622e70726f6f662d73657276696365000000000000000000000000000000",
       name: "tab.proof-service",
-      endpoint: "http://localhost:8788",
+      endpoint: "https://gateway-production-3ea6.up.railway.app",
     },
   ],
 

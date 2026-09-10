@@ -36,8 +36,8 @@ Live on Creditcoin CC3 Testnet / built for Creditcoin Mainnet.
 
 | | |
 | --- | --- |
-| **Live Dashboard** | *deploying* <!-- TODO(link): production Dashboard URL --> |
-| **Documentation site** | *deploying* <!-- TODO(link): production docs URL --> |
+| **Live Dashboard** | [trytabai.vercel.app](https://trytabai.vercel.app) |
+| **Documentation site** | [trytabai-docs.vercel.app](https://trytabai-docs.vercel.app) |
 | **Whitepaper** | [`WHITEPAPER.md`](./WHITEPAPER.md) |
 | **Pitch deck** | *in progress* <!-- TODO(link): deck PDF --> |
 | **Demo video** | *recording* <!-- TODO(link): demo video --> |
@@ -197,7 +197,11 @@ pnpm tab:verify           # reads the live deployment. No key, no funded account
 
 `tab:verify` removes every secret-shaped variable from its own environment before the first chain read and prints which ones it removed, so keylessness is a property of the run rather than a claim about it.
 
-### The Dashboard, locally
+### The Dashboard
+
+Both are deployed and need nothing installed: the [Dashboard](https://trytabai.vercel.app) and the [documentation site](https://trytabai-docs.vercel.app).
+
+To run them yourself:
 
 ```bash
 pnpm --filter @tabai/app build:site
