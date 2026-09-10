@@ -431,8 +431,13 @@ jobs:
       - name: Install the browser
         run: pnpm --filter @tabai/app exec playwright install --with-deps chromium
 
-      - name: Build the dashboard
-        run: pnpm build && pnpm --filter @tabai/app build:site
+      # The Dashboard and what it depends on, and nothing else. A full `pnpm build`
+      # pulls in the Solidity package, which needs a Foundry toolchain this job has
+      # no reason to install: the browser suite exercises rendered pages, not
+      # contracts. The `...` suffix is pnpm's "and its dependencies", so this stays
+      # correct if the Dashboard ever draws on another workspace package.
+      - name: Build the dashboard and its dependencies
+        run: pnpm --filter '@tabai/app...' build && pnpm --filter @tabai/app build:site
 
       # `playwright test` directly, not `pnpm e2e`. The wrapper script exists for a
       # development machine running an Ubuntu release Playwright ships no browser for,
@@ -482,6 +487,14 @@ jobs:
       # so the run proves the path is keyless rather than merely asserting it. A job
       # that passed only because CI happened to withhold a key would prove nothing
       # about a reader who has one.
+      # `--no-build` reuses the compiled modules rather than building them again,
+      # so something has to have built them. On a fresh checkout nothing has: the
+      # output directories are ignored and absent, and the script says so by name
+      # rather than guessing. Building first is also what the README tells a
+      # stranger to do, so this job runs the sequence it documents.
+      - name: Build the workspace
+        run: pnpm build
+
       - name: Run the read-only verification path with no secret available
         run: pnpm tab:verify --no-build
 
