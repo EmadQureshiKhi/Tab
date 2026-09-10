@@ -62,3 +62,45 @@ __pycache__/
 # own root instead. It records absolute paths from the machine that built it, so
 # it is machine state rather than a build product worth keeping.
 solidity-files-cache.json
+
+# ---------------------------------------------------------------- worktree pool
+# treehouse places worktrees here when its root is set to ".".
+.treehouse/
+
+# Session working material. Reports and probes belong in the agent scratchpad, not the repository.
+scratchpad/
+
+# Playwright run artefacts: traces and error contexts from a local run.
+test-results/
+playwright-report/
+
+# Fumadocs writes this from content/ on install and build.
+apps/docs/.source/
+
+# Windows 'downloaded from the internet' metadata, written beside a file by Explorer.
+*:Zone.Identifier
+
+# ---------------------------------------------------------------- agent tooling
+# Local or generated, and of no use to anyone reading this repository.
+# `apps/app/AGENTS.md` is rewritten by `next dev` on every run, so it is ignored
+# rather than deleted: deleting it only makes it reappear as an untracked file.
+# The walkthrough script for the recorded demonstration. Working material for
+# the recording, not something a reader of this repository needs.
+demo/
+
+AGENTS.md
+CLAUDE.md
+**/AGENTS.md
+**/CLAUDE.md
+.claude/
+.cursor/
+.windsurf/
+.aider*
+.github/copilot-instructions.md
+treehouse.toml
+
+# ---------------------------------------------------------------- packaging and deploys
+# `npm pack` output, and the local state directories the hosting CLIs write.
+*.tgz
+.vercel/
+.railway/
