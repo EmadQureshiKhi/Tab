@@ -232,6 +232,21 @@
 }
 
 /*
+ * The countdown along the bottom edge of a transaction toast. It scales rather
+ * than animating width, so it runs on the compositor instead of laying the card
+ * out again on every frame, and it is anchored `origin-right` by the component
+ * so the line retreats towards the left as the time runs out.
+ */
+@keyframes tab-toast-countdown {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+/*
  * One preference, obeyed once, for everything. Motion, GSAP and the scroll
  * smoother each read `prefers-reduced-motion` in their own code as well; this is
  * the floor under all three, so an animation added later cannot escape it by

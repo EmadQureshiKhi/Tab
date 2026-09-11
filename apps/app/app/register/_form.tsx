@@ -32,6 +32,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { useTransactionToast } from "../../components/shell/transaction-toast";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { createChainReader } from "../../src/dashboard/chain";
@@ -73,6 +74,7 @@ export function RegisterForm({
   chainKey,
   chainName,
 }: RegisterFormProps) {
+  const { announce } = useTransactionToast();
   const [agentInput, setAgentInput] = useState("");
   const [ethInput, setEthInput] = useState("");
   const [agentError, setAgentError] = useState<string | undefined>(undefined);
@@ -175,12 +177,25 @@ export function RegisterForm({
         return;
       }
 
-      await injected.request({
+      /*
+        The hash is kept rather than dropped. This is the one write on this page,
+        and until now it returned a transaction the reader had no way to open:
+        the binding then waits on a Settlement, so the request itself would
+        otherwise leave no trace they could check.
+      */
+      const hash = (await injected.request({
         method: "eth_sendTransaction",
         params: [
           { from, to: agentRegistry, data: encodeRequestBinding(chainKey, ethAddress.value) },
         ],
-      });
+      })) as unknown;
+      if (typeof hash === "string" && /^0x[0-9a-fA-F]{64}$/.test(hash)) {
+        announce({
+          hash,
+          title: "Binding requested",
+          detail: "Settle the stated amount from that address to complete it.",
+        });
+      }
       await refresh();
     } catch (cause) {
       setFormError(

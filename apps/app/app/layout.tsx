@@ -35,6 +35,7 @@ import { ThemeProvider, THEME_BOOT_SCRIPT } from "../components/providers/theme-
 import { SmoothScroll } from "../components/motion/smooth-scroll";
 import { Chrome } from "./_lib/chrome";
 import { WalletProvider } from "../components/wallet/wallet-context";
+import { TransactionToastProvider } from "../components/shell/transaction-toast";
 import { DEFAULT_CHAIN_KEY } from "../src/dashboard/chains";
 import { docsUrl, explorerBaseUrl } from "./_lib/context";
 import "./globals.css";
@@ -97,6 +98,7 @@ export default function RootLayout({ children }: { readonly children: ReactNode 
         className={`${inter.variable} ${hostGrotesk.variable} ${geistMono.variable} min-h-screen bg-background text-foreground antialiased`}
       >
         <ThemeProvider>
+          <TransactionToastProvider explorerUrl={explorerBaseUrl()}>
           <WalletProvider>
           <SmoothScroll />
           <SkipLink />
@@ -108,6 +110,7 @@ export default function RootLayout({ children }: { readonly children: ReactNode 
             {children}
           </Chrome>
           </WalletProvider>
+          </TransactionToastProvider>
         </ThemeProvider>
       </body>
     </html>

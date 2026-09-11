@@ -47,6 +47,7 @@ import {
   switchChain,
 } from "./eip1193";
 import { type DiscoveredWallet, watchWallets } from "./discovery";
+import { useTransactionToast } from "../shell/transaction-toast";
 import type { Result } from "./result";
 
 export interface WalletState {
@@ -84,6 +85,13 @@ export function useWallet(): WalletState {
 }
 
 export function WalletProvider({ children }: { readonly children: ReactNode }) {
+  /*
+    Every wallet-driven write in this Dashboard goes through `send` below, which
+    is why the announcement belongs there and not in each caller: three flows
+    send four transactions between them, and hooking the one shared path is what
+    stops a fifth being added later without one.
+  */
+  const { announce } = useTransactionToast();
   const [provider, setProvider] = useState<Eip1193Provider | undefined>(undefined);
   const [ready, setReady] = useState(false);
   const [account, setAccount] = useState<string | undefined>(undefined);
@@ -224,9 +232,16 @@ export function WalletProvider({ children }: { readonly children: ReactNode }) {
       if (account === undefined) return { ok: false, message: "Connect a wallet before sending a transaction." };
       const sent = await sendTransaction(provider, { from: account, ...tx });
       if (!sent.ok) setError(sent.message);
+      else {
+        announce({
+          hash: sent.value,
+          title: "Transaction broadcast",
+          detail: "It is on Creditcoin once the block that carries it is mined.",
+        });
+      }
       return sent;
     },
-    [provider, account],
+    [provider, account, announce],
   );
 
   const value = useMemo<WalletState>(
