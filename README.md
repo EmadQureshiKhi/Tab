@@ -39,7 +39,7 @@ Live on Creditcoin CC3 Testnet / built for Creditcoin Mainnet.
 | **Live Dashboard** | [trytabai.vercel.app](https://trytabai.vercel.app) |
 | **Documentation site** | [trytabai-docs.vercel.app](https://trytabai-docs.vercel.app) |
 | **Whitepaper** | [`WHITEPAPER.md`](./WHITEPAPER.md) |
-| **Pitch deck** | *in progress* <!-- TODO(link): deck PDF --> |
+| **Pitch deck** | [Google Drive](https://drive.google.com/file/d/1X5Vyff8hKhCOfcjc63CnbFaISENBF_P-/view?usp=sharing) |
 | **Demo video** | *recording* <!-- TODO(link): demo video --> |
 | **npm package** | [`@tabai/sdk`](https://www.npmjs.com/package/@tabai/sdk) - published |
 | **Deployed contracts** | [on Blockscout](#deployed-on-chain), and in [`deployments.json`](./deployments.json) |
