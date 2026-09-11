@@ -110,10 +110,26 @@ export function toCatalogue(
     }
   }
 
-  // Cheapest first. A reader scanning a catalogue is comparing price, and every
-  // other order makes them do the comparison themselves. Ties fall back to the
-  // name so the order is stable between renders.
+  /*
+    Callable first, then cheapest.
+
+    Registration is permissionless and a Service needs no address to be listed, so
+    this catalogue accumulates entries that are real on chain and have nowhere to
+    send a call. That is correct - the chain is the authority on prices and this
+    page shows what it says - but it is the wrong thing to rank first on a page
+    whose purpose is tools an Agent can call. Nothing is hidden by this: an entry
+    with no published address is still listed in full, with its real tier and
+    price, and still says why it has no run command. It just stops sitting above
+    the ones that work.
+
+    Within each group, cheapest first, because a reader scanning a catalogue is
+    comparing price and any other order makes them do the comparison themselves.
+    Ties fall back to the name so the order is stable between renders.
+  */
   return entries.sort((left, right) => {
+    const leftCallable = left.published?.endpoint === undefined ? 1 : 0;
+    const rightCallable = right.published?.endpoint === undefined ? 1 : 0;
+    if (leftCallable !== rightCallable) return leftCallable - rightCallable;
     if (left.priceBaseUnits !== right.priceBaseUnits) {
       return left.priceBaseUnits < right.priceBaseUnits ? -1 : 1;
     }

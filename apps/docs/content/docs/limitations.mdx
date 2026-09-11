@@ -69,6 +69,18 @@ The mechanism is measured and concrete: a Continuity Proof's length is the dista
 The recorded Mainnet target needed a 1-root Continuity Proof when fresh and a 31-root proof later, and the 1-root proof was refused with `Error("Continuity proof does not match attestation or checkpoint")` while a fresh proof passed.
 Continuity Proofs are therefore fetched close to submission, and a Settlement left unsubmitted gets steadily more expensive to prove.
 
+### How a third-party Service is listed
+
+Registering a Service is permissionless and immediate. Anyone signs one Creditcoin transaction recording the account that operates the Service, the Assets it accepts, what each tool costs and how long a tab may stay open, and from that moment the chain is the authority on their prices. Nobody approves it, no allowlist is consulted, and the 48-hour timelock does not apply: that hold guards *changes* to facts already applied, not the first registration. A Service registered by a stranger appears in this project's Dashboard directory on its own, with its real tools and real prices, because that page reads the registry from chain rather than a list anyone curates.
+
+What the chain does not record is where the Service runs. `ServiceRegistry` stores an operator, a tier, a Settlement Window, a bond account and a price list, and no URL. That is deliberate and it is a boundary rather than an oversight: an address on chain means paying gas to move house, and a dead link becomes a permanent record that no one can retract.
+
+So endpoint discovery is off-chain, and the bound is this. An Agent calls a Service by an address held in its own `tab.config`, which its operator controls and which needs nothing from this project - the SDK resolves a call target from that file alone, never from a registry response or from a file shipped with the Dashboard. A Service provider publishes their address wherever they publish anything else, and any Agent that wants them adds it. That path is open to everyone today and passes through no gate.
+
+The convenience layer is narrower. `service-endpoints.json` in this repository is what lets the Dashboard offer a run command next to a listing, and it is published by this project. A Service that is registered on chain but absent from that file is still listed with everything the chain says about it, and is shown without a run command, and the page says that is why. Getting into that file today means a change to this repository, which is a centralised step inside an otherwise permissionless system, and it affects one button on one website rather than anybody's ability to be called.
+
+The direction out is a discovery layer that is neither on chain nor owned by one repository - a signed endpoint record an operator publishes and rotates for themselves, which an Agent resolves the way it resolves a name today. That is future work and nothing here depends on it: prices, tiers and bonds are already trustless, and only the address is not.
+
 ### What is in scope today
 
 Asset scope is USDC only, on Ethereum Mainnet as chainKey 3 and a registered test USDC on Ethereum Sepolia as chainKey 1; the architecture is multi-asset and no price conversion exists anywhere.

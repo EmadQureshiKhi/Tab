@@ -502,9 +502,31 @@ Naming each one with the bound that says how far it reaches is more useful than 
 | Credit history ceiling | 512 records and 32 counterparties. The contract reverts `HistoryTooLong` rather than quietly dropping records |
 | Watcher liveness | Affects how fast headroom returns, never correctness. Reversal is a permissionless crank |
 | Asset scope | USDC only today, on `chainKey` 1 and 3. The architecture is multi-asset and no price conversion exists anywhere |
+| Endpoint discovery | Registration is permissionless and a stranger's Service is listed from chain automatically. The **address** is off chain, held in each Agent's own `tab.config` |
 
 Where Mainnet attestation is unavailable, discovery selects Sepolia on its own and the rail keeps running.
 Configuration cannot force a chain the ChainInfo Precompile does not report, which is what stops a misconfiguration from becoming a false claim about where a Settlement happened.
+
+### 9.1 Where a Service is, and who gets to say
+
+Registering a Service is permissionless and takes effect immediately.
+One Creditcoin transaction records the operating account, the Assets accepted, a price per tool and a Settlement Window, and from that moment the chain is the authority on those prices.
+The 48-hour timelock does not stand in the way: it guards changes to facts already applied, not the first registration.
+A Service registered by someone with no relationship to this project appears in the Dashboard's directory on its own, carrying its real tools and prices, because that page reads the registry rather than a curated list.
+
+`ServiceRegistry` records no URL, deliberately.
+An address on chain would mean paying gas to move house and would make a dead link a permanent record, so the chain is the billing rail and not a directory of hosts.
+
+The bound that follows is worth stating plainly.
+An Agent reaches a Service through an address in its own `tab.config`, which its operator controls: the SDK resolves a call target from that file alone, never from a registry response and never from a file shipped with the Dashboard.
+A provider publishes their address wherever they publish anything else, and any Agent that wants them adds it.
+That path passes through no gate.
+
+What is narrower is the convenience layer.
+`service-endpoints.json`, published by this project, is what lets the Dashboard offer a run command beside a listing; a Service absent from it is still listed in full and shown without one, and the page says why.
+Entering that file is a change to this repository, which is a centralised step inside an otherwise permissionless system - affecting one button on one website rather than anyone's ability to be called.
+The direction out is a signed endpoint record an operator publishes and rotates for themselves, resolved the way a name is resolved today.
+Nothing in the rail waits on it: prices, tiers and Bonds are already trustless, and only the address is not.
 
 ---
 
