@@ -279,8 +279,35 @@ type Attempt =
  * shown as it arrived, including a refusal: a page that only rendered successes
  * would be hiding the interesting half.
  */
+type Mode = "meter" | "proof";
+
+/*
+  Two surfaces of one Service, chosen before the press rather than given two
+  buttons.
+
+  `meter` records a Metered Delivery and answers with what the Service sells.
+  `proof` asks for the material a Settlement actually needs: the encoded
+  transaction, its Merkle inclusion proof and a Continuity Proof. Both charge the
+  same Open Tab and both wait on a Creditcoin block, so the choice is about what
+  comes back and not about what it costs.
+*/
+const MODES: readonly { readonly id: Mode; readonly label: string; readonly blurb: string }[] = [
+  {
+    id: "meter",
+    label: "Call the tool",
+    blurb: "Records the delivery and returns the Service's own answer.",
+  },
+  {
+    id: "proof",
+    label: "Generate a proof",
+    blurb:
+      "Returns the real proof material for the newest Settlement on this rail: an encoded transaction, a Merkle inclusion proof and a Continuity Proof.",
+  },
+];
+
 function TryIt({ entry }: { readonly entry: WireEntry }) {
   const [attempt, setAttempt] = useState<Attempt>({ kind: "idle" });
+  const [mode, setMode] = useState<Mode>("meter");
   const endpoint = entry.published?.endpoint;
 
   const call = async (): Promise<void> => {
@@ -289,7 +316,7 @@ function TryIt({ entry }: { readonly entry: WireEntry }) {
       const response = await fetch("/api/try", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ serviceId: entry.serviceId, tool: entry.tool }),
+        body: JSON.stringify({ serviceId: entry.serviceId, tool: entry.tool, mode }),
       });
       const body = await response.text();
       setAttempt({ kind: "answered", status: response.status, body });
@@ -319,6 +346,43 @@ function TryIt({ entry }: { readonly entry: WireEntry }) {
         this site you can test by pressing a button.
       </p>
 
+      {/*
+        A segmented choice above one button rather than a second button beside
+        it. Two primary buttons ask the reader to weigh two things at once; this
+        asks what they want first and leaves a single thing to press.
+      */}
+      <div className="flex flex-col gap-2">
+        <div
+          role="radiogroup"
+          aria-label="What to ask the Service for"
+          className="flex w-fit rounded-[2px] border border-border p-0.5"
+        >
+          {MODES.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              role="radio"
+              aria-checked={mode === option.id}
+              disabled={attempt.kind === "calling"}
+              onClick={() => setMode(option.id)}
+              className={cn(
+                "rounded-[1px] px-3 py-1.5 font-mono text-[11px] tracking-wider uppercase transition-colors",
+                "disabled:cursor-not-allowed disabled:opacity-60",
+                mode === option.id
+                  ? "bg-foreground text-background"
+                  : "text-muted-foreground hover:text-foreground",
+                FOCUS_RING,
+              )}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          {MODES.find((option) => option.id === mode)?.blurb}
+        </p>
+      </div>
+
       <button
         type="button"
         onClick={() => void call()}
@@ -329,7 +393,13 @@ function TryIt({ entry }: { readonly entry: WireEntry }) {
           FOCUS_RING,
         )}
       >
-        {attempt.kind === "calling" ? "Calling the Service" : `Call ${entry.tool}`}
+        {attempt.kind === "calling"
+          ? mode === "proof"
+            ? "Building the proof"
+            : "Calling the Service"
+          : mode === "proof"
+            ? "Generate a proof"
+            : `Call ${entry.tool}`}
       </button>
 
       {/*
@@ -340,13 +410,15 @@ function TryIt({ entry }: { readonly entry: WireEntry }) {
       */}
       {attempt.kind === "calling" ? (
         <p className="text-xs leading-relaxed text-muted-foreground">
-          Recording the delivery on Creditcoin. The Service answers once a block has carried it,
-          which takes about a minute. Nothing has been paid; this is the charge being written.
+          {mode === "proof"
+            ? "Fetching proof material and recording the delivery on Creditcoin. The Merkle proof comes from the Source Chain block and the Continuity Proof is fetched close to now, because one ages out of the dense-attestation grid."
+            : "Recording the delivery on Creditcoin. The Service answers once a block has carried it. Nothing has been paid; this is the charge being written."}
         </p>
       ) : (
         <p className="text-xs leading-relaxed text-muted-foreground">
-          It takes about a minute. The delivery is recorded on Creditcoin before the Service
-          answers, so the wait is a block, not a queue.
+          Either way it takes about a minute, and the wait is a Creditcoin block rather than a
+          queue: the delivery is recorded before the Service answers. Both charge the same Open Tab
+          the same amount.
         </p>
       )}
 

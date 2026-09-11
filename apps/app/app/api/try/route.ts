@@ -62,6 +62,74 @@ async function endpointFor(serviceId: string): Promise<string | undefined> {
   }
 }
 
+/** A Source Chain transaction to prove, and the chain it happened on. */
+interface ProofTarget {
+  readonly chainKey: number;
+  readonly txHash: string;
+}
+
+/**
+ * Finds a real Settlement for the Proof Service to prove.
+ *
+ * The Proof Service proves a transaction that happened, so this has to name one,
+ * and it asks the chain rather than carrying a hash in the source. A pinned hash
+ * would work the day it was written and get steadily more expensive to prove
+ * every week after it: proof material perishes as a height ages from the
+ * stride-10 attestation grid onto the stride-100 checkpoint grid, so the newest
+ * Settlement is both the most honest example and the cheapest one.
+ *
+ * The registry records a Settlement by its replay key and its Source Chain
+ * coordinates rather than by transaction hash, which is the right identity for a
+ * log. One block read turns the coordinates back into the hash the Proof Service
+ * asks for.
+ */
+async function newestSettlement(signal: AbortSignal): Promise<ProofTarget | undefined> {
+  const registry = process.env["NEXT_PUBLIC_REGISTRY_API_URL"]?.replace(/\/+$/, "");
+  const rpc = process.env["ETHEREUM_SEPOLIA_RPC_URLS"]?.split(",")[0]?.trim();
+  if (registry === undefined || registry === "" || rpc === undefined || rpc === "") return undefined;
+
+  try {
+    const listed = await fetch(`${registry}/settlements?limit=1`, { signal });
+    if (!listed.ok) return undefined;
+    const rows = (await listed.json()) as {
+      settlements?: readonly { chainKey?: number; sourceBlockHeight?: number; sourceTxIndex?: number }[];
+    };
+    const newest = rows.settlements?.[0];
+    if (
+      newest?.chainKey === undefined ||
+      newest.sourceBlockHeight === undefined ||
+      newest.sourceTxIndex === undefined
+    ) {
+      return undefined;
+    }
+    // Only Ethereum Sepolia has an endpoint configured here, and proving a
+    // Mainnet height against a Sepolia node would quietly return the wrong
+    // transaction rather than failing.
+    if (newest.chainKey !== 1) return undefined;
+
+    const block = await fetch(rpc, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "eth_getBlockByNumber",
+        params: [`0x${newest.sourceBlockHeight.toString(16)}`, false],
+      }),
+      signal,
+    });
+    if (!block.ok) return undefined;
+    const payload = (await block.json()) as { result?: { transactions?: readonly string[] } };
+    const hash = payload.result?.transactions?.[newest.sourceTxIndex];
+    if (typeof hash !== "string" || !/^0x[0-9a-fA-F]{64}$/.test(hash)) return undefined;
+    return { chainKey: newest.chainKey, txHash: hash };
+  } catch {
+    // No target means the caller says so plainly rather than proving something
+    // invented.
+    return undefined;
+  }
+}
+
 function json(body: unknown, status: number): Response {
   return new Response(JSON.stringify(body, null, 2), {
     status,
@@ -70,7 +138,7 @@ function json(body: unknown, status: number): Response {
 }
 
 export async function POST(request: Request): Promise<Response> {
-  let body: { serviceId?: unknown; tool?: unknown };
+  let body: { serviceId?: unknown; tool?: unknown; mode?: unknown };
   try {
     body = (await request.json()) as typeof body;
   } catch {
@@ -79,6 +147,17 @@ export async function POST(request: Request): Promise<Response> {
 
   const serviceId = typeof body.serviceId === "string" ? body.serviceId : undefined;
   const tool = typeof body.tool === "string" ? body.tool : undefined;
+  /*
+    Which of the Service's two surfaces to call.
+
+    `meter` records a Metered Delivery and answers with whatever the Service
+    sells. `proof` asks the Proof Service for the material a Settlement actually
+    needs: an encoded transaction, a Merkle inclusion proof and a Continuity
+    Proof. Both write a charge to the same Open Tab and both wait on a Creditcoin
+    block, so they cost the caller the same and take about the same time; what
+    differs is whether the answer is the product or a stand-in for it.
+  */
+  const mode = body.mode === "proof" ? "proof" : "meter";
   if (serviceId === undefined || tool === undefined) {
     return json({ error: "Name a serviceId and a tool." }, 400);
   }
@@ -125,14 +204,56 @@ export async function POST(request: Request): Promise<Response> {
       passes the gateway's refusal straight back, which says what is missing
       rather than hiding it.
     */
-    const target = `${endpoint.replace(/\/$/, "")}/meter/${encodeURIComponent(tool)}`;
+    const proof = mode === "proof" ? await newestSettlement(stop) : undefined;
+    if (mode === "proof" && proof === undefined) {
+      return json(
+        {
+          error:
+            "No Settlement was available to prove. The Proof Service proves a transaction that happened, and this deployment could not name one.",
+        },
+        503,
+      );
+    }
+
+    const base = endpoint.replace(/\/$/, "");
+    const target =
+      proof === undefined
+        ? `${base}/meter/${encodeURIComponent(tool)}`
+        : `${base}/proof/${proof.chainKey}/${proof.txHash}`;
     const path = new URL(target).pathname;
     const headers: Record<string, string> = {
       "content-type": "application/json",
       "Tab-Agent": agent,
     };
 
-    const operatorKey = process.env["GATEWAY_PRIVATE_KEY"]?.trim();
+    if (proof !== undefined) {
+      /*
+        The Proof Service authenticates the **Agent**, not the operator: the
+        charge lands on that Agent's Open Tab, so the Agent's own Creditcoin key
+        has to have asked for it. It rebuilds this digest field for field and
+        requires the recovered signer to equal the `Tab-Agent` header, inside a
+        five-minute window checked in both directions.
+      */
+      const agentKey = process.env["AGENT_CREDITCOIN_PRIVATE_KEY"]?.trim();
+      if (agentKey !== undefined && agentKey !== "" && !agentKey.startsWith("0xREPLACE")) {
+        const issuedAt = Date.now();
+        const digest = [
+          "tab-proof-request",
+          "POST",
+          path,
+          agent.toLowerCase(),
+          encodeBytes32String(tool).toLowerCase(),
+          "1",
+          String(proof.chainKey),
+          proof.txHash.toLowerCase(),
+          String(issuedAt),
+        ].join("\n");
+        headers["Tab-Agent-Signature"] = await new Wallet(agentKey).signMessage(digest);
+        headers["Tab-Agent-Issued-At"] = String(issuedAt);
+      }
+    }
+
+    const operatorKey = proof !== undefined ? undefined : process.env["GATEWAY_PRIVATE_KEY"]?.trim();
     if (operatorKey !== undefined && operatorKey !== "" && !operatorKey.startsWith("0xREPLACE")) {
       const issuedAt = Date.now();
       // The digest the gateway rebuilds and recovers against, field for field.
@@ -153,7 +274,8 @@ export async function POST(request: Request): Promise<Response> {
     const response = await fetch(target, {
       method: "POST",
       headers,
-      body: JSON.stringify({ tool }),
+      // The Proof Service reads the path and the headers and no body at all.
+      ...(proof === undefined ? { body: JSON.stringify({ tool }) } : {}),
       signal: stop,
     });
     const text = await response.text();
