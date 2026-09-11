@@ -225,11 +225,30 @@ export async function POST(request: Request): Promise<Response> {
       );
     }
 
-    const base = endpoint.replace(/\/$/, "");
+    /*
+      Two hosts, because they are two Services.
+
+      `service-endpoints.json` publishes where a registered Service is metered,
+      and that is the gateway. The Proof Service is a separate process on its own
+      address and serves `/proof/*`, which the gateway does not: pointing the
+      proof path at the published endpoint asks the gateway for a route it has
+      never had and gets a bare 404 back.
+    */
+    const proofBase = process.env["PROOF_SERVICE_URL"]?.trim().replace(/\/+$/, "");
+    if (proof !== undefined && (proofBase === undefined || proofBase === "")) {
+      return json(
+        {
+          error:
+            "This deployment names no address for the Proof Service, so there is nowhere to ask for proof material. Set PROOF_SERVICE_URL to enable it.",
+        },
+        501,
+      );
+    }
+
     const target =
       proof === undefined
-        ? `${base}/meter/${encodeURIComponent(tool)}`
-        : `${base}/proof/${proof.chainKey}/${proof.txHash}`;
+        ? `${endpoint.replace(/\/$/, "")}/meter/${encodeURIComponent(tool)}`
+        : `${proofBase}/proof/${proof.chainKey}/${proof.txHash}`;
     const path = new URL(target).pathname;
     const headers: Record<string, string> = {
       "content-type": "application/json",
