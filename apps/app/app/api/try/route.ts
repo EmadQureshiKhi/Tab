@@ -91,21 +91,31 @@ async function newestSettlement(signal: AbortSignal): Promise<ProofTarget | unde
   try {
     const listed = await fetch(`${registry}/settlements?limit=1`, { signal });
     if (!listed.ok) return undefined;
+    /*
+      The registry serves these as decimal strings rather than numbers, which is
+      the right choice for a `uint64` that JavaScript cannot hold exactly, and it
+      is why they are read through a coercion instead of compared directly. A
+      first version of this typed them as numbers and refused every Settlement it
+      was given, because `"1" !== 1`.
+    */
     const rows = (await listed.json()) as {
-      settlements?: readonly { chainKey?: number; sourceBlockHeight?: number; sourceTxIndex?: number }[];
+      settlements?: readonly {
+        chainKey?: string | number;
+        sourceBlockHeight?: string | number;
+        sourceTxIndex?: string | number;
+      }[];
     };
     const newest = rows.settlements?.[0];
-    if (
-      newest?.chainKey === undefined ||
-      newest.sourceBlockHeight === undefined ||
-      newest.sourceTxIndex === undefined
-    ) {
+    const chainKey = Number(newest?.chainKey);
+    const height = Number(newest?.sourceBlockHeight);
+    const txIndex = Number(newest?.sourceTxIndex);
+    if (!Number.isInteger(chainKey) || !Number.isInteger(height) || !Number.isInteger(txIndex)) {
       return undefined;
     }
     // Only Ethereum Sepolia has an endpoint configured here, and proving a
     // Mainnet height against a Sepolia node would quietly return the wrong
     // transaction rather than failing.
-    if (newest.chainKey !== 1) return undefined;
+    if (chainKey !== 1) return undefined;
 
     const block = await fetch(rpc, {
       method: "POST",
@@ -114,15 +124,15 @@ async function newestSettlement(signal: AbortSignal): Promise<ProofTarget | unde
         jsonrpc: "2.0",
         id: 1,
         method: "eth_getBlockByNumber",
-        params: [`0x${newest.sourceBlockHeight.toString(16)}`, false],
+        params: [`0x${height.toString(16)}`, false],
       }),
       signal,
     });
     if (!block.ok) return undefined;
     const payload = (await block.json()) as { result?: { transactions?: readonly string[] } };
-    const hash = payload.result?.transactions?.[newest.sourceTxIndex];
+    const hash = payload.result?.transactions?.[txIndex];
     if (typeof hash !== "string" || !/^0x[0-9a-fA-F]{64}$/.test(hash)) return undefined;
-    return { chainKey: newest.chainKey, txHash: hash };
+    return { chainKey, txHash: hash };
   } catch {
     // No target means the caller says so plainly rather than proving something
     // invented.
