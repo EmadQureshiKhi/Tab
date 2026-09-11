@@ -1,0 +1,26 @@
+{
+  "name": "@tabai/keeper",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The permissionless markDelinquent cranker: finds every Open Tab whose Settlement Window has closed and marks it on chain.",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b",
+    "test": "tsc -b && node --test test/*.test.mjs",
+    "once": "tsx src/main.ts once",
+    "serve": "tsx src/main.ts serve",
+    "start": "node dist/main.js serve"
+  },
+  "dependencies": {
+    "@hono/node-server": "2.1.1",
+    "@tabai/shared": "workspace:*",
+    "ethers": "6.17.0",
+    "hono": "4.13.5"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.1",
+    "tsx": "4.19.2"
+  }
+}
