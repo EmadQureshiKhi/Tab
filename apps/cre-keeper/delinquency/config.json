@@ -1,0 +1,6 @@
+{
+  "schedule": "0 */10 * * * *",
+  "keeperUrl": "http://localhost:8791",
+  "requestTimeout": "8s",
+  "maxMarksPerTick": 25
+}

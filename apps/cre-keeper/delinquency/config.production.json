@@ -1,0 +1,6 @@
+{
+  "schedule": "0 */10 * * * *",
+  "keeperUrl": "https://keeper.example.com",
+  "requestTimeout": "8s",
+  "maxMarksPerTick": 25
+}
