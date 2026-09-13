@@ -1,0 +1,14 @@
+{
+  "name": "tab-delinquency-keeper-workflow",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The CRE workflow directory. `bun install` here installs the SDK the CRE CLI compiles against and runs cre-setup for the WebAssembly toolchain; the pnpm workspace package one level up owns the type check and the Node tests.",
+  "scripts": {
+    "postinstall": "bunx cre-setup"
+  },
+  "dependencies": {
+    "@chainlink/cre-sdk": "1.22.0",
+    "zod": "3.25.76"
+  }
+}
