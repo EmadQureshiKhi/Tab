@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "delinquency",
+    "outDir": "dist",
+    "tsBuildInfoFile": "dist/.tsbuildinfo",
+    // `@chainlink/cre-sdk` ships extensionless relative imports in its
+    // declarations, which resolve only under the bundler rules. The CRE CLI
+    // compiles the workflow with Bun, which uses the same rules.
+    "module": "ESNext",
+    "moduleResolution": "Bundler"
+  },
+  "include": ["delinquency/**/*.ts"],
+  // `bun install` inside the workflow directory puts the SDK's own .ts bins there.
+  "exclude": ["delinquency/node_modules"],
+  "references": [{ "path": "../../packages/shared" }]
+}
