@@ -1,0 +1,23 @@
+# ==========================================================================
+# CRE PROJECT SETTINGS FILE
+# ==========================================================================
+# Project-wide settings for the CRE CLI, one block per target. The workflow in
+# `delinquency/` uses the cron trigger and the HTTP capability only, so no RPC
+# is needed for it to simulate or run. The Monad endpoints are listed all the
+# same, because they are what the EVM client would read once the on-chain write
+# moves into this workflow (see README.md, "When the write moves into CRE").
+#
+# CRE supports Monad Mainnet from CLI v1.29.0 / TS SDK v1.18.0 and Monad Testnet
+# from CLI v1.30.0 / TS SDK v1.19.0.
+
+# ==========================================================================
+staging-settings:
+  rpcs:
+    - chain-name: monad-testnet
+      url: https://testnet-rpc.monad.xyz
+
+# ==========================================================================
+production-settings:
+  rpcs:
+    - chain-name: monad-mainnet
+      url: https://rpc.monad.xyz

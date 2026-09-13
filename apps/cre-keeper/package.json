@@ -1,0 +1,23 @@
+{
+  "name": "@tabai/cre-keeper",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A Chainlink CRE workflow that asks the keeper for overdue tabs every ten minutes and tells it to mark them.",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b",
+    "test": "tsc -b && node --test test/*.test.mjs",
+    "simulate": "cre workflow simulate delinquency --target staging-settings --env ../../.env"
+  },
+  "dependencies": {
+    "@chainlink/cre-sdk": "1.22.0",
+    "@tabai/shared": "workspace:*",
+    "zod": "3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.1",
+    "typescript": "5.8.3"
+  }
+}
