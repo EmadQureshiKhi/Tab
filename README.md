@@ -40,7 +40,7 @@ Live on Creditcoin CC3 Testnet / built for Creditcoin Mainnet.
 | **Documentation site** | [trytabai-docs.vercel.app](https://trytabai-docs.vercel.app) |
 | **Whitepaper** | [`WHITEPAPER.md`](./WHITEPAPER.md) |
 | **Pitch deck** | [Google Drive](https://drive.google.com/file/d/1X5Vyff8hKhCOfcjc63CnbFaISENBF_P-/view?usp=sharing) |
-| **Demo video** | *recording* <!-- TODO(link): demo video --> |
+| **Demo video** | [youtu.be/hu2PhRaxy0Y](https://youtu.be/hu2PhRaxy0Y) |
 | **npm package** | [`@tabai/sdk`](https://www.npmjs.com/package/@tabai/sdk) - published |
 | **Deployed contracts** | [on Blockscout](#deployed-on-chain), and in [`deployments.json`](./deployments.json) |
 | **Attestcoin Protocol** | [attestcoin.org](https://attestcoin.org) · [docs](https://docs.attestcoin.org) · [ASC Dashboard](https://dashboard.cc3-testnet.creditcoin.network) |
