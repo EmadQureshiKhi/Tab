@@ -1,0 +1,24 @@
+# ==========================================================================
+# CRE WORKFLOW SETTINGS FILE
+# ==========================================================================
+# Per-workflow settings, one block per target. `workflow-path` is the entry
+# file, `config-path` the parameters the code reads as `runtime.config`, and
+# `secrets-path` the manifest of secret names at the project root.
+
+# ==========================================================================
+staging-settings:
+  user-workflow:
+    workflow-name: "tab-delinquency-keeper-staging"
+  workflow-artifacts:
+    workflow-path: "./main.ts"
+    config-path: "./config.json"
+    secrets-path: "../secrets.yaml"
+
+# ==========================================================================
+production-settings:
+  user-workflow:
+    workflow-name: "tab-delinquency-keeper-production"
+  workflow-artifacts:
+    workflow-path: "./main.ts"
+    config-path: "./config.production.json"
+    secrets-path: "../secrets.yaml"

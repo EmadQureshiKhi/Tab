@@ -1,0 +1,44 @@
+{
+  // The CRE compiler's own tsconfig, and deliberately not the workspace's.
+  //
+  // `cre workflow simulate` compiles this directory to WebAssembly with Bun,
+  // and type-checks it first with the TypeScript that Bun bundles. That
+  // version is older than the one the workspace pins, and it refuses two
+  // options the repository's `tsconfig.base.json` sets: `target: ES2023` and
+  // `erasableSyntaxOnly`. Extending the base here would make the workflow
+  // uncompilable every time the workspace moved ahead of Bun, which is a
+  // coupling between two toolchains that have nothing to say to each other.
+  //
+  // So this file stands alone, with the same strictness written out, and the
+  // module settings the SDK needs: `@chainlink/cre-sdk` ships extensionless
+  // relative imports in its declarations, which resolve only under the
+  // bundler rules Bun itself uses.
+  //
+  // `../tsconfig.json` remains the workspace's view of the same sources, and
+  // `pnpm --filter @tabai/cre-keeper typecheck` still runs against it. Both
+  // must pass: one is what ships to the DON, the other is what the repository
+  // guarantees.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "moduleDetection": "force",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "exactOptionalPropertyTypes": true,
+    "useUnknownInCatchVariables": true,
+    "forceConsistentCasingInFileNames": true,
+
+    "noEmit": true,
+    "skipLibCheck": true
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules"]
+}
