@@ -43,6 +43,7 @@ Live on Creditcoin CC3 Testnet / built for Creditcoin Mainnet.
 | **Demo video** | [youtu.be/hu2PhRaxy0Y](https://youtu.be/hu2PhRaxy0Y) |
 | **npm package** | [`@tabai/sdk`](https://www.npmjs.com/package/@tabai/sdk) - published |
 | **Deployed contracts** | [on Blockscout](#deployed-on-chain), and in [`deployments.json`](./deployments.json) |
+| **X** | [@TryTabAI](https://x.com/TryTabAI) |
 | **Attestcoin Protocol** | [attestcoin.org](https://attestcoin.org) · [docs](https://docs.attestcoin.org) · [ASC Dashboard](https://dashboard.cc3-testnet.creditcoin.network) |
 
 ---
