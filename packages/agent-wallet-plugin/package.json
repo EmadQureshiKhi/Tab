@@ -1,0 +1,127 @@
+{
+  "name": "@tabai/agent-wallet-plugin",
+  "version": "0.1.1",
+  "description": "Tab commands for the MetaMask Agent Wallet CLI (mm): discover priced Services on Monad, call one on credit, read the Open Tab, and settle or authorise with the wallet's own policy-gated key.",
+  "keywords": [
+    "oclif-plugin",
+    "metamask",
+    "agent-wallet",
+    "monad",
+    "ai-agent",
+    "post-paid",
+    "billing",
+    "credit",
+    "usdc"
+  ],
+  "license": "MIT",
+  "author": "Emad Qureshi",
+  "type": "module",
+  "engines": {
+    "node": ">=20.10.0"
+  },
+  "files": [
+    "dist",
+    "!dist/**/.tsbuildinfo",
+    "oclif.manifest.json",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc -b && node scripts/manifest.mjs",
+    "typecheck": "tsc -b",
+    "test": "tsc -b && node scripts/manifest.mjs && node --test test/*.test.mjs",
+    "prepack": "tsc -b --force && node scripts/manifest.mjs"
+  },
+  "oclif": {
+    "bin": "mm",
+    "commands": "./dist/commands",
+    "topicSeparator": " ",
+    "topics": {
+      "tab": {
+        "description": "Post-paid billing on Monad: discover Services, call on credit, settle with this wallet"
+      }
+    }
+  },
+  "mm": {
+    "schemaVersion": 1,
+    "minCliVersion": ">=6.2.0",
+    "capabilities": [],
+    "commands": [
+      {
+        "id": "tab:discover",
+        "capabilities": [],
+        "dataAccess": []
+      },
+      {
+        "id": "tab:status",
+        "capabilities": [
+          "wallet-read"
+        ],
+        "dataAccess": [
+          "accounts"
+        ],
+        "targetChains": [
+          143,
+          10143
+        ]
+      },
+      {
+        "id": "tab:call",
+        "capabilities": [
+          "wallet-read"
+        ],
+        "dataAccess": [
+          "accounts"
+        ],
+        "targetChains": [
+          143,
+          10143
+        ]
+      },
+      {
+        "id": "tab:settle",
+        "capabilities": [
+          "wallet-read",
+          "wallet-submit"
+        ],
+        "dataAccess": [
+          "accounts",
+          "balances"
+        ],
+        "targetChains": [
+          143,
+          10143
+        ]
+      },
+      {
+        "id": "tab:authorise",
+        "capabilities": [
+          "wallet-read",
+          "wallet-submit"
+        ],
+        "dataAccess": [
+          "accounts"
+        ],
+        "targetChains": [
+          143,
+          10143
+        ]
+      }
+    ]
+  },
+  "peerDependencies": {
+    "@metamask/agent-wallet": ">=6.2.0"
+  },
+  "dependencies": {
+    "@tabai/sdk": "workspace:*",
+    "ethers": "6.17.0"
+  },
+  "devDependencies": {
+    "@metamask/agent-wallet": "7.0.0",
+    "@oclif/core": "4.14.0",
+    "@types/node": "22.20.1"
+  }
+}
