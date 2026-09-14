@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "tsBuildInfoFile": "dist/.tsbuildinfo",
+    // The host's declaration files use extensionless relative imports, which
+    // resolve only under the bundler rules. This matches the plugin template.
+    "module": "ESNext",
+    "moduleResolution": "Bundler"
+  },
+  "include": ["src/**/*.ts"],
+  "references": [{ "path": "../shared" }, { "path": "../sdk" }]
+}
