@@ -1,0 +1,89 @@
+/*
+ * Dark colour tokens.
+ *
+ * Generated from assets/palette.json. Do not edit by hand: edit the palette
+ * and run `pnpm --filter @tabai/app theme:tokens`.
+ *
+ * The lint task renders this file in memory and fails when what is on disk
+ * differs, so the theme cannot drift from the palette the brand assets are
+ * drawn in.
+ */
+
+/*
+ * Dark is a distinct set rather than a transform of light: the accent moves
+ * hue between the two modes, which no filter over the light set can produce.
+ *
+ * The system preference applies unless a light choice is pinned on the root,
+ * and an explicit dark choice applies regardless of the system preference.
+ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tab-theme="light"]) {
+    color-scheme: dark;
+
+    /* page background */
+    --tab-surface: #0B1220;
+    /* card, panel, and table-header background */
+    --tab-surface-raised: #172033;
+    /* body and numeric ink */
+    --tab-text: #F2F5FA;
+    /* secondary ink, labels, units */
+    --tab-text-muted: #A9B4C8;
+    /* accent ink, primary chart series, accent-filled badge */
+    --tab-accent: #57D8C8;
+    /* control boundary, table rule, outline of every raised surface */
+    --tab-stroke: #7E8FA8;
+    /* status: still in flight, such as an open tab inside its Settlement Window */
+    --tab-status-pending: #F0C14B;
+    /* status: done, such as a Settlement applied to a tab */
+    --tab-status-settled: #62D493;
+    /* status: needs attention, such as a delinquent tab or a refused transaction */
+    --tab-status-danger: #FF9A9A;
+    /* status: over and no longer material, such as a lapsed authorisation */
+    --tab-status-muted: #B3BECE;
+    /* status: information without urgency, such as a change held in the timelock */
+    --tab-status-notice: #C7A6F2;
+    /* alias of accent */
+    --tab-tier-curated: var(--tab-accent);
+    /* alias of text-muted */
+    --tab-tier-permissionless: var(--tab-text-muted);
+    /* alias of surface */
+    --tab-badge-ink: var(--tab-surface);
+    /* alias of accent */
+    --tab-focus-ring: var(--tab-accent);
+  }
+}
+
+[data-tab-theme="dark"] {
+  color-scheme: dark;
+
+  /* page background */
+  --tab-surface: #0B1220;
+  /* card, panel, and table-header background */
+  --tab-surface-raised: #172033;
+  /* body and numeric ink */
+  --tab-text: #F2F5FA;
+  /* secondary ink, labels, units */
+  --tab-text-muted: #A9B4C8;
+  /* accent ink, primary chart series, accent-filled badge */
+  --tab-accent: #57D8C8;
+  /* control boundary, table rule, outline of every raised surface */
+  --tab-stroke: #7E8FA8;
+  /* status: still in flight, such as an open tab inside its Settlement Window */
+  --tab-status-pending: #F0C14B;
+  /* status: done, such as a Settlement applied to a tab */
+  --tab-status-settled: #62D493;
+  /* status: needs attention, such as a delinquent tab or a refused transaction */
+  --tab-status-danger: #FF9A9A;
+  /* status: over and no longer material, such as a lapsed authorisation */
+  --tab-status-muted: #B3BECE;
+  /* status: information without urgency, such as a change held in the timelock */
+  --tab-status-notice: #C7A6F2;
+  /* alias of accent */
+  --tab-tier-curated: var(--tab-accent);
+  /* alias of text-muted */
+  --tab-tier-permissionless: var(--tab-text-muted);
+  /* alias of surface */
+  --tab-badge-ink: var(--tab-surface);
+  /* alias of accent */
+  --tab-focus-ring: var(--tab-accent);
+}
