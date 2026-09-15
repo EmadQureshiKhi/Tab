@@ -1,0 +1,50 @@
+/*
+ * Light colour tokens.
+ *
+ * Generated from assets/palette.json. Do not edit by hand: edit the palette
+ * and run `pnpm --filter @tabai/app theme:tokens`.
+ *
+ * The lint task renders this file in memory and fails when what is on disk
+ * differs, so the theme cannot drift from the palette the brand assets are
+ * drawn in.
+ */
+
+/*
+ * Light is the default set, so it lands on :root unconditionally and is
+ * reasserted for an explicit light choice.
+ */
+:root,
+[data-tab-theme="light"] {
+  color-scheme: light;
+
+  /* page background */
+  --tab-surface: #FFFFFF;
+  /* card, panel, and table-header background */
+  --tab-surface-raised: #F1F4F8;
+  /* body and numeric ink */
+  --tab-text: #0B1220;
+  /* secondary ink, labels, units */
+  --tab-text-muted: #46536B;
+  /* accent ink, primary chart series, accent-filled badge */
+  --tab-accent: #0B6B62;
+  /* control boundary, table rule, outline of every raised surface */
+  --tab-stroke: #55637D;
+  /* status: still in flight, such as an open tab inside its Settlement Window */
+  --tab-status-pending: #8A5A00;
+  /* status: done, such as a Settlement applied to a tab */
+  --tab-status-settled: #1A6E3C;
+  /* status: needs attention, such as a delinquent tab or a refused transaction */
+  --tab-status-danger: #A4262C;
+  /* status: over and no longer material, such as a lapsed authorisation */
+  --tab-status-muted: #4E5665;
+  /* status: information without urgency, such as a change held in the timelock */
+  --tab-status-notice: #6B3FA0;
+  /* alias of accent */
+  --tab-tier-curated: var(--tab-accent);
+  /* alias of text-muted */
+  --tab-tier-permissionless: var(--tab-text-muted);
+  /* alias of surface */
+  --tab-badge-ink: var(--tab-surface);
+  /* alias of accent */
+  --tab-focus-ring: var(--tab-accent);
+}
