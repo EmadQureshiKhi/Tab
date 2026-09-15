@@ -1,0 +1,12 @@
+/*
+ * The stylesheet every route loads.
+ *
+ * Two imports, in this order and for this reason. `theme.css` carries the
+ * generated token set and the single focus-ring definition the contrast gate
+ * checks. `presentation.css` is the component vocabulary (surfaces, borders,
+ * the ramps the pages draw with), and it is second because where the two
+ * disagree about a surface or a text colour, the presentation layer wins.
+ */
+
+@import "../styles/theme.css";
+@import "../styles/presentation.css";
