@@ -1,0 +1,65 @@
+/**
+ * Passkey accounts: one passkey, many keys, no seed phrase, no custodian.
+ *
+ * The pure half (`derivation`, `account`, `storage`, `signer`, `chain`,
+ * `support`) runs anywhere and is what `test/passkey.test.ts` exercises. The
+ * browser half (`ceremony`, `use-passkey`) needs WebAuthn and is verified in
+ * a browser. `components/wallet/wallet-context.tsx` is the one consumer of
+ * the hook; everything else reads the connection through `useWallet`.
+ */
+
+export {
+  DERIVATION_ROOT,
+  FIRST_SESSION_INDEX,
+  OWNER_INDEX,
+  deriveKey,
+  derivePrivateKey,
+  isSessionKeyIndex,
+  keyLabel,
+  pathFor,
+  seedFromPrfOutput,
+  toHex,
+  type DerivedKey,
+} from "./derivation";
+export { openPasskeyAccount, type PasskeyAccount } from "./account";
+export {
+  PASSKEY_RECORD_KEY,
+  browserStorage,
+  clearPasskeyRecord,
+  readPasskeyRecord,
+  writePasskeyRecord,
+  type PasskeyRecord,
+  type StorageLike,
+} from "./storage";
+export { SessionSigner } from "./signer";
+export {
+  MONAD_FAUCET_URL,
+  defaultPasskeyChain,
+  formatMon,
+  passkeyChainFor,
+  providerFor,
+  readNativeBalance,
+  type PasskeyChain,
+} from "./chain";
+export {
+  SUPPORTED_AUTHENTICATORS,
+  UNSUPPORTED_AUTHENTICATORS,
+  webAuthnAvailable,
+  type AuthenticatorSupport,
+} from "./support";
+export {
+  RP_NAME,
+  assertPasskey,
+  createPasskey,
+  describeCeremonyFailure,
+  relyingPartyId,
+  supportedAuthenticatorsClause,
+} from "./ceremony";
+export {
+  describeSendFailure,
+  usePasskeyConnection,
+  type BalanceReading,
+  type KeyView,
+  type PasskeyConnection,
+} from "./use-passkey";
+export { KeysView, type KeysViewProps } from "./keys-view";
