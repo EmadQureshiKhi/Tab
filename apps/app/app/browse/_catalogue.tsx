@@ -1,0 +1,726 @@
+"use client";
+
+/**
+ * The catalogue, as a grid of cards with a run panel behind each one.
+ *
+ * ## The card
+ *
+ * Header with a mark, a name and a kind; a rule; the spec rows; a rule; the
+ * Asset and chain as chips; a rule; the description; a rule; a network badge and
+ * the action. Two columns from `md`, a list view for scanning, search and a
+ * filter above. Every card has the same frame, so a reader compares tools by
+ * reading across rather than by relearning each card.
+ *
+ * ## What is on chain and what is not is never blurred
+ *
+ * A real entry carries prices, an Asset, a tier and a Bond, all read from the
+ * index. A showcase entry carries none of those and says so, in the same place
+ * the real one puts its price. That is not decoration: the argument this product
+ * makes is that a figure you can check differs in kind from a figure somebody
+ * typed, so an invented price sitting in the same column as a read one would be
+ * the exact thing it exists to refuse.
+ *
+ * A fronted entry is a third kind. Its price was read from the API Hub's
+ * manifest and the Tab price is that plus the fronting Service's published
+ * margin, so the card prints both figures with their sources and carries the
+ * word `fronted` where a listed card carries `metered`. Fronted cards sort after
+ * every on-chain-priced tool and before the examples.
+ *
+ * ## A client island for one reason
+ *
+ * Search, the view toggle and the open card. Everything drawn is server data, so
+ * without JavaScript the filters are inert and every card is listed, which is the
+ * honest degradation for a catalogue.
+ */
+
+import { useMemo, useState } from "react";
+import { LayoutGrid, List, Search } from "lucide-react";
+
+import { HubRunDialog } from "./_hub-dialog";
+import { RunDialog } from "./_run-dialog";
+import { AssetAmount } from "../../components/custom-ui/asset-amount";
+import { cn } from "../../components/ui/cn";
+import { FOCUS_RING } from "../../components/ui/focus-ring";
+import { Reveal } from "../../components/motion/reveal";
+import { CATEGORY_TINT, providerLogo, type ShowcaseEntry } from "../../src/dashboard/showcase";
+import type { CatalogueEntry } from "../../src/dashboard/catalogue";
+import type { HubEntry, HubNote } from "../../src/dashboard/hub";
+
+export type WireEntry = Omit<CatalogueEntry, "priceBaseUnits" | "freeBondBaseUnits"> & {
+  readonly priceBaseUnits: string;
+  readonly freeBondBaseUnits?: string | undefined;
+};
+
+/** Whether the figures on a card are test money or real money. */
+export type NetworkKind = "testnet" | "mainnet";
+
+/** The word a fronted card carries where a listed one carries `Metered`. */
+const FRONTED = "FRONTED";
+
+/** A card is a row the chain holds, an endpoint a Service fronts, or one of the examples beside them. */
+type Card =
+  | { readonly kind: "listed"; readonly key: string; readonly entry: WireEntry }
+  | { readonly kind: "hub"; readonly key: string; readonly entry: HubEntry }
+  | { readonly kind: "showcase"; readonly key: string; readonly entry: ShowcaseEntry };
+
+export function CatalogueView({
+  entries,
+  hub = [],
+  hubNotes = [],
+  showcase,
+  indexedBlock,
+  networkName,
+  networkKind,
+}: {
+  readonly entries: readonly WireEntry[];
+  /** Endpoints a published Service fronts from the API Hub. Already text throughout. */
+  readonly hub?: readonly HubEntry[] | undefined;
+  /** What the Hub reads had to say beside their cards: a manifest that did not answer, a count. */
+  readonly hubNotes?: readonly HubNote[] | undefined;
+  readonly showcase: readonly ShowcaseEntry[];
+  readonly indexedBlock: number | null;
+  /** The chain's own name, for the badge on every listed card. */
+  readonly networkName: string;
+  readonly networkKind: NetworkKind;
+}) {
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("ALL");
+  const [view, setView] = useState<"grid" | "list">("grid");
+  const [open, setOpen] = useState<WireEntry | undefined>(undefined);
+  const [openHub, setOpenHub] = useState<HubEntry | undefined>(undefined);
+
+  /*
+    Every category present, with the metered ones first. A listed tool is
+    `METERED` rather than an output kind: what it produces is the Service's
+    business, and what the chain knows is that it is priced. A fronted endpoint
+    is `FRONTED` for the same reason: what the page knows is who pays whom.
+  */
+  const categories = useMemo(() => {
+    const seen = new Set<string>();
+    if (entries.length > 0) seen.add("METERED");
+    if (hub.length > 0) seen.add(FRONTED);
+    for (const entry of showcase) seen.add(entry.category);
+    return ["ALL", ...[...seen].sort()];
+  }, [entries, hub, showcase]);
+
+  const cards = useMemo<readonly Card[]>(() => {
+    const needle = search.trim().toLowerCase();
+
+    const listed: Card[] =
+      category === "ALL" || category === "METERED"
+        ? entries
+            .filter(
+              (entry) =>
+                needle.length === 0 ||
+                entry.tool.toLowerCase().includes(needle) ||
+                entry.serviceName.toLowerCase().includes(needle) ||
+                (entry.description ?? "").toLowerCase().includes(needle),
+            )
+            .map((entry) => ({ kind: "listed" as const, key: entry.key, entry }))
+        : [];
+
+    const fronted: Card[] =
+      category === "ALL" || category === FRONTED
+        ? hub
+            .filter(
+              (entry) =>
+                needle.length === 0 ||
+                entry.name.toLowerCase().includes(needle) ||
+                entry.path.toLowerCase().includes(needle) ||
+                entry.provider.toLowerCase().includes(needle) ||
+                entry.providerName.toLowerCase().includes(needle) ||
+                entry.serviceName.toLowerCase().includes(needle) ||
+                (entry.description ?? "").toLowerCase().includes(needle),
+            )
+            .map((entry) => ({ kind: "hub" as const, key: entry.key, entry }))
+        : [];
+
+    const examples: Card[] =
+      category === "METERED" || category === FRONTED
+        ? []
+        : showcase
+            .filter((entry) => category === "ALL" || entry.category === category)
+            .filter(
+              (entry) =>
+                needle.length === 0 ||
+                entry.tool.toLowerCase().includes(needle) ||
+                entry.description.toLowerCase().includes(needle) ||
+                entry.capabilities.some((capability) => capability.toLowerCase().includes(needle)),
+            )
+            .map((entry) => ({ kind: "showcase" as const, key: entry.key, entry }));
+
+    return [...listed, ...fronted, ...examples];
+  }, [entries, hub, showcase, search, category]);
+
+  const listedCount = cards.filter((card) => card.kind === "listed").length;
+  const frontedCount = cards.filter((card) => card.kind === "hub").length;
+  const exampleCount = cards.length - listedCount - frontedCount;
+
+  return (
+    <div className="mx-auto w-full max-w-6xl">
+      <div className="mb-8 flex items-center gap-3">
+        <div className="relative flex-1">
+          <label className="sr-only" htmlFor="catalogue-search">
+            Search tools by name, Service, description or capability
+          </label>
+          <Search
+            aria-hidden="true"
+            className="pointer-events-none absolute start-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+          />
+          <input
+            id="catalogue-search"
+            type="search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search tools..."
+            className={cn(
+              "h-12 w-full rounded-[4px] border border-border/30 bg-card ps-11 pe-3",
+              "font-mono text-sm text-foreground placeholder:text-muted-foreground/50",
+              FOCUS_RING,
+            )}
+          />
+        </div>
+
+        <select
+          value={category}
+          onChange={(event) => setCategory(event.target.value)}
+          aria-label="Output"
+          className={cn(
+            "h-12 min-w-[130px] rounded-[4px] border border-border/30 bg-card px-3",
+            "font-mono text-xs tracking-wider text-foreground uppercase",
+            FOCUS_RING,
+          )}
+        >
+          {categories.map((entry) => (
+            <option key={entry} value={entry}>
+              {entry === "ALL" ? "Any output" : entry}
+            </option>
+          ))}
+        </select>
+
+        <div className="flex overflow-hidden rounded-[4px] border border-border/30 bg-card">
+          {(
+            [
+              ["grid", LayoutGrid, "Grid view"],
+              ["list", List, "List view"],
+            ] as const
+          ).map(([mode, Icon, label]) => (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => setView(mode)}
+              aria-label={label}
+              aria-pressed={view === mode}
+              className={cn(
+                "p-3 transition-colors",
+                FOCUS_RING,
+                view === mode
+                  ? "bg-foreground/10 text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <Icon className="size-4" aria-hidden="true" />
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="mb-5 flex flex-col gap-2">
+        <p className="font-mono text-xs text-muted-foreground">
+          {listedCount} priced {listedCount === 1 ? "tool" : "tools"} on chain
+          {indexedBlock === null
+            ? ", read at an unrecorded height"
+            : `, read at ${networkName} block ${indexedBlock.toLocaleString("en-US")}`}
+          {frontedCount > 0
+            ? `. ${frontedCount} ${frontedCount === 1 ? "endpoint" : "endpoints"} fronted from the API Hub on credit, priced by the Hub${listedCount > 0 ? " and listed after them" : ""}.`
+            : ""}
+          {exampleCount > 0 ? ` The ${exampleCount} below ${exampleCount === 1 ? "is an example" : "are examples"}.` : ""}
+        </p>
+        {/*
+          What the Hub reads had to say, beside the cards they did or did not
+          produce. A manifest that did not answer is a sentence here, so a page
+          with no fronted cards says why rather than looking as though nothing
+          is fronted.
+        */}
+        {hubNotes.length === 0 ? null : (
+          <ul className="flex flex-col gap-1">
+            {hubNotes.map((note) => (
+              <li key={`${note.serviceName}:${note.provider}:${note.text}`} className="text-xs leading-relaxed text-muted-foreground">
+                {note.text}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {cards.length === 0 ? (
+        <p className="rounded-lg border border-dashed border-border/60 bg-muted/30 px-6 py-10 text-center text-sm text-muted-foreground">
+          Nothing matches that. The filters are applied to what the chain holds, so an empty result
+          is a real answer about the registry rather than a failed search.
+        </p>
+      ) : (
+        <div
+          className={cn(
+            "pb-16",
+            view === "grid" ? "grid grid-cols-1 gap-4 md:grid-cols-2" : "flex flex-col gap-3",
+          )}
+        >
+          {cards.map((card, index) => (
+            <Reveal key={card.key} delay={Math.min(index, 8) * 0.03}>
+              {card.kind === "listed" ? (
+                <ListedCard
+                  entry={card.entry}
+                  dense={view === "list"}
+                  networkName={networkName}
+                  networkKind={networkKind}
+                  onRun={() => setOpen(card.entry)}
+                />
+              ) : card.kind === "hub" ? (
+                <HubCard
+                  entry={card.entry}
+                  dense={view === "list"}
+                  networkName={networkName}
+                  networkKind={networkKind}
+                  onRun={() => setOpenHub(card.entry)}
+                />
+              ) : (
+                <ShowcaseCard entry={card.entry} dense={view === "list"} />
+              )}
+            </Reveal>
+          ))}
+        </div>
+      )}
+
+      {open === undefined ? null : (
+        <RunDialog entry={open} networkName={networkName} onClose={() => setOpen(undefined)} />
+      )}
+      {openHub === undefined ? null : (
+        <HubRunDialog entry={openHub} networkName={networkName} onClose={() => setOpenHub(undefined)} />
+      )}
+    </div>
+  );
+}
+
+function Rule() {
+  return <div className="h-px bg-border/60" aria-hidden="true" />;
+}
+
+function Spec({ label, children }: { readonly label: string; readonly children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="font-mono text-[11px] tracking-[0.12em] text-muted-foreground uppercase">
+        {label}
+      </span>
+      <span className="min-w-0 truncate font-mono text-[13px] text-foreground">{children}</span>
+    </div>
+  );
+}
+
+function Chip({ children }: { readonly children: React.ReactNode }) {
+  return (
+    <span className="rounded bg-foreground/[0.06] px-2 py-0.5 font-mono text-[11px] text-muted-foreground">
+      {children}
+    </span>
+  );
+}
+
+function ListedCard({
+  entry,
+  dense,
+  networkName,
+  networkKind,
+  onRun,
+}: {
+  readonly entry: WireEntry;
+  readonly dense: boolean;
+  readonly networkName: string;
+  readonly networkKind: NetworkKind;
+  readonly onRun: () => void;
+}) {
+  const price = BigInt(entry.priceBaseUnits);
+  const free = entry.freeBondBaseUnits === undefined ? undefined : BigInt(entry.freeBondBaseUnits);
+
+  if (dense) {
+    return (
+      <div className="flex flex-col gap-3 rounded-lg border border-border/60 bg-[var(--panel)] p-4 transition-colors hover:border-border sm:flex-row sm:items-center">
+        <img src="/logo.png" alt="" width={22} height={22} className="size-[22px] shrink-0 rounded-full" />
+        <span className="min-w-0 flex-1 truncate font-mono text-sm text-foreground">{entry.tool}</span>
+        <span className="font-mono text-xs text-muted-foreground">{entry.serviceName}</span>
+        <span className="font-mono text-[13px] text-foreground">
+          <AssetAmount baseUnits={price} asset={entry.asset} />
+        </span>
+        <button
+          type="button"
+          onClick={onRun}
+          className={cn(
+            "rounded bg-foreground/[0.06] px-4 py-2 font-mono text-xs tracking-wider text-foreground uppercase",
+            "transition-colors hover:bg-foreground/[0.1]",
+            FOCUS_RING,
+          )}
+        >
+          Run
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-full flex-col overflow-hidden rounded-lg border border-border/60 bg-[var(--panel)] transition-colors duration-200 hover:border-border">
+      <div className="flex items-center gap-3 px-5 pt-5 pb-4">
+        <img src="/logo.png" alt="" width={28} height={28} className="size-7 shrink-0 rounded-full" />
+        <h3 className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{entry.tool}</h3>
+        <span
+          className={cn(
+            "shrink-0 rounded px-2 py-0.5 font-mono text-[10px] font-medium tracking-wider uppercase",
+            CATEGORY_TINT["METERED"],
+          )}
+        >
+          Metered
+        </span>
+      </div>
+
+      <Rule />
+      <div className="flex flex-col gap-2.5 px-5 py-4">
+        <Spec label="Price">
+          <AssetAmount baseUnits={price} asset={entry.asset} />
+          <span className="ms-1 text-[11px] text-muted-foreground">/ call</span>
+        </Spec>
+        <Spec label="Service">{entry.serviceName}</Spec>
+        <Spec label="Tier">{entry.tier}</Spec>
+        <Spec label="Free Bond">
+          {free === undefined ? (
+            <span className="text-muted-foreground">not cross-checked</span>
+          ) : (
+            <AssetAmount baseUnits={free} asset={entry.asset} />
+          )}
+        </Spec>
+      </div>
+
+      <Rule />
+      <div className="px-5 py-3.5">
+        <p className="mb-2 font-mono text-[10px] tracking-[0.12em] text-muted-foreground uppercase">
+          Settles in
+        </p>
+        <div className="flex flex-wrap gap-1.5">
+          <Chip>{entry.asset.symbol}</Chip>
+          <Chip>{networkName}</Chip>
+          <Chip>{`window ${Math.round(entry.settlementWindowSeconds / 3600)}h`}</Chip>
+        </div>
+      </div>
+
+      <Rule />
+      <div className="flex-1 px-5 py-3.5">
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          {entry.description ?? "This project publishes no description for this tool."}
+        </p>
+      </div>
+
+      <Rule />
+      <div className="flex items-center">
+        <div className="px-5 py-1">
+          {/*
+            Said on every listed card rather than once on the page, because a
+            card is the thing a reader screenshots. Testnet is drawn in amber so
+            it cannot be mistaken for a real price; Mainnet is drawn plainly.
+          */}
+          <span
+            className={cn(
+              "rounded px-2 py-0.5 font-mono text-[9px] font-medium tracking-wider uppercase",
+              networkKind === "testnet"
+                ? "bg-amber-500/15 text-amber-700 dark:text-amber-400"
+                : "bg-teal-500/15 text-teal-700 dark:text-teal-400",
+            )}
+          >
+            {networkKind === "testnet" ? "Testnet" : "Mainnet"}
+          </span>
+        </div>
+        <div className="flex-1" />
+        <button
+          type="button"
+          onClick={onRun}
+          className={cn(
+            "flex-1 border-s border-border/60 bg-foreground/[0.04] py-3.5 text-center",
+            "font-mono text-sm font-medium tracking-wider text-foreground uppercase",
+            "transition-colors hover:bg-foreground/[0.08]",
+            FOCUS_RING,
+          )}
+        >
+          Run
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** The Hub's USD figure, as the Hub prints it: a dollar sign and the decimal text, never a float. */
+function usd(text: string): string {
+  return `$${text}`;
+}
+
+/**
+ * A fronted endpoint, in the same frame and marked as a third source.
+ *
+ * Two prices, both labelled. `Upstream` is the Hub's own USD figure for the
+ * call, which is what the fronting Service pays. `Tab price` is that plus the
+ * Service's published margin, in the Asset the Service meters in, which is what
+ * lands on the Open Tab. A per-result or per-unit endpoint has no fixed Tab
+ * price and says so where the figure would go, because the metered amount is
+ * whatever the upstream asks on the day.
+ */
+function HubCard({
+  entry,
+  dense,
+  networkName,
+  networkKind,
+  onRun,
+}: {
+  readonly entry: HubEntry;
+  readonly dense: boolean;
+  readonly networkName: string;
+  readonly networkKind: NetworkKind;
+  readonly onRun: () => void;
+}) {
+  const tabPrice = entry.tabPriceBaseUnits === undefined ? undefined : BigInt(entry.tabPriceBaseUnits);
+  const margin =
+    entry.marginBps === undefined || entry.marginBps === 0
+      ? "no published margin"
+      : `${(entry.marginBps / 100).toFixed(entry.marginBps % 100 === 0 ? 0 : 2)}% margin`;
+  const frontedTint = "bg-status-notice/15 text-status-notice";
+
+  if (dense) {
+    return (
+      <div className="flex flex-col gap-3 rounded-lg border border-border/60 bg-[var(--panel)] p-4 transition-colors hover:border-border sm:flex-row sm:items-center">
+        <span aria-hidden="true" className="size-[22px] shrink-0 rounded-full border border-border/60 bg-background" />
+        <span className="min-w-0 flex-1 truncate font-mono text-sm text-foreground">{entry.name}</span>
+        <span className={cn("rounded px-2 py-0.5 font-mono text-[10px] tracking-wider uppercase", frontedTint)}>
+          Fronted
+        </span>
+        <span className="font-mono text-xs text-muted-foreground">
+          {entry.providerName} via {entry.serviceName}
+        </span>
+        <span className="font-mono text-[13px] text-foreground">
+          {tabPrice === undefined ? (
+            <span className="text-muted-foreground">{entry.priceType.toLowerCase().replace(/_/g, " ")}</span>
+          ) : (
+            <AssetAmount baseUnits={tabPrice} asset={entry.asset} />
+          )}
+        </span>
+        <button
+          type="button"
+          onClick={onRun}
+          className={cn(
+            "rounded bg-foreground/[0.06] px-4 py-2 font-mono text-xs tracking-wider text-foreground uppercase",
+            "transition-colors hover:bg-foreground/[0.1]",
+            FOCUS_RING,
+          )}
+        >
+          Run
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-full flex-col overflow-hidden rounded-lg border border-border/60 bg-[var(--panel)] transition-colors duration-200 hover:border-border">
+      <div className="flex items-center gap-3 px-5 pt-5 pb-4">
+        <span aria-hidden="true" className="size-7 shrink-0 rounded-full border border-border/60 bg-background" />
+        <h3 className="min-w-0 flex-1 truncate text-sm font-medium text-foreground" title={entry.path}>
+          {entry.name}
+        </h3>
+        <span
+          className={cn(
+            "shrink-0 rounded px-2 py-0.5 font-mono text-[10px] font-medium tracking-wider uppercase",
+            frontedTint,
+          )}
+        >
+          Fronted
+        </span>
+      </div>
+
+      <Rule />
+      <div className="flex flex-col gap-2.5 px-5 py-4">
+        <Spec label="Upstream">
+          {entry.upstreamUsd === undefined ? (
+            <span className="text-muted-foreground">no figure in the manifest</span>
+          ) : (
+            <>
+              {usd(entry.upstreamUsd)}
+              <span className="ms-1 text-[11px] text-muted-foreground">
+                / {entry.priceType === "PER_CALL" ? "call" : entry.priceType.toLowerCase().replace(/^per_/, "")}, the Hub&apos;s price
+              </span>
+            </>
+          )}
+        </Spec>
+        <Spec label="Tab price">
+          {tabPrice === undefined ? (
+            <span className="text-muted-foreground">the upstream&apos;s ask on the day, plus {margin}</span>
+          ) : (
+            <>
+              <AssetAmount baseUnits={tabPrice} asset={entry.asset} />
+              <span className="ms-1 text-[11px] text-muted-foreground">/ call, {margin}</span>
+            </>
+          )}
+        </Spec>
+        <Spec label="Provider">{entry.providerName}</Spec>
+        <Spec label="Path">{entry.path}</Spec>
+      </div>
+
+      <Rule />
+      <div className="px-5 py-3.5">
+        <p className="mb-2 font-mono text-[10px] tracking-[0.12em] text-muted-foreground uppercase">
+          On credit through {entry.serviceName}
+        </p>
+        <div className="flex flex-wrap gap-1.5">
+          <Chip>{entry.hubPath}</Chip>
+          <Chip>{entry.asset.symbol}</Chip>
+          <Chip>{networkName}</Chip>
+          <Chip>x402 upstream</Chip>
+        </div>
+      </div>
+
+      <Rule />
+      <div className="flex-1 px-5 py-3.5">
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          {entry.description ?? "The Hub publishes no description for this endpoint."}
+        </p>
+      </div>
+
+      <Rule />
+      <div className="flex items-center">
+        <div className="px-5 py-1">
+          <span
+            className={cn(
+              "rounded px-2 py-0.5 font-mono text-[9px] font-medium tracking-wider uppercase",
+              networkKind === "testnet"
+                ? "bg-amber-500/15 text-amber-700 dark:text-amber-400"
+                : "bg-teal-500/15 text-teal-700 dark:text-teal-400",
+            )}
+          >
+            {networkKind === "testnet" ? "Testnet" : "Mainnet"}
+          </span>
+        </div>
+        <div className="flex-1" />
+        <button
+          type="button"
+          onClick={onRun}
+          className={cn(
+            "flex-1 border-s border-border/60 bg-foreground/[0.04] py-3.5 text-center",
+            "font-mono text-sm font-medium tracking-wider text-foreground uppercase",
+            "transition-colors hover:bg-foreground/[0.08]",
+            FOCUS_RING,
+          )}
+        >
+          Run
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * An example, in the same frame and unmistakably not on the chain.
+ *
+ * The listing's own rows: price and unit, max resolution, max duration,
+ * capabilities, description. The one thing added is the word `example` beside the
+ * price, because that is where a reader looks to decide whether a figure is real,
+ * and a dollar figure somebody typed sitting silently where an Asset amount goes
+ * would be the exact confusion this product exists to remove.
+ */
+function ShowcaseCard({ entry, dense }: { readonly entry: ShowcaseEntry; readonly dense: boolean }) {
+  const logo = providerLogo(entry.tool);
+  const tint = CATEGORY_TINT[entry.category] ?? "bg-foreground/[0.06] text-muted-foreground";
+
+  if (dense) {
+    return (
+      <div className="flex items-center gap-3 rounded-lg border border-border/60 bg-[var(--panel)] p-4">
+        <Mark src={logo} />
+        <span className="min-w-0 flex-1 truncate text-sm text-foreground">{entry.tool}</span>
+        <span className={cn("rounded px-2 py-0.5 font-mono text-[10px] tracking-wider uppercase", tint)}>
+          {entry.category}
+        </span>
+        <span className="font-mono text-[13px] text-muted-foreground">
+          {entry.price} <span className="text-[11px]">/ {entry.priceUnit}</span>
+        </span>
+        <span className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase">
+          Example
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-full flex-col overflow-hidden rounded-lg border border-border/60 bg-[var(--panel)] transition-colors duration-200 hover:border-border">
+      <div className="flex items-center gap-3 px-5 pt-5 pb-4">
+        <Mark src={logo} />
+        <h3 className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{entry.tool}</h3>
+        <span
+          className={cn(
+            "shrink-0 rounded px-2 py-0.5 font-mono text-[10px] font-medium tracking-wider uppercase",
+            tint,
+          )}
+        >
+          {entry.category}
+        </span>
+      </div>
+
+      <Rule />
+      <div className="flex flex-col gap-2.5 px-5 py-4">
+        <Spec label="Price">
+          {entry.price} <span className="text-[11px] text-muted-foreground">/ {entry.priceUnit}</span>
+        </Spec>
+        <Spec label="Max res">{entry.maxRes}</Spec>
+        <Spec label="Max dur">{entry.maxDur}</Spec>
+      </div>
+
+      <Rule />
+      <div className="px-5 py-3.5">
+        <p className="mb-2 font-mono text-[10px] tracking-[0.12em] text-muted-foreground uppercase">
+          Capabilities
+        </p>
+        <div className="flex flex-wrap gap-1.5">
+          {entry.capabilities.map((capability) => (
+            <Chip key={capability}>{capability}</Chip>
+          ))}
+        </div>
+      </div>
+
+      <Rule />
+      <div className="flex-1 px-5 py-3.5">
+        <p className="text-xs leading-relaxed text-muted-foreground">{entry.description}</p>
+      </div>
+
+      <Rule />
+      <div className="flex items-center">
+        <div className="px-5 py-1">
+          <span className="rounded bg-foreground/[0.06] px-2 py-0.5 font-mono text-[9px] font-medium tracking-wider text-muted-foreground uppercase">
+            Example
+          </span>
+        </div>
+        <div className="flex-1" />
+        <span className="flex-1 border-s border-border/60 py-3.5 text-center font-mono text-sm tracking-wider text-muted-foreground uppercase">
+          Not registered
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function Mark({ src }: { readonly src: string | undefined }) {
+  if (src === undefined) {
+    return (
+      <span
+        aria-hidden="true"
+        className="size-7 shrink-0 rounded-full border border-border/60 bg-background"
+      />
+    );
+  }
+  return (
+    <img
+      src={src}
+      alt=""
+      width={28}
+      height={28}
+      className="size-7 shrink-0 rounded-full bg-white/90 p-1"
+    />
+  );
+}
