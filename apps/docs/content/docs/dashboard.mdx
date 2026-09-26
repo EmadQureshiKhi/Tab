@@ -1,0 +1,176 @@
+---
+title: "Using the Dashboard"
+description: "Finding a tool, calling one, authorising a Service, registering one, and posting a Bond, all from the browser."
+---
+
+Everything the SDK does from a terminal, the Dashboard does from a browser.
+Every page reads the chain and shows what it read; three of them sign, and they say so before they do.
+Signing takes a wallet extension or a passkey; the passkey needs nothing installed.
+
+## The routes
+
+| Route | What it shows |
+| --- | --- |
+| `/browse` | Every priced tool, what it costs, and a call you can make. After the tools priced on chain, the API Hub endpoints a Service fronts on credit, with the Hub's price and the Tab price side by side |
+| `/explorer` | Every Settlement by its `settlementId`, and the overdue tabs anyone may mark |
+| `/explorer/[settlementId]` | One Settlement: Agent, Service, Asset, amount, what applied to the tab and what banked as prepaid credit, and the Collection address it went to |
+| `/agents` | Every Agent the index has seen, with Open Tab per Asset |
+| `/agents/[agent]` | One Agent: its ERC-8004 identities and Nansen labels, then Credit Limit, Open Tab, prepaid credit and headroom per Asset, and its Settlement history |
+| `/services` | Every registered Service, its terms, its Bond, its operator's ERC-8004 identity, and any queued change with the time left on its hold |
+| `/services/new` | Register a Service |
+| `/services/bond` | Post or withdraw a Bond |
+| `/authorise` | Set a spending authorisation for a Service |
+| `/keys` | A passkey account: the owner key and the session keys derived from it, one per agent runtime |
+| `/analytics` | Settled volume and counts, split by whether the address they came from is one this project controls |
+
+## What needs a wallet, and what does not
+
+Seven of the eleven routes read only, and none of them will ever ask for a wallet.
+Nothing on this site reads through one: a wallet here signs, and only when you press something that says it will.
+
+| Page | Wallet |
+| --- | --- |
+| Browse, Explorer, Agents, Services, Analytics | not needed |
+| Trying a tool from Browse | not needed, because nothing is paid to call |
+| Authorise | needed, to send `TabBook.authorise`. A passkey account can sign this one |
+| Register a Service, Post a Bond | needed, to send `registerService`, `deposit` and `withdraw` |
+| Keys | a passkey, which the page creates or signs in with |
+
+Connecting picks from the wallets your browser announces, or a passkey.
+Signing costs MON for gas, and there is no fee to this project and no token to hold.
+
+There is no chain toggle.
+A deployment serves one chain, and the badge in the header names it, with the chain id and the explorer it links out to.
+Wherever a page can offer a command, the command carries the addresses of that deployment rather than a placeholder.
+
+## Finding and calling a tool
+
+<Steps>
+  <Step n="01" title="Open Browse">
+    Every row is a tool priced on chain. The price, the Asset, the Settlement Window, the tier and the Bond behind it are read from `ServiceRegistry` and `Bond` through the index, not quoted.
+  </Step>
+  <Step n="02" title="Read its terms">
+    Press Run on any card. The first tab is what the chain holds about that tool, including the free Bond the Service has escrowed in that Asset, which is what caps the credit its history can vouch for.
+  </Step>
+  <Step n="03" title="Take the commands">
+    The second tab is the setup, filled in for that tool rather than shown as a template: the connect command, a prompt for any client that speaks MCP, and the call itself.
+  </Step>
+  <Step n="04" title="Or call it here">
+    The third tab calls the Service for real. It needs no wallet, no balance and no approval, because nothing is paid to make the call. The delivery is recorded in `TabBook` before the Service answers, so the wait is a block rather than a queue.
+  </Step>
+</Steps>
+
+The charge that follows appears against the Agent it was billed to, and the Settlement that pays it down appears in the explorer under its `settlementId`.
+That is the whole loop, and every step of it is readable by anyone.
+
+A card marked `fronted` is an API Hub endpoint a Service fronts on credit rather than a tool priced on chain.
+It prints two figures with their sources: the Hub's own per-call price, read from the Hub's manifest, and the Tab price, which is that plus the Service's published margin.
+Running one calls the Service's `/hub` route; the Service pays the Hub over x402 and the charge lands on the Open Tab like any other.
+The Services page marks a Service that also offers x402 on a credit refusal, beside its operator's identity.
+
+## Keys from a passkey
+
+`/keys` is for a reader with no wallet extension, and for anyone who would rather an agent runtime held a key that can be re-derived than one that can be lost.
+
+<Steps>
+  <Step n="01" title="Create or sign in">
+    One touch on the authenticator. The seed is the WebAuthn PRF output of that passkey, so the same passkey always yields the same keys, on any device it is synced to. The browser remembers which passkey to ask for, its name, and how many keys have been derived; never a seed or a key.
+  </Step>
+  <Step n="02" title="Read the owner key">
+    It sits at `m/44'/60'/0'/0/0` and is the root the passkey stands behind. It signs from this Dashboard when nothing else is chosen, and it is never revealed: there is no flow in which a person should hold it in a text field.
+  </Step>
+  <Step n="03" title="Derive a session key">
+    Each one is the Agent for one runtime, at `m/44'/60'/0'/0/n`. It is revealed once, deliberately, to be pasted into that runtime's environment as `AGENT_PRIVATE_KEY`. A runtime that loses it has not lost the account, because the passkey derives it again.
+  </Step>
+  <Step n="04" title="Authorise as it">
+    The page sends you to `/authorise` with that key active, so the session key authorises the Service as itself. In Tab the Agent is whoever signs, so the key that will settle is the key that authorises.
+  </Step>
+</Steps>
+
+Ending the session zeroes the seed and every key with it.
+A reload forgets all of it, and one touch brings it back, identical.
+
+## Authorising a Service
+
+Before a Service can meter a single unit to your tab, you set the ceiling.
+The `/authorise` page builds one call and asks your wallet to sign it.
+
+<Steps>
+  <Step n="01" title="Pick the Service and the Asset">
+    Both come from the registry, so the page offers only pairs the Service actually accepts.
+  </Step>
+  <Step n="02" title="Set the ceiling and the expiry">
+    `maxCumulative` is the most this Service may ever meter to this tab, in base units. `expiry` is when the authorisation lapses on its own. Both are yours, and the Service cannot raise either.
+  </Step>
+  <Step n="03" title="Sign">
+    The wallet sends `TabBook.authorise(serviceId, asset, maxCumulative, expiry)`. The page shows the arguments exactly as the contract will receive them, and the authorisation is live in the block the transaction lands.
+  </Step>
+</Steps>
+
+Letting an authorisation lapse is how you end a relationship.
+Nothing else needs to be revoked, because nothing else lets a Service charge you.
+
+## Registering a Service
+
+Registration is permissionless.
+Nobody approves it and nothing asks for a review.
+You sign one transaction that records who operates the Service, which Assets it takes, where it collects them, what each tool costs, and how long a tab may stay open.
+
+<Steps>
+  <Step n="01" title="Connect the account that will operate it">
+    The sender becomes the operator, and there is no setter afterwards. Whichever account signs is the only one that will ever be able to queue a change, so connect the one you mean to keep.
+  </Step>
+  <Step n="02" title="Name it and set the window">
+    The name is stored as 31 bytes of ascii, which is why it is short and why this site can show it as a word. The Settlement Window is how long a tab may run before it is delinquent, at most 24 hours and 6 by default.
+  </Step>
+  <Step n="03" title="Add Assets and tools">
+    An Asset is a token on this chain plus the Collection address that receives it. That address is yours: Tab never holds a payment, and `TabSettlement` transfers straight to it. Prices are base units, never decimals.
+  </Step>
+  <Step n="04" title="Read the review, then sign">
+    The last step shows the argument list as the contract will receive it, including the row-major price ordering, which is the one mistake the form could make that would not revert.
+  </Step>
+</Steps>
+
+A new Service is Permissionless, which is a tier and not a judgement: it is registered, metered and paid exactly like a Curated one.
+The tier decides only whether its Settlement history carries weight toward an Agent's Credit Limit.
+Every change after registration, including a price, sits behind a 48-hour timelock, and the Services page shows the countdown on anything queued.
+
+## Posting a Bond
+
+A Bond is stake a Service escrows so that its Settlement history can vouch for the Agents that pay it.
+Without one, the history a Service accumulates carries no credit weight at all, and the credit any history can unlock is capped at 95 percent of the counterparties' free Bond.
+
+<Bounded
+  title="A Bond is real escrow"
+  bound="Stake appears in the block the deposit lands and leaves in the block a withdrawal does; nothing in between can move it, and no other contract can."
+>
+  `Bond.deposit` pulls the Asset into the contract with `transferFrom`, and `Bond.withdraw` pays out up to the free amount. The free amount is staked minus withdrawn, and it is the figure `TabBook` reads when it computes a limit. A treasury can fund a Service with `depositFor` without holding its key, and only the funded account can ever withdraw.
+</Bounded>
+
+The page asks for an approval first where one is needed, and skips it where the allowance already covers the amount: paying gas to write a value already on chain is worse than an extra click.
+
+## Marking a tab delinquent
+
+The explorer lists every tab whose Settlement Window has closed with the tab still open.
+Anyone may mark one, and the page shows the exact command for it:
+
+```bash
+cast send $TAB_BOOK_ADDRESS "markDelinquent(bytes32)" <tabId> \
+  --rpc-url $MONAD_RPC_URL --private-key $PRIVATE_KEY
+```
+
+It costs gas and nothing else.
+The mark zeroes the Agent's Credit Limit in that Asset until a Settlement closes the tab, and the transaction reverts `SettlementWindowOpen` if the window has not in fact closed, so there is nothing to get wrong.
+
+## The API behind the pages
+
+Three routes under `/api` serve the pages and are open to anything else that wants them.
+
+| Route | What it returns |
+| --- | --- |
+| `/api/health` | the chain the deployment serves, the block it last read, and whether the read API answered |
+| `/api/settlements` | the most recent Settlements, each under its `settlementId` |
+| `/api/stream` | a live feed of deliveries and Settlements as server-sent events, falling back to polling where the connection cannot be held open |
+
+Every figure on every page is either read from the chain or served by the registry read API, which serves a Credit Limit only where its own recomputation agrees with `TabBook.creditLimit` on chain.
+A read that failed is shown as unavailable with its reason, never as a zero.

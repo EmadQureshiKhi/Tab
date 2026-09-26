@@ -1,0 +1,121 @@
+---
+title: "How the rail works"
+description: "One metered call, one payment, and the four steps that turn the second into credit for the first."
+---
+
+One metered call and one payment, and the four steps that turn the second into credit for the first.
+
+## The parties
+
+| Party | Holds | Can do |
+| --- | --- | --- |
+| **Agent** | its own Monad key, and the Asset it will settle in | consume metered Services, set a spending authorisation, settle whenever it chooses |
+| **Service** | a Collection address per Asset, a price list, a Settlement Window, a Bond | record a delivery inside the Agent's authorisation, at its own applied prices |
+| **`TabSettlement`** | nothing | move an Asset from the Agent to a Collection address and apply the Settlement, in one transaction |
+| **`TabBook`** | the tabs, the authorisations, and the history commitment | raise a tab on a delivery, lower it on a Settlement, compute the Credit Limit |
+| **Anyone** | a key that spends gas | mark a tab delinquent once its Settlement Window has closed |
+
+Nothing in that table is trusted to say that money moved.
+The transfer and the ledger entry happen in the same transaction or not at all, so the question never arises.
+
+## The four steps
+
+### 1. The Agent authorises spending
+
+Before any Service can charge it, the Agent sets a ceiling on chain: this Service, this Asset, this much, until this time.
+
+```solidity
+TabBook.authorise(serviceId, asset, maxCumulative, expiry)
+```
+
+The ceiling is the Agent's, not the Service's, and letting it lapse is how an Agent stops a relationship.
+A Service that meters past it reverts `AuthorisationExceeded`; one that meters after it reverts `AuthorisationExpired`.
+
+### 2. The Service records a delivery
+
+A priced unit of work is attributed to the Agent with `TabBook.recordDelivery`.
+The call names the tool and the unit count, carries the unit price the Agent was quoted, and carries a `LimitWitness`: the Agent's ordered Settlement history in that Asset plus one Bond entry per counterparty.
+
+The charge is checked four ways.
+The quoted price must equal the applied price now, or the call reverts `PriceListChangedMidCall`, so a Service cannot quote one figure and meter another.
+The charge must fit inside the authorisation.
+The tab must not be delinquent.
+And the part of the charge that would raise the Open Tab must fit under the Credit Limit, or the call reverts `LimitExceeded` with the headroom that remains.
+
+Two things happen here that are easy to misread.
+A delivery spends the Agent's prepaid credit before it raises the Open Tab, so a delivery against a tab holding prepaid credit can move the Open Tab by nothing at all.
+And the Credit Limit is tested against the shortfall only, because prepaid credit is already paid for and borrows nothing.
+
+The metering gateway does this on the Service's behalf.
+It rebuilds the witness from `HistoryExtended` logs, simulates `recordDelivery` before broadcasting it, and refuses to charge for a delivery whose simulation failed.
+
+### 3. The Agent settles
+
+The Agent approves `TabSettlement` for the amount and calls it with its own key.
+
+```solidity
+TabSettlement.settle(serviceId, asset, amount)
+```
+
+Inside that one transaction, `TabSettlement` asks the registry for the Service's Collection address in that Asset, calls `TabBook.applySettlement`, emits `Settled`, and moves the Asset from the Agent to the Collection address with `transferFrom`.
+The ledger entry is written before the transfer, and a transfer that reverts unwinds the entry with it, so the two are atomic in both directions.
+`TabSettlement` holds nothing, before or after.
+
+`applySettlement` lowers the Open Tab by `min(amount, open)`, banks the rest as prepaid credit against the same Service, and assigns the `settlementId` that the `Settled` and `SettlementApplied` events carry.
+Several tabs can be paid in one transaction with `settleBatch`.
+
+An Agent that holds the Asset but no MON takes the second door.
+It approves Permit2 once, then signs a `PermitWitnessTransferFrom` whose witness names the Service, the Asset, the amount, this `TabSettlement` and the chain, and hands the signature to anyone.
+
+```solidity
+TabSettlement.settleWithPermit2(agent, serviceId, asset, amount, nonce, deadline, signature)
+```
+
+Permit2 verifies the signature against the Agent and moves the Asset; the same `applySettlement` runs in the same transaction; a `SettledGasless` event names the relayer beside the `Settled` one.
+The witness is what makes the signature single-purpose: it cannot pay a different Service, a different amount, or a copy of this contract on another chain.
+The gateway relays these at `POST /relay/settle`, and the SDK's `monad-relayed` strategy signs them.
+
+The Settlement is final when its block is, which on Monad is under a second.
+Nothing waits for anything after that, and headroom is restored in the block the Settlement lands.
+
+### 4. Credit follows the Settlement
+
+The same `applySettlement` call extends the Agent's history.
+It appends one record, carrying the Service, the Asset, the amount, the time, the time of the first delivery on that tab, and whether the Service was Curated and bonded at that moment, and it folds that record into the rolling `historyCommitment` for the Agent and Asset.
+The record goes out in `HistoryExtended`, so the whole history can be rebuilt from logs by anyone.
+
+`LimitLib` then turns history into a Credit Limit, and it does so as a pure function: no storage, no external call, and the evaluation time passed in as an argument, so a third party can recompute the figure off chain and compare it to the on-chain read.
+
+- A record counts only where the Service was Curated, held a Bond in that Asset, and had recorded a delivery strictly before the Settlement.
+- Each counted record is weighted by age, from 25 percent on the day it settled to 100 percent after 30 days.
+- Below three distinct contributing counterparties the limit is the configured baseline and nothing more.
+- No single counterparty may contribute more than 25 percent of the result.
+- On every path, including the baseline, the result is capped at 95 percent of the counterparties' free Bond in that Asset.
+
+That last rule is why a brand-new Agent, with no counterparties in its witness, has a Credit Limit of zero.
+Authorising a bonded Service makes that Service a counterparty and lifts the limit to the bond-capped baseline; growth beyond it is earned by settled history.
+
+## The Settlement Window, and what closes it
+
+A tab's Settlement Window starts at its oldest unsettled delivery and runs for the number of seconds the Service registered, at most 24 hours.
+Once it closes with the tab still open, anyone may call `TabBook.markDelinquent(tabId)`.
+
+The mark emits `TabDelinquent` and `CreditLimitZeroed`, and from that block the Agent's Credit Limit in that Asset reads as zero everywhere.
+No funds move and nobody is penalised beyond that: the Service simply stops carrying the balance on credit.
+A Settlement that brings the tab back to zero clears the mark in the same transaction, with `TabDelinquencyCleared`.
+
+## What is left over
+
+Excess Settlement does not vanish and it is not refunded.
+It becomes prepaid credit on the tab, which the next delivery spends before it borrows anything.
+
+A Settlement against a tab that is not open works the same way: the whole amount banks as prepaid credit and the Settlement still joins the Agent's history.
+That is how a new Agent buys its first credit, by settling before it has been charged.
+
+## The witness, and why it cannot lie
+
+A `LimitWitness` is supplied by whoever calls `recordDelivery`, `creditLimit` or `headroom`, and neither of its arrays is trusted.
+
+The history is folded from zero into the same rolling hash the Settlement path writes and compared against the stored commitment, so a record that was added, dropped, reordered or edited reverts `HistoryCommitmentMismatch`.
+Every Bond amount is discarded and read from `Bond` instead, so the witness can only choose which counterparties to cite, and citing one the Agent has neither authorised nor settled with reverts `IneligibleBondEntry`.
+The witness is bounded at 512 records and 32 counterparties, and exceeding either bound reverts rather than truncating.

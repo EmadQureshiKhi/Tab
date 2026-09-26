@@ -1,0 +1,165 @@
+---
+title: "Introduction"
+description: "What Tab is, what it refuses to do, and why that refusal is the design."
+---
+
+<img
+  src="/banner.png"
+  alt="Tab: post-paid billing and a credit facility for agents"
+  className="not-prose w-full rounded-xl border border-fd-border"
+/>
+
+---
+
+Tab is post-paid billing and a credit facility for autonomous agents, on Monad.
+
+A Service meters usage into an Open Tab.
+The Agent settles later, in USDC or AUSD, on the same chain, with keys nobody else holds.
+The payment and the ledger entry are one state change.
+
+The last sentence is the whole product.
+
+<Steps>
+  <Step n="01" title="The work is delivered first">
+    An Agent calls a metered tool. Nothing is prepaid, no balance is checked against a deposit, and no payment stands between the request and the result.
+  </Step>
+  <Step n="02" title="The charge lands on an Open Tab">
+    The Service records the delivery in `TabBook`. The tab is the record of what is owed, and it is readable by anyone.
+  </Step>
+  <Step n="03" title="The Agent settles with its own keys">
+    The Agent calls `TabSettlement.settle` with the Service, the Asset and an amount. Nothing in Tab can move an Agent's funds, because nothing in Tab ever holds them.
+  </Step>
+  <Step n="04" title="The transfer and the ledger entry are one transaction">
+    `TabSettlement` moves the Asset from the Agent to the Service's Collection address and calls `TabBook.applySettlement` in the same call. If the transfer fails the tab does not fall; if the book refuses the Settlement, the transfer does not happen.
+  </Step>
+</Steps>
+
+<Cards>
+  <Card title="How the rail works" href="/how-it-works">
+    The full path of one Settlement, from the metered call to the restored headroom.
+  </Card>
+  <Card title="Build on it" href="/integration">
+    The MCP tools, the SDK, and the surfaces a Service meters through.
+  </Card>
+  <Card title="What is trusted" href="/threat-model">
+    Every trusted party, and the bound on what each one can do.
+  </Card>
+  <Card title="Where the edges are" href="/limitations">
+    What Tab does not do, each with the bound that says how far it reaches.
+  </Card>
+</Cards>
+
+## Nobody asserts that money arrived
+
+Every system that bills after the fact has to answer one question: who says the payment happened.
+The usual answers are a payment facilitator, an oracle, a bridge, a relayer, or a signed webhook.
+All five are the same answer wearing different clothes, which is that some party is trusted to make the claim, and that party can lie or be compromised.
+
+Tab does not answer the question, because it does not ask it.
+
+`TabSettlement` is the one way a tab is paid.
+It pulls the Asset from the Agent with `transferFrom`, sends it to the Collection address the Service registered, and calls `TabBook.applySettlement`, all inside one transaction.
+No component of Tab is trusted to say a Settlement occurred, because the chain applied the payment itself.
+There is deliberately no such component to compromise.
+
+A Settlement is final when its block is, and Monad finalises a block in under a second.
+Headroom is restored in the block the Settlement lands.
+Each Settlement is identified by the `settlementId` that `TabBook` assigns, and that identifier is what the explorer, the read API and the `Settled` event all carry.
+
+The [threat model](/threat-model) states the trusted set in full, along with the bound on what each member can do.
+The short version is that the trusted parties can admit a counterparty, meter inside an authorisation, serve a stale figure, or waste their own Bond.
+None of them can claim that money arrived.
+
+## The removal test
+
+The test that decides whether a component is load-bearing or decorative is to remove it and see what breaks.
+
+Remove the registry read API and every figure it served is still on chain, so the Dashboard goes dark and nothing about anyone's credit changes.
+Remove the metering gateway and a Service can call `TabBook.recordDelivery` from its own operator key.
+Remove `TabSettlement` and no tab can ever fall, because `applySettlement` answers to that one wired address and nothing else.
+
+That is the shape on purpose.
+Everything off chain is a convenience over a ledger that does not need it.
+
+## Why post-paid
+
+Prepayment is the obvious way to bill an agent and it is the wrong way.
+
+An agent that must fund an account before its first call cannot start work it was dispatched to do.
+An agent that must top up mid-task stalls at the moment it is least able to ask for help.
+Prepayment also puts the Service in custody of the Agent's money, which is a liability the Service did not want and a risk the Agent did not agree to.
+
+Post-paid billing inverts all three.
+The Agent calls first and settles afterwards, holding its own funds the entire time.
+The Service carries the balance for a Settlement Window and is protected by a Credit Limit rather than by a deposit.
+
+Credit is the hard part, and it is where the Bond comes in.
+An Agent's Credit Limit is computed from its own Settlement history and from Bond that Services have escrowed, so extending credit costs the party extending it.
+A ring of colluding accounts cannot manufacture credit without locking strictly more value than the credit it unlocks.
+
+## What the chain records, and what Tab reads
+
+The Credit Limit is a pure function of onchain history.
+Its inputs are the Agent's ordered Settlement history in one Asset, rebuilt from `HistoryExtended` logs and folded to the `historyCommitment` that `TabBook` stores, plus one Bond entry per counterparty Service, read from `Bond` at the moment of the call.
+
+Three consequences shape the design rather than being papered over.
+
+Credit is backed by Service Bonds and never by Agent balances, so no balance of the Agent's is ever read and no balance needs to be.
+An Agent with no counterparties has no Credit Limit; its first Settlement banks prepaid credit and creates the history a limit grows from.
+A tab that outlives its Settlement Window can be marked delinquent by anyone, and a mark zeroes the Agent's credit in that Asset rather than seizing anything from anyone.
+
+The [boundaries page](/limitations) carries the rest, each with the bound that says how far it reaches.
+
+## Where it runs
+
+One chain per deployment.
+Gas is paid in MON, and every amount anywhere in the system is an integer count of base units.
+
+| | Testnet | Mainnet |
+| --- | --- | --- |
+| Chain id | `10143` | `143` |
+| RPC | `https://testnet-rpc.monad.xyz` | `https://rpc.monad.xyz` |
+| Explorer | `https://testnet.monadvision.com` | `https://monadvision.com` |
+| Assets | Circle's USDC `0x534b2f3A21130d7a60830c2Df862319e593943A3` and the `MockUsdc` the deploy script ships, named `mUSDC` | canonical USDC `0x754704Bc059F8C67012fEd69BC8A327a5aafb603` and AUSD `0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a` |
+| Permit2 | `0x000000000022D473030F116dDEE9F6B43aC78BA3` | the same |
+| ERC-8004 Identity | `0x8004A818BFB912233c491871b3d84c89A494BD9e` | `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` |
+| ERC-8004 Reputation | `0x8004B663056A597Dffe9eCcC1965A193B7388713` | `0x8004BAa17C55a88189AE136b182e5fdA19dE9b63` |
+
+Testnet MON comes from the faucet at `https://faucet.monad.xyz`, and Testnet USDC from Circle's faucet at `https://faucet.circle.com`, twenty at a time.
+The contracts on Testnet, deployed from block `64554587`:
+
+| Contract | Address |
+| --- | --- |
+| `ServiceRegistry` | `0x3638DB35A76E5a22EA1E827636dA994be622c139` |
+| `Bond` | `0x29aDfD90Fc7c9026563Fc60651f696ab089080E7` |
+| `TabBook` | `0x87571030cCe27C84836bAfF85288eB1d85d908a4` |
+| `TabSettlement` | `0x654Fac48185e4B71779eEc2457B1F24aEdf46717` |
+| `MockUsdc` | `0x480209747417f5c830fDA188a9b9AcFa70Bc4083` |
+
+The contracts on Mainnet:
+
+| Contract | Address |
+| --- | --- |
+| `CurationMultisig` | `0x123c19F46C38d5b4E922D1297250a71A03DFFD17` |
+| `ServiceRegistry` | `0x4F791F13F94944fCB2F884f8C7991cAa583884A6` |
+| `Bond` | `0xbA86C0D053ba88afDECbED8aBa5b2eC3973fb230` |
+| `TabBook` | `0x0Dabf8E52280D0F128f546602a99b6DC4fbb80DC` |
+| `TabSettlement` | `0x32A96bfEABe766B4898b961B333B7B89f079a9a9` |
+
+Every one of those addresses, on either network, can be read back with no key and no funded account, and the verification script in the contracts package does exactly that.
+The demo Service `tab.demo` is registered on both: on Testnet with a Bond and prices in both Testnet Assets, holding ERC-8004 identity `1913` beside the demo Agent's `1914`; on Mainnet with a 1 USDC Bond and prices in both USDC and AUSD, holding `10254` beside the Agent's `10255`.
+
+The curation role differs between them, and that is the only difference that is not an address.
+On Testnet the deploying account holds it. On Mainnet a 2-of-3 `CurationMultisig` does, deployed before the registry because the authority is a constructor argument with no setter and construction is the only moment it can be chosen.
+All three of its owners are held by this project today, which a one-person deployment cannot honestly call three parties; the Service directory reads the threshold and the owners off the chain and draws what it finds, so nobody has to take that on trust.
+The page [On Monad](/on-monad) lists what else the deployment plugs into: x402, the API Hub, Permit2, ERC-8004, HyperSync, Nansen, Mera, the MetaMask Agent Wallet, Chainlink CRE and Kuru.
+
+## Read further
+
+These pages are the working documentation: what runs, how to build on it, and where the edges are.
+
+[How the rail works](/how-it-works) follows one metered call and one Settlement through the contracts.
+[Integration surfaces](/integration) is the SDK, the CLI and the server plugins, each with something you can run.
+[Using the Dashboard](/dashboard) is the same rail from a browser.
+[On Monad](/on-monad) is every piece of Monad's agent stack the rail sits on, and what each one is used for.
+The [threat model](/threat-model) and the [boundaries page](/limitations) are the disclosure: who is trusted, for what, and what Tab deliberately does not do.
