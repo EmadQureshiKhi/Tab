@@ -1,0 +1,139 @@
+---
+title: "Boundaries"
+description: "What Tab does, what it deliberately does not, and the bound on each."
+---
+
+Every system has edges.
+This page is where Tab's are written down, each with the bound that says how far it reaches, so nothing here is a surprise once you have built on it.
+
+A boundary named without its bound reads as either worse or better than it is.
+Each one below carries both.
+
+## Where the edges are
+
+### One chain per deployment
+
+A deployment of Tab lives on one chain, and a Settlement is a transfer on that chain.
+There is no cross-chain settlement: an Agent on Monad pays a Service on Monad, in an Asset on Monad, and nothing in the contracts can observe or accept a payment made anywhere else.
+That is the bound and it is also the reason the design holds.
+`TabSettlement` can weld the transfer and the ledger entry into one transaction only because both happen on the same ledger, and the moment a payment lived elsewhere something would have to be trusted to report it.
+Mainnet and Testnet are separate deployments, with separate addresses, and a figure read from one says nothing about the other.
+
+### Credit is backed by Service Bonds, never by Agent balances
+
+Nothing in Tab reads an Agent's balance, and nothing needs to.
+The Credit Limit is capped at 95 percent of the free Bond the Agent's counterparties have escrowed, so the party at risk when an Agent fails to settle is a Service that chose to carry that Agent, and it is at risk for at most what it staked.
+The consequence for a new Agent is stated plainly: with no counterparties its limit is zero, authorising a bonded Service lifts it to the bond-capped baseline, and anything above that is earned by settled history.
+An Agent that holds a fortune and has never settled has no credit, because a balance is not a repayment record.
+
+### A delinquent tab zeroes credit rather than slashing anyone
+
+A tab that outlives its Settlement Window can be marked delinquent by anyone.
+The mark zeroes the Agent's Credit Limit in that Asset, everywhere, until a Settlement closes the tab, and that is all it does.
+No Bond is taken, no funds move, and the Service carries the unsettled balance until the Agent pays it.
+The bound is the Settlement Window itself, at most 24 hours and 6 by default, which is the longest any Service is exposed before it may stop extending credit.
+Collection of a balance an Agent never settles is outside the contracts, as it is for any post-paid arrangement.
+
+### The witness is rebuilt from logs, and it is bounded
+
+Every Credit Limit read takes a `LimitWitness`: the Agent's full ordered Settlement history in that Asset plus one Bond entry per counterparty.
+The contract stores only the rolling `historyCommitment`, so whoever calls has to rebuild the history from `HistoryExtended` logs, and a caller that cannot reach the logs cannot read a limit.
+The library bounds the witness at `MAX_HISTORY` of 512 records and `MAX_COUNTERPARTIES` of 32, and reverts `HistoryTooLong` or `TooManyCounterparties` beyond them.
+An Agent whose history reaches those bounds needs compaction.
+The contract reverts rather than quietly dropping records, so the ceiling announces itself instead of changing an answer.
+
+### One authority decides the Curated tier
+
+A curation authority decides which Services hold the Curated tier, and therefore which Settlement history carries Credit Limit weight.
+It is the one privileged role in the system.
+
+Two things bound it.
+Every change it makes is queued and held for 48 hours behind `RegistryChangeQueued` before it can apply, so a promotion is public and contestable before it takes effect, and the Services page shows the countdown.
+And the role reaches nothing else: it has no power over metering, over any tab, over any Settlement, or over any Bond.
+
+The authority is a constructor argument of `ServiceRegistry` with no setter, so it cannot be reassigned on a live registry, by this project or by anyone.
+The intended holder is `CurationMultisig`, an m-of-n owner set with an immutable owner list that holds the curation role and nothing else.
+
+### Collusion is bounded, not eliminated
+
+A bonded Curated Service and an Agent under common control can manufacture Settlement history.
+The Bond invariant bounds what that buys: the credit unlocked is strictly less than the sum of the counterparties' free Bond, a ring needs at least 3 distinct Curated bonded counterparties before the baseline grows at all, no counterparty contributes more than 25 percent, a burst weighs a quarter of history seasoned 30 days, and every counted Settlement must follow a delivery recorded strictly earlier on the same tab.
+The risk is real and its ceiling is the Bond sum.
+The [threat model](/threat-model) states it in those terms.
+
+### Timelocked changes take 48 hours
+
+Every change to a registered Service, whether a price, a Collection address, an accepted Asset, a Settlement Window or its tier, is queued and applies no sooner than 48 hours later.
+That is the guarantee an Agent gets when it reads a price: the figure cannot move under it inside the window it read for.
+It is also a cost a Service pays: an operator that needs to rotate a compromised Collection address waits the same 48 hours as one raising a price, and a change queued with a payload that cannot apply is refused at queue time rather than discovered two days later.
+The first registration is not held.
+The hold guards changes to facts already applied, not the arrival of new ones.
+
+### A Settlement of a tab that is not open banks as prepaid credit
+
+`applySettlement` never fails for want of a debt.
+An amount above the Open Tab, or against a tab that has nothing open, is banked as prepaid credit for that Agent, Service and Asset, and the next delivery spends it before borrowing anything.
+That is the intended way for a new Agent to buy in, and it is also a way to send money to the wrong Service by mistake, because the contract cannot tell the two apart.
+The bound is that the credit is never lost: it sits on the tab, in the Agent's name, spendable against that Service's tools, and it is visible on the Agent's page.
+There is no refund path in the contracts, so a Settlement to a Service an Agent never intends to use is a prepayment it will not get back through Tab.
+
+### The registry serves a Credit Limit only where the cross-check agrees
+
+The registry read API rebuilds each Agent's witness from the events it indexed and recomputes the Credit Limit with the same arithmetic the contract uses.
+It serves that figure only where its recomputation agrees with `TabBook.creditLimit` on chain at the block it was derived for.
+Where the two disagree, or where the chain cannot be reached, the figure is served as unavailable with the reason, never as a zero and never as a stale number dressed as current.
+That makes the API safe to trust and occasionally silent, and the silence is the bound: a Dashboard page can show no Credit Limit for a moment, but it cannot show a wrong one.
+
+### A Service's endpoint is not on chain
+
+Registering a Service is permissionless and immediate.
+Anyone signs one transaction recording the account that operates the Service, the Assets it accepts, what each tool costs and how long a tab may stay open, and from that moment the chain is the authority on their prices.
+Nobody approves it and no allowlist is consulted.
+A Service registered by a stranger appears in the Dashboard directory on its own, with its real tools and real prices, because that page reads the registry from chain rather than a list anyone curates.
+
+What the chain does not record is where the Service runs.
+`ServiceRegistry` stores an operator, a tier, a Settlement Window, a bond account, Collection addresses and a price list, and no URL.
+That is deliberate: an address on chain means paying gas to move house, and a dead link becomes a permanent record that no one can retract.
+
+So endpoint discovery is off chain, and the bound is this.
+An Agent calls a Service by an address held in its own `tab.config`, which its operator controls and which needs nothing from this project.
+A Service provider publishes their address wherever they publish anything else, and any Agent that wants them adds it.
+
+The convenience layer is narrower.
+`service-endpoints.json` in this repository is what lets the Dashboard offer a run command next to a listing, and it is published by this project.
+A Service that is registered on chain but absent from that file is still listed with everything the chain says about it, shown without a run command, and the page says that is why.
+Getting into that file today means a change to this repository, which is a centralised step inside an otherwise permissionless system, and it affects one button on one website rather than anybody's ability to be called.
+
+### An x402 payment is outside the credit history
+
+A Service may offer the charge it just refused over x402, and a Service may front an x402 upstream on credit.
+The first is prepaid and the second is credit, and the page that shows either says which.
+
+The bound is on the first.
+An x402 payment moves the Asset to the Service's Collection address through Monad's facilitator and enters no history: it is not a Settlement, it lowers no tab, and it raises no limit.
+An Agent that only ever takes the offer has demonstrated nothing about repayment, because it has never owed anything, so its Credit Limit stays where a new Agent's is.
+That is the design and not a gap: the alternative, counting a prepayment as a repayment, would let an Agent buy a credit history with money it never borrowed.
+
+The fronted direction has a different bound.
+The Service pays the upstream with its own key, so the Service is fronting its own money against the Agent's headroom, and it does so only after simulating the delivery against `TabBook`.
+A Service that fronts an upstream is choosing to extend credit in that upstream's currency, and the margin it publishes is its price for doing so.
+
+### A gasless Settlement still needs the Asset
+
+`settleWithPermit2` removes the need for MON, not the need for USDC.
+The Agent must hold the Asset and must have approved Permit2 on it once, in a transaction that does cost gas, or have had it approved by whoever funded it.
+A relayer pays the gas of the Settlement and can pay nothing else: the witness binds what is paid and to whom, and the relay refuses by name rather than submitting a permit that would revert.
+A relay that is down is an inconvenience and not a loss, because the same signature can be submitted by anyone, the Agent included.
+
+### An identity is a name, and a label is a guess
+
+The ERC-8004 identities and the Nansen labels on an Agent's page are read and shown, and read by nothing else.
+No contract in Tab consults either, the Credit Limit is computed without them, and a Service meters against an address, not an identity.
+An Agent with no identity is a full participant; an identity with no Settlements has no credit.
+
+### What is in scope today
+
+On Mainnet the Assets are the canonical USDC and AUSD; on Testnet the Assets are Circle's USDC and the `MockUsdc` the deploy script ships, named `mUSDC` so the two are never confused.
+The architecture is multi-asset and no price conversion exists anywhere.
+A Bond is denominated in the Asset it backs, which is what keeps the credit invariant free of any price feed: a Bond and the credit it unlocks are the same unit, so no rate can move the ceiling and no oracle sits on it.
+Credit in one Asset says nothing about credit in another, and a Settlement in AUSD does not lower a tab in USDC.
