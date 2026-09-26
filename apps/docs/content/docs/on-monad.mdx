@@ -1,0 +1,129 @@
+---
+title: "On Monad"
+description: "Every piece of Monad's agent stack the rail sits on, what each one is used for, and what none of them change."
+---
+
+Tab is one thing: a Settlement is a transfer and a ledger entry in one transaction, and the Credit Limit is a pure function of the Settlements already applied.
+Everything on this page is built around that fact rather than into it.
+An x402 payment, an identity, a label, a passkey, a swap: each is stated on the page it appears on as what it is, and none of them raises a limit.
+
+## The map
+
+| Piece | What Tab does with it |
+| --- | --- |
+| x402, V2 | The prepaid fallback on a credit refusal, and the currency Tab fronts on credit |
+| Monad API Hub | Buy now, pay later for pay-per-request data services |
+| Permit2 | Gasless Settlement: the Agent signs, anyone submits |
+| ERC-8004 | Identities for the demo Service and Agent, indexed and shown |
+| Envio HyperSync | The indexer's cold start, past the public RPC's log cap |
+| Nansen | Address labels beside an Agent's identity |
+| Mera passkeys | A Dashboard account with no extension and no seed phrase |
+| MetaMask Agent Wallet | `mm tab`, the rail as wallet plugin commands |
+| Chainlink CRE | The schedule the delinquency keeper runs on |
+| Kuru | Settling from a token the tab is not denominated in |
+| Agora AUSD | A first-class Asset on Mainnet |
+
+## x402: the fallback, and the thing fronted
+
+x402 is the prepaid protocol: a server answers `402` with a `PAYMENT-REQUIRED` header naming what it accepts, the client signs a payment and repeats the request with `PAYMENT-SIGNATURE`, and the server delivers once a facilitator has settled the payment on chain.
+Tab is the opposite model.
+The two meet in two places, and the direction matters in each.
+
+**The offer on a refusal.**
+A Service that refuses a call on `LimitExceeded` puts an x402 `exact` requirement for the same charge beside its `Tab-Charge-*` headers.
+An Agent that would rather pay for that one call than settle its tab first signs an EIP-3009 `transferWithAuthorization` for the amount and repeats the request; Monad's facilitator at `x402-facilitator.molandak.org` verifies it, the work is delivered, and the facilitator settles the transfer to the Service's Collection address.
+Nothing lands on the Open Tab, because nothing is owed.
+`tab_call` does this when `tab.config` names an `x402` signer and reports it in an `x402` block; an Agent without one gets the `LIMIT_EXCEEDED` it would have got anyway.
+
+**The upstream fronted on credit.**
+The reverse direction is the one that changes what an Agent can do.
+The Monad API Hub is sixty-odd data providers behind one x402 endpoint, each priced per call in USDC, and every one of them is prepaid.
+A Tab Service fronts them: the Agent calls `/hub/apihub/run` on the Service on credit, the Service forwards to the Hub, reads the price off the Hub's `402`, pays it with its own key, and meters the Agent's Open Tab for that price plus its published margin.
+The Agent never signs an x402 payment and never holds the Hub's currency; it settles its tab later, in one transaction, like any other charge.
+The Hub takes USDC on Monad Mainnet only, so the Testnet Service pays it there with a key funded there and meters the Agent in mUSDC here, base unit for base unit; the two chains meet in the Service's own books and nowhere in Tab's contracts.
+The fronted tool is priced on chain like any other, at one base unit per unit, and a call consumes as many units as it cost, because the chain refuses a unit price the price list does not hold and a fronted price is not known until the upstream answers.
+`/hub/nansen/*` fronts Nansen's own x402 API the same way.
+`tab_discover` reads the Hub's manifest and lists a fronted provider's endpoints under the Service as the tools they are, and Browse lists them as `fronted` cards after the tools priced on chain.
+
+<Bounded
+  title="An x402 payment is not a Settlement"
+  bound="It moves the Asset to the Service and enters no history. The Credit Limit is computed from Settlements applied through TabSettlement, and only from those."
+>
+  The Dashboard, the SDK and the read API say so wherever one appears. An Agent that only ever prepays never earns a limit, which is correct: it has demonstrated nothing about repayment, because it has never owed anything.
+</Bounded>
+
+## Permit2: settle without gas
+
+`TabSettlement.settleWithPermit2` takes a `PermitWitnessTransferFrom` the Agent signed against Uniswap's Permit2 at its canonical address, `0x000000000022D473030F116dDEE9F6B43aC78BA3`.
+The witness is `TabSettlement(bytes32 serviceId, address asset, uint128 amount, address surface, uint256 chainId)`, so the signature can pay this Service this amount in this Asset through this contract on this chain and nothing else.
+Permit2 verifies it and moves the Asset; the same `applySettlement` runs in the same transaction; `SettledGasless` names the relayer beside `Settled`.
+
+The Agent's whole requirement is the Asset and one `approve(Permit2)` on it.
+The gateway's `POST /relay/settle` simulates the call from the operator, refuses a bad permit by name, submits it, and returns the same receipt the direct path returns.
+The SDK's `monad-relayed` strategy signs and posts; `tab_settle` takes it as `strategyId`, and the CLI as `--strategy monad-relayed`.
+
+## ERC-8004: who the parties are
+
+Monad's Identity and Reputation registries are at `0x8004A818BFB912233c491871b3d84c89A494BD9e` and `0x8004B663056A597Dffe9eCcC1965A193B7388713` on Testnet.
+The demo Service is agent `1913` and the demo Agent is agent `1914`, registered by the third script in the contracts package with a registration file each that says what the party does and how it settles.
+
+The registry indexes the Identity Registry's `Transfer`, `Registered`, `URIUpdated` and `MetadataSet` events into one row per agent, reads each agent's registration file and its reputation summary, and serves them: an Agent's page opens with every identity whose owner or wallet is that address, and a Service's row carries its operator's.
+Each section states the block it was read at and the registry it was read from.
+An identity is a name, not a credential: the Credit Limit reads none of it.
+
+## HyperSync, and the log cap
+
+Monad's public RPC caps `eth_getLogs` at 100 blocks per request, and the witness a Service needs is the Agent's whole Settlement history.
+The registry chunks its reads to fit, and with `HYPERSYNC_URL` and `HYPERSYNC_API_TOKEN` set it reads whole ranges from Envio HyperSync in one request instead, so a cold start is bound by the archive's speed rather than by the cap.
+The head and the live window always come from the RPC, and everything read from either is folded to the same `historyCommitment` and checked against the chain before it is served.
+
+## Nansen labels
+
+Nansen's address labels are read per address and served beside an Agent's identity, when `NANSEN_API_KEY` is set.
+They are stated as what they are: an offchain signal about who an address might be, which changes nothing in the Credit Limit, and is absent rather than empty when the key is not configured.
+
+## Mera passkeys
+
+`/keys` on the Dashboard is a passkey account.
+The seed is the WebAuthn PRF output of one passkey, the owner key is derived from it at `m/44'/60'/0'/0/0` and never shown, and each session key after it is the Agent for one runtime, revealed once for that runtime's environment.
+The same passkey always yields the same keys, so a runtime that loses its key has not lost the account, and a reader with no wallet extension can authorise a Service from the Dashboard with one touch.
+The [Dashboard page](/dashboard#keys-from-a-passkey) walks through it.
+
+## MetaMask Agent Wallet
+
+`packages/agent-wallet-plugin` registers `mm tab` with the MetaMask Agent Wallet CLI.
+
+| Command | What it does |
+| --- | --- |
+| `mm tab discover` | Services, Assets, prices and Bonds, from the read API |
+| `mm tab status` | An Agent's Open Tab, headroom and Settlements per Asset |
+| `mm tab call` | One metered call, on credit |
+| `mm tab authorise` | Builds `TabBook.authorise` and hands it to the wallet |
+| `mm tab settle` | Builds the approval where the allowance falls short and `TabSettlement.settle`, and hands each to the wallet in turn |
+
+Every write is handed over with a one-sentence intent, so the wallet's own policy decides what is signed, and a wallet refusal on the approval stops before the Settlement is submitted.
+`mm tab call` is the one command bounded by the host: a metered request must be signed by the operator or by the Agent, and the CLI exposes no message signing to a plugin, so a Service that requires one answers with its own named refusal.
+
+## Chainlink CRE, and the keeper
+
+A tab whose Settlement Window has closed with the tab still open may be marked delinquent by anyone.
+`apps/keeper` is the process that does it: it takes candidates from the registry's delivery feed, confirms each on chain, and submits `markDelinquent` when asked to broadcast.
+`apps/cre-keeper` is the schedule, a Chainlink CRE workflow with a cron trigger every ten minutes and an HTTP call to the keeper behind a shared secret.
+The mark is permissionless and the keeper holds no privilege: anyone running the same two processes marks the same tabs.
+
+## Kuru: settle in any asset
+
+`TabSettlement.settle` moves the Asset the tab is denominated in.
+`createKuruFundedStrategy` wraps a strategy, reads the Agent's balance of that Asset before every Settlement, and when it is short, swaps the shortfall in from a configured source token through Kuru's on-chain router, then settles.
+The shortfall is the swap's minimum out, so a Settlement is either fully funded or the swap reverts, and the Settlement itself is still the inner strategy's transaction.
+
+## Agora AUSD
+
+AUSD at `0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a` is in the shared Asset table beside USDC, so a Mainnet Service prices in it, a Bond is posted in it, and every page and tool that prints an Asset names it.
+Tab holds no rate between the two: a tab in AUSD is settled in AUSD.
+
+## What none of this changes
+
+Take every piece on this page away and the rail is the same rail.
+A Service meters after delivery, an Agent settles with its own key in one transaction, the chain applies the payment, and the Credit Limit is computed from the record the chain kept.
+The pieces make it cheaper to reach (passkeys, the plugin), cheaper to run (HyperSync, the keeper on a schedule), gasless to settle (Permit2), and wider in what an Agent can buy on credit (the Hub), and the [boundaries page](/limitations) states the edge of each.

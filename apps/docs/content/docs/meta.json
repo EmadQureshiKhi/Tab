@@ -1,0 +1,16 @@
+{
+  "title": "Tab",
+  "pages": [
+    "---Start here---",
+    "index",
+    "how-it-works",
+    "dashboard",
+    "on-monad",
+    "---Build---",
+    "integration",
+    "style-guide",
+    "---Disclosure---",
+    "threat-model",
+    "limitations"
+  ]
+}
