@@ -1,0 +1,277 @@
+{
+  "$comment": [
+    "Tab deployment record. Every address here was read back off the chain by",
+    "script/02_VerifyDeployment.s.sol, which holds no key and sends nothing, so this",
+    "file is checkable by anyone with the repository and an RPC URL rather than only",
+    "by whoever holds the deploying key.",
+    "",
+    "One entry per network under `networks`, keyed by chain id. A deployment serves",
+    "one chain and `.env` names which one: `MONAD_CHAIN_ID` selects the entry that",
+    "`pnpm env:bootstrap` writes from and that `pnpm deployments:check` joins against.",
+    "Switching networks is therefore switching `.env`, not editing this file, and the",
+    "gate refuses a chain id this file has no entry for rather than checking nothing.",
+    "",
+    "Reproduce the verification, from packages/contracts, with no key:",
+    "  forge script script/02_VerifyDeployment.s.sol:VerifyDeployment --rpc-url monad_testnet --sig \"run()\"",
+    "It returns true only when every wired slot agrees from both ends: TabBook names",
+    "ServiceRegistry and Bond, TabSettlement names TabBook, ServiceRegistry and Permit2,",
+    "and TabBook's settlement surface is TabSettlement.",
+    "",
+    "Third-party contracts Tab reads (Permit2, Circle's USDC, the ERC-8004 registries)",
+    "carry no envKey: they are network constants, not outputs of this deployment, and",
+    "scripts/deployments-check.mjs classifies their variables accordingly."
+  ],
+  "verifiedKeylessly": true,
+  "networks": {
+    "10143": {
+      "network": "Monad Testnet",
+      "chainId": 10143,
+      "rpcUrl": "https://testnet-rpc.monad.xyz",
+      "explorerUrl": "https://testnet.monadvision.com",
+      "deployedAt": "2026-09-22",
+      "startBlock": 64554587,
+      "contracts": {
+        "ServiceRegistry": {
+          "address": "0x3638DB35A76E5a22EA1E827636dA994be622c139",
+          "txHash": "0xf5e73cb1e357c7f21d02cf6854cee1218d49424e0a927d9b9a295e6cb6e69275",
+          "blockNumber": 64554587,
+          "envKey": "SERVICE_REGISTRY_ADDRESS",
+          "note": "Takes only the curation authority in its constructor and references no other Tab contract."
+        },
+        "Bond": {
+          "address": "0x29aDfD90Fc7c9026563Fc60651f696ab089080E7",
+          "txHash": "0x32228f673da17763fb775ed1d082757d57f1c223344edda123636871ce34b877",
+          "blockNumber": 64554589,
+          "envKey": "BOND_ADDRESS",
+          "note": "Real escrow: deposits pull the Asset in, withdrawals pay it out, and freeOf is what TabBook reads."
+        },
+        "TabBook": {
+          "address": "0x87571030cCe27C84836bAfF85288eB1d85d908a4",
+          "txHash": "0x4be1b392cf4b2648f2fa2cdb7903b855503d7224aa789265f1b582dae0d72444",
+          "blockNumber": 64554591,
+          "envKey": "TAB_BOOK_ADDRESS",
+          "note": "Constructed over ServiceRegistry and Bond with the credit parameters. Its settlement surface was wired one-shot in 0x94267af990fb8b1f5235e473536507065c21bd65c3b01029f55280229f1d8b43 (block 64554602)."
+        },
+        "TabSettlement": {
+          "address": "0x654Fac48185e4B71779eEc2457B1F24aEdf46717",
+          "txHash": "0x408e24d61759b0d17d528cb35bfece26186eadde9cb157601270a93e156178d4",
+          "blockNumber": 64554598,
+          "envKey": "TAB_SETTLEMENT_ADDRESS",
+          "note": "The one way a tab is paid. Moves the Asset to the Service's Collection address and applies the Settlement in the same transaction, either from the Agent's own key (settle) or on the Agent's Permit2 signature submitted by anyone (settleWithPermit2). Holds nothing. Immutable over Permit2."
+        },
+        "MockUsdc": {
+          "address": "0x480209747417f5c830fDA188a9b9AcFa70Bc4083",
+          "txHash": "0x4f0f8d546fbbac46fcbd2b4ffb5053fc083cf59b263eed1e3691301092b989fc",
+          "blockNumber": 64554610,
+          "envKey": "MOCK_USDC_ADDRESS",
+          "note": "A mintable six-decimal test token with EIP-3009 (transferWithAuthorization, receiveWithAuthorization, cancelAuthorization) under the EIP-712 domain name USDC, version 2, so an x402 facilitator settles it exactly as it settles the canonical USDC. Testnet only; a Mainnet deployment settles in the canonical USDC and AUSD."
+        }
+      },
+      "roles": {
+        "curationAuthority": {
+          "address": "0x49472EF9ED99f30d4eaD45Ac9E1C16c31f70783A",
+          "envKey": "CURATION_AUTHORITY_ADDRESS",
+          "note": "A ServiceRegistry constructor immutable, never settable afterwards. On Testnet it is the deploying account; a Mainnet deployment names a CurationMultisig."
+        }
+      },
+      "parameters": {
+        "creditBaselineBaseUnits": "5000000",
+        "growthFactorBps": 5000
+      },
+      "note": "Second deployment on Testnet. The first (2026-09-21, from block 64486362) had no Permit2 path; TabBook's settlement surface is wired once and for all, so adding one meant a fresh set.",
+      "permit2": {
+        "address": "0x000000000022D473030F116dDEE9F6B43aC78BA3",
+        "note": "Uniswap's Permit2 at its canonical address, the same on every chain it exists on. TabSettlement verifies gasless Settlements against it. Not deployed by Tab, so no envKey: PERMIT2_ADDRESS is a network constant."
+      },
+      "erc8004": {
+        "identityRegistry": "0x8004A818BFB912233c491871b3d84c89A494BD9e",
+        "reputationRegistry": "0x8004B663056A597Dffe9eCcC1965A193B7388713",
+        "note": "The canonical ERC-8004 registries on Monad Testnet (implementation version 2.0.0). Not deployed by Tab, so no envKey.",
+        "identities": {
+          "service": {
+            "agentId": 1913,
+            "recordedAs": "ERC8004_SERVICE_AGENT_ID",
+            "owner": "0x49472EF9ED99f30d4eaD45Ac9E1C16c31f70783A",
+            "txHash": "0x359a9cdf87e98e0703605fa613320e79be01fc5228a8dd1ee940ba253757e99c",
+            "blockNumber": 64554946,
+            "note": "The demo Service's identity, minted by script/03_RegisterIdentity.s.sol. Its agentURI is a data:application/json;base64 registration file held fully on chain."
+          },
+          "agent": {
+            "agentId": 1914,
+            "recordedAs": "ERC8004_AGENT_ID",
+            "owner": "0x49472EF9ED99f30d4eaD45Ac9E1C16c31f70783A",
+            "txHash": "0xfc415c2047070659911d6088599c41c2f284670ac4c6f2092f9131bc8a053054",
+            "blockNumber": 64554949,
+            "note": "The demo Agent's identity, minted by the same script to the deploying account. Its agentWallet is that account; setAgentWallet moves it to a real Agent key later."
+          }
+        }
+      },
+      "demo": {
+        "serviceId": "0x7461622e64656d6f000000000000000000000000000000000000000000000000",
+        "serviceIdText": "tab.demo",
+        "operator": "0x49472EF9ED99f30d4eaD45Ac9E1C16c31f70783A",
+        "assets": [
+          "0x534b2f3A21130d7a60830c2Df862319e593943A3",
+          "0x480209747417f5c830fDA188a9b9AcFa70Bc4083"
+        ],
+        "collection": "0x49472EF9ED99f30d4eaD45Ac9E1C16c31f70783A",
+        "tool": "quote.generate",
+        "priceBaseUnits": "10000",
+        "settlementWindowSeconds": 21600,
+        "bond": {
+          "mUSDC": "50000000",
+          "USDC": "20000000",
+          "note": "Free stake per Asset behind the demo Service, in base units. A tool priced in an Asset with no Bond has a Credit Limit of zero in it, whatever the baseline says, because the cap is 95% of the counterparty's free stake."
+        },
+        "registeredIn": "0x11d9c5365f572827c8e4b9a52921ff3353db2f8e5c550264590ab44e1ac61d40",
+        "bondedIn": "0x561b1126dc6e8f71acdadf2931940b2238dc6234f459af282bf80e57df6791e1",
+        "blockNumber": 64554808,
+        "note": "The demo Service the gateway meters for, registered by script/04_RegisterDemoService.s.sol: the deploying account operates it, collects at its own address in both Assets, and staked 50 MockUsdc in Bond. Permissionless Tier until the curation authority promotes it.",
+        "frontedTools": {
+          "tools": [
+            "apihub.run",
+            "nansen.query"
+          ],
+          "unitBaseUnits": "1",
+          "queuedAt": "2026-09-22",
+          "changeIds": [
+            "0x500031a65e58b8a3ed17f214327d17ce47a7a3a84014231da7d7fddda2c0dd0a",
+            "0x1f299620376d5e98337f0b8b0a86a45d5bcee0faea56ee5be355042c0435965b",
+            "0x9b0d13709c755f826d0d52c47edea95f74719b49b9cf37952c1567ba5bb8f72a",
+            "0x2c92abf1941f09c71f46f3ec2bf4dccfb35ca31cc92777e37d270bf6bcaa42cd"
+          ],
+          "note": "A fronted call's price is not known until the upstream answers and TabBook refuses a unit price the registry does not hold, so the amount rides in the unit count and the tool is published at one base unit a unit. Queued 2026-09-22 and applied 2026-09-25 after the 48-hour hold, with script/05_PriceFrontedTools.s.sol --sig applyQueued(bytes32[]). The ids were taken from the RegistryChangeQueued events in the broadcast receipts, not from the script's return value: queueChange folds block.timestamp and a nonce into the id, so the id a simulation computes is not the id the broadcast stores.",
+          "appliedAt": "2026-09-25",
+          "applyTransactions": [
+            "0x3198568039a1e14ae663e84fb1ed057e767870162ab016097b809e924c5ad406",
+            "0xf0f4a5451380e81d84cf2f1eadcd698badb4e0b3a538ae1d56d3c80fce87bad5",
+            "0x9240b469b0c0a3030309ce958a8ad7875657b3265af05ac65ce2562f87185d8a",
+            "0x8e09d931bef3549d2046e6a07a8b12ff85a1a52e268231fb2e23ed3ce10eb3df"
+          ]
+        }
+      }
+    },
+    "143": {
+      "network": "Monad Mainnet",
+      "chainId": 143,
+      "rpcUrl": "https://rpc.monad.xyz",
+      "explorerUrl": "https://monadvision.com",
+      "contracts": {
+        "ServiceRegistry": {
+          "address": "0x4F791F13F94944fCB2F884f8C7991cAa583884A6",
+          "envKey": "SERVICE_REGISTRY_ADDRESS",
+          "note": "Takes only the curation authority in its constructor and references no other Tab contract."
+        },
+        "Bond": {
+          "address": "0xbA86C0D053ba88afDECbED8aBa5b2eC3973fb230",
+          "envKey": "BOND_ADDRESS",
+          "note": "Real escrow: deposits pull the Asset in, withdrawals pay it out, and freeOf is what TabBook reads."
+        },
+        "TabBook": {
+          "address": "0x0Dabf8E52280D0F128f546602a99b6DC4fbb80DC",
+          "envKey": "TAB_BOOK_ADDRESS",
+          "note": "Constructed over ServiceRegistry and Bond with the credit parameters; its settlement surface was wired one-shot at deployment."
+        },
+        "TabSettlement": {
+          "address": "0x32A96bfEABe766B4898b961B333B7B89f079a9a9",
+          "envKey": "TAB_SETTLEMENT_ADDRESS",
+          "note": "The one way a tab is paid, by the Agent's key or by a Permit2 signature anyone may submit. Holds nothing."
+        }
+      },
+      "permit2": {
+        "address": "0x000000000022D473030F116dDEE9F6B43aC78BA3",
+        "note": "Uniswap's Permit2 at its canonical address, the same on every chain it exists on. Not deployed by Tab, so no envKey."
+      },
+      "erc8004": {
+        "identityRegistry": "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432",
+        "reputationRegistry": "0x8004BAa17C55a88189AE136b182e5fdA19dE9b63",
+        "note": "The canonical ERC-8004 registries on Monad Mainnet. Not deployed by Tab, so no envKey.",
+        "identities": {
+          "service": {
+            "agentId": 10254,
+            "recordedAs": "ERC8004_SERVICE_AGENT_ID",
+            "owner": "0x49472EF9ED99f30d4eaD45Ac9E1C16c31f70783A"
+          },
+          "agent": {
+            "agentId": 10255,
+            "recordedAs": "ERC8004_AGENT_ID",
+            "owner": "0x49472EF9ED99f30d4eaD45Ac9E1C16c31f70783A"
+          }
+        }
+      },
+      "deployedAt": "2026-09-22",
+      "roles": {
+        "curationAuthority": {
+          "address": "0x123c19F46C38d5b4E922D1297250a71A03DFFD17",
+          "envKey": "CURATION_AUTHORITY_ADDRESS",
+          "kind": "CurationMultisig",
+          "threshold": 2,
+          "owners": [
+            "0x49472EF9ED99f30d4eaD45Ac9E1C16c31f70783A",
+            "0x64e86f88706AfA73bB627Dbd7430406CF26b4F78",
+            "0x1Dbd5fFB45B4Da554B0825A9A460503708c4E3F4"
+          ],
+          "note": "A 2-of-3 CurationMultisig, deployed before ServiceRegistry because the authority is a constructor immutable with no setter. Its owner set is immutable too, so it can only change at a new deployment. All three owners are held by this project today, which a one-person deployment cannot honestly dress up as three parties: what the contract enforces is 2-of-3, and who holds the three is a separate question. The role moves a Service to the Curated tier and nothing else, every change it makes is queued 48 hours in public first, and the multisig has no receive and no payable function so it can hold no value."
+        }
+      },
+      "parameters": {
+        "creditBaselineBaseUnits": "5000000",
+        "growthFactorBps": 5000
+      },
+      "demo": {
+        "serviceId": "0x7461622e64656d6f000000000000000000000000000000000000000000000000",
+        "serviceIdText": "tab.demo",
+        "operator": "0x49472EF9ED99f30d4eaD45Ac9E1C16c31f70783A",
+        "assets": [
+          "0x754704Bc059F8C67012fEd69BC8A327a5aafb603"
+        ],
+        "collection": "0x49472EF9ED99f30d4eaD45Ac9E1C16c31f70783A",
+        "tool": "quote.generate",
+        "priceBaseUnits": "10000",
+        "bond": {
+          "USDC": "1000000"
+        },
+        "applied": {
+          "note": "Changes queued at deployment and applied after the 48-hour hold, in one script/05_PriceFrontedTools.s.sol --sig \"applyQueued(bytes32[])\" run, the AUSD AcceptedAsset before its price. The demo Service now accepts USDC and AUSD on Mainnet and prices both fronted tools.",
+          "frontedTools": {
+            "tools": [
+              "apihub.run",
+              "nansen.query"
+            ],
+            "unitBaseUnits": "1",
+            "changeIds": [
+              "0x74ae0550c5c5ae998eeaa62ea75454c956d6bce920a5264fdac945801f419d75",
+              "0x8a40f4a95e1d98c66715cd1a31c023c2165b55d288cf5fe39140faf0a5804960"
+            ],
+            "note": "Taken from the RegistryChangeQueued events in the broadcast receipts, not from the script's return value: queueChange folds block.timestamp and a nonce into the id, so the id a simulation computes is not the id the broadcast stores. An earlier version of this record carried the simulated ids, which named no change at all."
+          },
+          "ausd": {
+            "asset": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+            "changeIds": [
+              "0xc62376abee46fa78de4f68d92dfbe196f685cd44fb8384a652e0b8103805fd4c",
+              "0x21df41d4390cdb70d8bebfa260243597bc641c8251a55374bbf7cf1b2c53469e"
+            ],
+            "note": "AcceptedAsset with its Collection, then the quote.generate price. A third change queued before these carried a payload of the right length and the wrong shape, which decoded to a collection of 0x...01; it was cancelled before it could apply, which is what the 48-hour hold is for."
+          },
+          "queuedAt": "2026-09-22",
+          "appliedAt": "2026-09-25",
+          "applyTransactions": [
+            "0x6fc22c2e45f54eddd794baaf0c9a955589fbc01d5498f2de70bf95fd9726a542",
+            "0x6ab063b009e1b05b96a137f0c2b952d02f473ee24579dc81a2471a86c5ccab0d",
+            "0xd3a587bbbcb3dbe16cbe7655e4f8ddd7abccddceafc193fad1bc35245bb4a13b",
+            "0x5a0bd76b942f10643d7dc8b7c2924c679beb7cf5843d60be14db8d9ffb18fec8"
+          ]
+        }
+      }
+    }
+  },
+  "testnetAssets": {
+    "$comment": "Third-party tokens on Monad Testnet, recorded for orientation and deliberately without an envKey. USDC is Circle's (name USDC, EIP-712 version 2), 20 per address every two hours from https://faucet.circle.com.",
+    "USDC": "0x534b2f3A21130d7a60830c2Df862319e593943A3"
+  },
+  "mainnetAssets": {
+    "$comment": "Third-party tokens on Monad Mainnet, recorded for orientation and deliberately without an envKey.",
+    "USDC": "0x754704Bc059F8C67012fEd69BC8A327a5aafb603",
+    "AUSD": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a"
+  }
+}
