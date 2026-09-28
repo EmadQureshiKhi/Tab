@@ -1,0 +1,27 @@
+{
+  "$comment": [
+    "Every Monad address this project controls. Any address absent from this file is",
+    "external by definition, which is the classification rule in one sentence.",
+    "",
+    "The direction matters. An allowlist of insiders can only ever overstate how many",
+    "outsiders there are if it is incomplete, so the file is written to be exhaustive",
+    "and every omission inflates a published adoption figure. That is why each entry",
+    "names why the address is ours rather than only listing it: an entry nobody can",
+    "check is an entry nobody will notice going stale.",
+    "",
+    "Addresses only. No key material belongs here, and every value below is public and",
+    "readable on chain.",
+    "",
+    "Classification is applied to Metered Deliveries and Settlements by the Agent the",
+    "book names, which on Monad is the account that signed the transaction."
+  ],
+  "network": "Monad Testnet",
+  "chainId": 10143,
+  "internal": [
+    {
+      "address": "0x49472EF9ED99f30d4eaD45Ac9E1C16c31f70783A",
+      "role": "deployer and curation authority",
+      "why": "deployed every contract on 2026-09-21 and is the curation authority ServiceRegistry holds until a CurationMultisig replaces it"
+    }
+  ]
+}

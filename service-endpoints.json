@@ -1,0 +1,48 @@
+{
+  "$comment": [
+    "Where a registered Service can actually be reached.",
+    "",
+    "This is not chain state and it is not presented as any. `ServiceRegistry.Service`",
+    "stores an operator, a tier, a Settlement Window, a bond account and a registration",
+    "time. It stores no URL, deliberately: the chain is the billing rail, not a directory",
+    "of hosts. Putting one on chain would mean every Service paid gas to move house, and",
+    "would make a dead link a permanent record.",
+    "",
+    "So the directory lives here, published by this project, and the Dashboard labels it",
+    "as such. A Service registered on chain but absent from this file is still listed",
+    "with its real tools and prices; it is shown without a run command, and the page says",
+    "that is why. The chain remains the authority on what a Service charges. This file is",
+    "only the authority on where to send the call.",
+    "",
+    "No key material belongs here. Every value below is a public endpoint."
+  ],
+  "services": [
+    {
+      "serviceId": "0x7461622e64656d6f000000000000000000000000000000000000000000000000",
+      "name": "tab.demo",
+      "summary": "The demonstration Service this project runs on Monad Testnet: one priced tool, metered through the gateway and settled through TabSettlement. A 402 on LimitExceeded also carries an x402 offer for the same charge, and the /hub routes front pay-per-request x402 APIs on credit.",
+      "endpoint": "http://localhost:8788",
+      "transport": "mcp",
+      "operatedBy": "this project",
+      "tools": {
+        "quote.generate": "Answers a metered call with a quote. Priced per call; nothing is paid to make the call.",
+        "nansen.query": "Any Nansen x402 endpoint, through /hub/nansen/<path>, for example /hub/nansen/smart-money/holdings. The Service pays Nansen's price ($0.01 to $0.05 a call, USDC on Monad) with its own key and meters the Open Tab for that price plus a 5% margin; nothing is paid to make the call.",
+        "apihub.run": "Any of the API Hub's 74 providers, through POST /hub/apihub/run with { provider, endpoint, input } in the body. The Service pays the Hub's per-call price and meters the Open Tab for it plus a 5% margin. tab_discover lists the fronted provider's endpoints from the Hub manifest."
+      },
+      "x402": {
+        "offerOn402": true,
+        "facilitator": "https://x402-facilitator.molandak.org",
+        "scheme": "exact",
+        "note": "A LimitExceeded 402 carries PAYMENT-REQUIRED beside its Tab-Charge-* headers. A request carrying PAYMENT-SIGNATURE is prepaid for the one call and is not metered."
+      },
+      "hub": {
+        "provider": "defillama",
+        "prefix": "apihub",
+        "upstream": "https://x402.monid.ai/v1",
+        "manifest": "https://api.monid.ai/public/v1/endpoints?provider=defillama",
+        "marginBps": 500,
+        "note": "Buy now, pay later for an x402 API: the Agent calls /hub/apihub/run on its Open Tab and settles later; the Service fronts the Hub's x402 payment. /hub/nansen fronts Nansen the same way."
+      }
+    }
+  ]
+}
