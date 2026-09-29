@@ -40,7 +40,7 @@ export interface NetworkDeployment {
   readonly startBlock: number;
 }
 
-/** Monad Testnet: the second deployment, from block 64554587. */
+/** Monad Testnet, deployed from block 64554587. */
 export const TESTNET_DEPLOYMENT: NetworkDeployment = {
   chainId: MONAD_TESTNET.chainId,
   serviceRegistry: "0x3638db35a76e5a22ea1e827636da994be622c139",
