@@ -3,10 +3,10 @@ import { test } from "node:test";
 
 import { createChainReader } from "../dist/chain.js";
 import { createKeeperApp, suppliedSecret } from "../dist/server.js";
-import { AGENT_A, AGENT_B, fakeMarker, fakeRpc, SERVICE, SERVICE_REGISTRY, TAB_BOOK, tabIdFor, USDC } from "./fake-chain.mjs";
+import { AGENT_A, AGENT_B, fakeMarker, fakeRpc, SERVICE, SERVICE_REGISTRY, TAB_BOOK, tabIdFor, MUSDC } from "./fake-chain.mjs";
 
-const candidates = [AGENT_A, AGENT_B].map((agent) => ({ agent, serviceId: SERVICE, asset: USDC }));
-const TAB_A = tabIdFor(AGENT_A, SERVICE, USDC);
+const candidates = [AGENT_A, AGENT_B].map((agent) => ({ agent, serviceId: SERVICE, asset: MUSDC }));
+const TAB_A = tabIdFor(AGENT_A, SERVICE, MUSDC);
 
 const app = (over = {}) => {
   const secret = "secret" in over ? over.secret : "s3cret";

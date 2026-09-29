@@ -1,4 +1,5 @@
 {
+  "$comment": "Placeholder for a hosted run, not a live deployment: the workflow runs under the CRE simulator against config.json. keeperUrl must name the hosted keeper before this target is deployed. The config schema strips this key.",
   "schedule": "0 */10 * * * *",
   "keeperUrl": "https://keeper.example.com",
   "requestTimeout": "8s",

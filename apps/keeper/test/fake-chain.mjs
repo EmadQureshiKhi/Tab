@@ -16,7 +16,8 @@ import { addressArg, bytes32Arg, uintArg } from "../dist/chain.js";
 export const TAB_BOOK = "0x00000000000000000000000000000000000000b0";
 export const SERVICE_REGISTRY = "0x00000000000000000000000000000000000000c0";
 export const SERVICE = "0x7461622e64656d6f000000000000000000000000000000000000000000000000";
-export const USDC = "0x5d519a1e8cf4edd7067fd631047e6869e9a7e4fe";
+/** The Testnet `MockUsdc`, named `mUSDC` everywhere the rail prints a symbol. */
+export const MUSDC = "0x480209747417f5c830fda188a9b9acfa70bc4083";
 export const AGENT_A = "0x00000000000000000000000000000000000000a1";
 export const AGENT_B = "0x00000000000000000000000000000000000000a2";
 export const AGENT_C = "0x00000000000000000000000000000000000000a3";
@@ -33,10 +34,10 @@ export const tabIdFor = (agent, serviceId, asset) => keccak256Ascii(`${agent.toL
  */
 export function defaultTabs() {
   return [
-    { agent: AGENT_A, serviceId: SERVICE, asset: USDC, open: 10_000n, prepaid: 0n, oldestUnsettledAt: NOW - WINDOW - 60, lastDeliveryAt: NOW - 100, deliveryCount: 3, delinquent: false },
-    { agent: AGENT_B, serviceId: SERVICE, asset: USDC, open: 5_000n, prepaid: 0n, oldestUnsettledAt: NOW - 100, lastDeliveryAt: NOW - 100, deliveryCount: 1, delinquent: false },
-    { agent: AGENT_C, serviceId: SERVICE, asset: USDC, open: 7_000n, prepaid: 0n, oldestUnsettledAt: NOW - WINDOW - 5_000, lastDeliveryAt: NOW - 5_000, deliveryCount: 2, delinquent: true },
-    { agent: AGENT_D, serviceId: SERVICE, asset: USDC, open: 0n, prepaid: 2_000n, oldestUnsettledAt: 0, lastDeliveryAt: NOW - 9_000, deliveryCount: 4, delinquent: false },
+    { agent: AGENT_A, serviceId: SERVICE, asset: MUSDC, open: 10_000n, prepaid: 0n, oldestUnsettledAt: NOW - WINDOW - 60, lastDeliveryAt: NOW - 100, deliveryCount: 3, delinquent: false },
+    { agent: AGENT_B, serviceId: SERVICE, asset: MUSDC, open: 5_000n, prepaid: 0n, oldestUnsettledAt: NOW - 100, lastDeliveryAt: NOW - 100, deliveryCount: 1, delinquent: false },
+    { agent: AGENT_C, serviceId: SERVICE, asset: MUSDC, open: 7_000n, prepaid: 0n, oldestUnsettledAt: NOW - WINDOW - 5_000, lastDeliveryAt: NOW - 5_000, deliveryCount: 2, delinquent: true },
+    { agent: AGENT_D, serviceId: SERVICE, asset: MUSDC, open: 0n, prepaid: 2_000n, oldestUnsettledAt: 0, lastDeliveryAt: NOW - 9_000, deliveryCount: 4, delinquent: false },
   ];
 }
 

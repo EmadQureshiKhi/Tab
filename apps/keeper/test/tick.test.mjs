@@ -8,12 +8,12 @@ import { test } from "node:test";
 
 import { createChainReader } from "../dist/chain.js";
 import { readOverdue, runTick } from "../dist/tick.js";
-import { AGENT_A, AGENT_B, AGENT_C, AGENT_D, fakeMarker, fakeRpc, NOW, SERVICE, SERVICE_REGISTRY, TAB_BOOK, tabIdFor, USDC, WINDOW } from "./fake-chain.mjs";
+import { AGENT_A, AGENT_B, AGENT_C, AGENT_D, fakeMarker, fakeRpc, NOW, SERVICE, SERVICE_REGISTRY, TAB_BOOK, tabIdFor, MUSDC, WINDOW } from "./fake-chain.mjs";
 
-const candidates = [AGENT_A, AGENT_B, AGENT_C, AGENT_D].map((agent) => ({ agent, serviceId: SERVICE, asset: USDC }));
+const candidates = [AGENT_A, AGENT_B, AGENT_C, AGENT_D].map((agent) => ({ agent, serviceId: SERVICE, asset: MUSDC }));
 const walk = (list = candidates) => async () => ({ ok: true, value: { candidates: list, rows: list.length * 2, pages: 1 } });
-const TAB_A = tabIdFor(AGENT_A, SERVICE, USDC);
-const TAB_B = tabIdFor(AGENT_B, SERVICE, USDC);
+const TAB_A = tabIdFor(AGENT_A, SERVICE, MUSDC);
+const TAB_B = tabIdFor(AGENT_B, SERVICE, MUSDC);
 
 const deps = (rpc, marker, walkFeed = walk()) => ({
   chain: createChainReader({ rpcUrl: "http://node.test", fetchImpl: rpc }),

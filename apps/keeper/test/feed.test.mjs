@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { walkDeliveryFeed } from "../dist/feed.js";
-import { AGENT_A, AGENT_B, SERVICE, USDC } from "./fake-chain.mjs";
+import { AGENT_A, AGENT_B, SERVICE, MUSDC } from "./fake-chain.mjs";
 
-const row = (agent) => ({ agent, serviceId: SERVICE, asset: USDC, tool: `0x${"33".repeat(32)}`, units: 1, amount: "10000", timestamp: 1, monad: {} });
+const row = (agent) => ({ agent, serviceId: SERVICE, asset: MUSDC, tool: `0x${"33".repeat(32)}`, units: 1, amount: "10000", timestamp: 1, monad: {} });
 const page = (deliveries, nextCursor) => ({ status: 200, json: async () => ({ index: {}, deliveries, nextCursor }) });
 
 test("the walk follows the registry's cursor to the end and names each tab once", async () => {

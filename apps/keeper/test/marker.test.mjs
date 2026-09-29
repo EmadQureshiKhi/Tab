@@ -3,9 +3,9 @@ import { test } from "node:test";
 import { keccak256Ascii } from "@tabai/shared";
 
 import { classifyRevert, createEthersMarker, markCalldata, MARK_DELINQUENT_SELECTOR, SKIP_SELECTORS } from "../dist/marker.js";
-import { TAB_BOOK, tabIdFor, AGENT_A, SERVICE, USDC } from "./fake-chain.mjs";
+import { TAB_BOOK, tabIdFor, AGENT_A, SERVICE, MUSDC } from "./fake-chain.mjs";
 
-const TAB = tabIdFor(AGENT_A, SERVICE, USDC);
+const TAB = tabIdFor(AGENT_A, SERVICE, MUSDC);
 const selector = (signature) => keccak256Ascii(signature).slice(0, 10);
 
 test("the mark calldata is markDelinquent(bytes32) with the id as its one word", () => {

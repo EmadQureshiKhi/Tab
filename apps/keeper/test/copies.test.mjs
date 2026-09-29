@@ -17,7 +17,9 @@ const HEADER_LINES = 4;
 
 for (const name of ["chain.ts", "overdue.ts"]) {
   test(`src/${name} is apps/app/src/dashboard/${name} verbatim, under a four-line provenance header`, () => {
-    if (!existsSync(original(name))) return;
+    // A missing original fails rather than passing vacuously: the check is only
+    // worth having if it runs.
+    assert.ok(existsSync(original(name)), `apps/app/src/dashboard/${name} is missing, so the copy has nothing to match`);
     const theirs = readFileSync(original(name), "utf8");
     const ours = readFileSync(copy(name), "utf8").split("\n");
     const header = ours.slice(0, HEADER_LINES);
