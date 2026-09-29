@@ -126,7 +126,7 @@ Add --broadcast to send it. This spends real funds.
 
 ## Configuration
 
-`doctor` warns when two things are missing, and both live in a config file rather than the environment, because neither is a secret: the agent whose Open Tab a call meters to, and where a Service can be reached.
+Two things are yours to name, and both live in a config file rather than the environment, because neither is a secret: the agent whose Open Tab a call meters to, and any Service beyond the hosted demo one. `doctor` warns when the agent is missing.
 
 Put a `tab.config.mjs` beside your project, or in any parent directory:
 
@@ -187,7 +187,7 @@ The key is read at the moment a Settlement is built, and never from this file. `
 
 | Variable | Needed for |
 | --- | --- |
-| `MONAD_RPC_URL` | every read. The MCP server and `doctor` need only this |
+| `MONAD_RPC_URL` | `doctor`'s chain checks and a Settlement signer. The MCP tools read through the registry API |
 | `MONAD_CHAIN_ID` | `143` for Mainnet, `10143` for Testnet. Defaults to Testnet |
 | `TAB_BOOK_ADDRESS`, `TAB_SETTLEMENT_ADDRESS`, `SERVICE_REGISTRY_ADDRESS`, `BOND_ADDRESS` | resolving credit, Services and Bond |
 | `NEXT_PUBLIC_REGISTRY_API_URL` | the Service directory and an agent's history. Defaults to the project's hosted registry for the chosen network |
@@ -311,7 +311,7 @@ app.all("/hub/nansen/*", (c) => proxy(c.req.raw));
 
 The price is known only after the upstream's `402`, so `pricing` is a book the forward writes and `priceOf` reads, keyed by the request. **The amount rides in the unit count, not the unit price.** `TabBook.recordDelivery` refuses any unit price the applied price list does not hold, and a fronted price varies per call, so the Service publishes a small fixed unit for the fronted tool, one base unit by default, and a call consumes as many units as it cost. Without that published price every fronted delivery reverts `UnknownTool`, the plugin delivers anyway because a broken price list is the Service's fault, and the Service pays the upstream for work it bills nobody. `unitBaseUnits` sets a coarser unit, rounded up so the Service is never left short. `preflight` runs between the upstream's `402` and the operator's signature, with the quoted amount in hand: a Service simulates the delivery against `TabBook` there and refuses an Agent with no headroom before its own funds move. Only `exact` with EIP-3009 is signed, on the Service's own chain and Asset; an upstream that accepts nothing the Service can pay in is answered with why, and nothing is metered.
 
-`fetchHubManifest` reads Monad's API Hub, which fronts 74 pay-per-request providers behind one x402 endpoint, and `tab_discover` lists a fronted provider's endpoints under the Service as the tools they are, with the Hub's per-call price in base units:
+`fetchHubManifest` reads Monad's API Hub, which fronts dozens of pay-per-request providers behind one x402 endpoint, and `tab_discover` lists a fronted provider's endpoints under the Service as the tools they are, with the Hub's per-call price in base units:
 
 ```js
 services: [{ serviceId, endpoint, hub: { provider: "defillama", prefix: "apihub" } }]

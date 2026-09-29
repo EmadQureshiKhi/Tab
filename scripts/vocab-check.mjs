@@ -6,8 +6,7 @@
  * part of this repository: in file contents, in filenames, or in directory
  * names. Its purpose is editorial consistency: every document, comment,
  * identifier, and string here speaks about Tab on Monad in Tab's own
- * vocabulary, and nothing else. It is also how the port is kept honest: the
- * denylist carries the names of the design Tab left behind.
+ * vocabulary, and nothing else.
  *
  * The denylist is itself a secret and is never committed. It is materialised
  * into the gitignored `.vocabulary-denylist` file - one term per line - from
