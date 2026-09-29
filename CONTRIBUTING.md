@@ -48,29 +48,14 @@ pnpm deployments:check    # the deployment MONAD_CHAIN_ID names, joined against 
 
 ## The vocabulary gate
 
-The repository carries an editorial gate.
-It fails the build when prohibited terminology appears anywhere git considers part of the tree, in file contents, in filenames, or in directory names, so every document, comment, identifier and string speaks about Tab on Monad in Tab's own vocabulary.
+A vocabulary check runs in CI and in the pre-commit hook, so every document, comment, identifier and string uses the project's own terms consistently.
 
 ```bash
-pnpm vocab:check                             # everything git tracks, plus untracked paths git does not ignore
+pnpm vocab:check                             # everything git tracks
 node scripts/vocab-check.mjs --staged        # staged paths only, which is what the hook runs
-node scripts/vocab-check.mjs --files a b c   # an explicit set
-pnpm vocab:denylist                          # write the denylist file from VOCAB_DENYLIST
 ```
 
-Exit codes are `0` clean, `1` at least one match, `2` the gate could not run.
-Each match prints `path:line:column`, the term, and the offending line with the match marked; line `0` marks a match in the path itself.
-Matching is case-insensitive on word boundaries.
-Binary payloads are skipped by extension and by content sniffing, and every skip is listed in the summary rather than passing unseen.
-
-The denylist is a secret and is never committed.
-It lives in the gitignored `.vocabulary-denylist` file, one term per line.
-In CI it is materialised at job start from the `VOCAB_DENYLIST` repository secret; locally, keep your own copy of that file or export the same variable and let the script write it.
-**With no denylist in place the gate exits `2` rather than passing**, because a gate that passes vacuously is worse than no gate.
-
-Lockfiles, the denylist file, `node_modules`, `.git`, `out`, `dist`, `.next`, `cache` and `broadcast` are out of scope, as is everything `.gitignore` excludes.
-
-The pre-commit hook runs the same script over staged paths only, so a commit stays fast and a violation is caught before it enters history.
+Its term list comes from the `VOCAB_DENYLIST` setting; with no list configured it exits `2` rather than passing.
 
 ## The coverage gate
 
@@ -104,7 +89,7 @@ Measuring takes several minutes and the report is gitignored, so the two halves 
 ## The README art
 
 The two hero figures and the social card under `assets/readme/` are committed, because GitHub renders a README from the repository rather than from a build.
-The brand marks under `assets/brand/` are the source, and [`assets/README.md`](./assets/README.md) records the palette derivation and the contrast rules the figures follow.
+The brand marks under `assets/brand/` are the source, and `assets/palette.json` holds the palette the figures follow.
 There is no generator in the tree; a figure that changes is re-exported by hand from the 4k mark and checked against the same rules.
 
 ## Running the rail locally

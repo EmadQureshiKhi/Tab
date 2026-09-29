@@ -243,7 +243,7 @@
               "0x74ae0550c5c5ae998eeaa62ea75454c956d6bce920a5264fdac945801f419d75",
               "0x8a40f4a95e1d98c66715cd1a31c023c2165b55d288cf5fe39140faf0a5804960"
             ],
-            "note": "Taken from the RegistryChangeQueued events in the broadcast receipts, not from the script's return value: queueChange folds block.timestamp and a nonce into the id, so the id a simulation computes is not the id the broadcast stores. An earlier version of this record carried the simulated ids, which named no change at all."
+            "note": "Taken from the RegistryChangeQueued events in the broadcast receipts, not from the script's return value: queueChange folds block.timestamp and a nonce into the id, so the id a simulation computes is not the id the broadcast stores."
           },
           "ausd": {
             "asset": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",

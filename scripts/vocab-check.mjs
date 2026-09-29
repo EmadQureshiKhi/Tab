@@ -507,7 +507,7 @@ function main() {
       "\nvocab: line 0 marks a match in the path itself rather than in file contents.",
     );
     console.error(
-      "vocab: rewrite each occurrence in the project's own vocabulary. See the style guide in apps/docs.",
+      "vocab: rewrite each occurrence in the project's own vocabulary.",
     );
     process.exit(1);
   }
