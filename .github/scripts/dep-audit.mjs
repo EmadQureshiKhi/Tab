@@ -226,7 +226,7 @@ notes.push(
   `${LOCKFILE} is lockfileVersion ${lock.version}, with ${lock.importers.length} importer entries and ${lock.resolved.size} resolved packages.`,
 );
 
-// 1. The three exact pins, in the manifest, in the overrides, and in the lockfile.
+// 1. The exact pin, in the manifest, in the overrides, and in the lockfile.
 for (const pin of EXACT_PINS) {
   const declared = manifest[pin.block]?.[pin.name];
   if (declared === undefined) {

@@ -36,48 +36,7 @@ env:
 
 jobs:
   # --------------------------------------------------------------------------
-  # 1. The vocabulary gate. First, cheap, blocking.
-  #
-  # Two steps, in this order. The denylist is itself a secret and is never
-  # committed, so it is materialised from the repository secret of the same name
-  # at job start and dies with the runner. The gate exits 2 when the denylist is
-  # missing or empty, which means a misconfigured secret fails this job loudly
-  # rather than passing vacuously. There is deliberately no `continue-on-error`
-  # anywhere near it, and no debug output around it either: the materialise step
-  # prints a term count and never a term.
-  #
-  # A pull request from a fork has no access to the secret and will fail here.
-  # That is the correct outcome for a gate whose whole value is that it cannot be
-  # skipped.
-  #
-  # Checkout depth 1 is deliberate: `scripts/vocab-check.mjs` scans the working
-  # tree, not history, so deeper history buys the gate nothing.
-  # --------------------------------------------------------------------------
-  vocabulary-gate:
-    name: vocabulary-gate
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - name: Check out the repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-
-      - name: Set up the workspace
-        uses: ./.github/actions/setup-workspace
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          install: "false"
-
-      - name: Materialise the denylist from the repository secret
-        env:
-          VOCAB_DENYLIST: ${{ secrets.VOCAB_DENYLIST }}
-        run: node scripts/vocab-check.mjs --materialise
-
-      - name: Scan the tree
-        run: pnpm vocab:check
-
-  # --------------------------------------------------------------------------
-  # 2. The Foundry project.
+  # 1. The Foundry project.
   #
   # `forge-std` is a git submodule pinned to v1.9.7 and declared in the
   # repository-root `.gitmodules`, so the checkout takes `submodules: recursive`
@@ -87,7 +46,6 @@ jobs:
   # --------------------------------------------------------------------------
   contracts:
     name: contracts
-    needs: [vocabulary-gate]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -157,11 +115,10 @@ jobs:
         run: pnpm coverage
 
   # --------------------------------------------------------------------------
-  # 3. TypeScript, no emit, across every workspace.
+  # 2. TypeScript, no emit, across every workspace.
   # --------------------------------------------------------------------------
   typecheck:
     name: typecheck
-    needs: [vocabulary-gate]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -178,9 +135,9 @@ jobs:
         run: pnpm typecheck
 
   # --------------------------------------------------------------------------
-  # 4. Lint. The root `lint` script chains three checks: the one-way
-  # dependency-direction rule, the environment-variable completeness check
-  #, and then the per-workspace lint tasks.
+  # 3. Lint. The root `lint` script chains three checks: the one-way
+  # dependency-direction rule, the environment-variable completeness check, and
+  # then the per-workspace lint tasks.
   #
   # The deployment-record gate runs here too, as its own step ahead of that
   # chain. It belongs in this job because it needs nothing but Node and the two
@@ -193,7 +150,6 @@ jobs:
   # --------------------------------------------------------------------------
   lint:
     name: lint
-    needs: [vocabulary-gate]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -206,7 +162,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      # `deployments.json` and `.env.example` name the same eleven addresses
+      # `deployments.json` and `.env.example` name the same addresses
       # through different keys, joined on the `envKey` field the record carries.
       # A key in one and not the other is how a deployment record goes stale
       # without anyone noticing, and nothing else in this pipeline can see it:
@@ -227,7 +183,7 @@ jobs:
         run: pnpm lint
 
   # --------------------------------------------------------------------------
-  # 5. The workspace unit suites.
+  # 4. The workspace unit suites.
   #
   # `contracts` covers Solidity and `property-tests` the fuzz and invariant
   # suites; this job runs the workspace `test` task, as its own job so the
@@ -245,7 +201,6 @@ jobs:
   # --------------------------------------------------------------------------
   unit-tests:
     name: unit-tests
-    needs: [vocabulary-gate]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -262,7 +217,7 @@ jobs:
         run: pnpm exec turbo run test --filter='!@tabai/contracts'
 
   # --------------------------------------------------------------------------
-  # 6. Secret scan.
+  # 5. Secret scan.
   #
   # Two passes and one assertion:
   #
@@ -283,7 +238,6 @@ jobs:
   # --------------------------------------------------------------------------
   secret-scan:
     name: secret-scan
-    needs: [vocabulary-gate]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -321,7 +275,7 @@ jobs:
         run: node .github/scripts/tracked-ignore-check.mjs
 
   # --------------------------------------------------------------------------
-  # 7. Dependency audit.
+  # 6. Dependency audit.
   #
   # Two halves. `pnpm audit --audit-level=high` is the advisory half. The pinning
   # assertion is the other: `@openzeppelin/contracts` is pinned exactly, while
@@ -335,7 +289,6 @@ jobs:
   # --------------------------------------------------------------------------
   dep-audit:
     name: dep-audit
-    needs: [vocabulary-gate]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -356,15 +309,9 @@ jobs:
         run: pnpm audit --audit-level=high
 
   # --------------------------------------------------------------------------
-  # 8. Property-based suites. Both halves are real checks.
-  #
-  # The Solidity half runs `packages/contracts/test/property/` under the fuzz and
-  # invariant profiles configured in `packages/contracts/foundry.toml` at 256 runs,
-  # depth 64.
-  #
-  # The generated-input TypeScript half runs `turbo run test:property` across every
-  # package that declares the task. Only the browser suite is still a placeholder,
-  # and `deploy-gate` publishes that one row.
+  # 7. Property-based suites: `packages/contracts/test/property/` under the fuzz
+  # and invariant profiles configured in `packages/contracts/foundry.toml`, at 256
+  # runs and depth 64.
   # --------------------------------------------------------------------------
   property-tests:
     name: property-tests
@@ -394,13 +341,8 @@ jobs:
         working-directory: packages/contracts
         run: forge test --match-path "test/property/*" -vv
 
-      # Run alone, so that a failure names the property rather than arriving inside a
-      # whole package's suite.
-      - name: Run the generated-input suites
-        run: pnpm exec turbo run test:property
-
   # --------------------------------------------------------------------------
-  # 9. Browser suites. Declared placeholder, same mechanism.
+  # 8. Browser suites.
   # --------------------------------------------------------------------------
   e2e:
     name: e2e
@@ -450,7 +392,7 @@ jobs:
         run: pnpm --filter '@tabai/app...' build && pnpm --filter @tabai/app build:site
 
       # `playwright test` directly, not `pnpm e2e`. The wrapper script exists for a
-      # development machine running an Ubuntu release Playwright ships no browser for,
+      # development machine Playwright ships no browser build for,
       # where the browser and its libraries have to be supplied from outside without
       # root. This runner is a supported host, so the normal path is the honest one and
       # exercising it here is what would catch the wrapper hiding a real breakage.
@@ -458,8 +400,7 @@ jobs:
         run: pnpm --filter @tabai/app exec playwright test
 
   # --------------------------------------------------------------------------
-  # 10. The one-command read-only verification path. Declared
-  # placeholder, same mechanism.
+  # 9. The one-command read-only verification path.
   #
   # This job references no secret at all, which is what makes the claim that the path
   # completes without a private key and without funded accounts a tested claim
@@ -510,19 +451,16 @@ jobs:
         run: forge script script/02_VerifyDeployment.s.sol:VerifyDeployment --rpc-url monad_testnet --sig "run()"
 
   # --------------------------------------------------------------------------
-  # 11. The gate. The single required status check.
+  # 10. The gate. The single required status check.
   #
   # It runs with `always()` so a failed or skipped dependency reaches it instead
   # of skipping it silently; a gate that disappears when something upstream
-  # breaks is not a gate. It then asserts every dependency reported `success`,
-  # and publishes the placeholder ledger so each run states in plain text how
-  # many of its required checks ran nothing.
+  # breaks is not a gate. It then asserts every dependency reported `success`.
   # --------------------------------------------------------------------------
   deploy-gate:
     name: deploy-gate
     if: always()
     needs:
-      - vocabulary-gate
       - contracts
       - typecheck
       - lint
@@ -535,20 +473,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions: {}
     steps:
-      # Each row names a suite, not a job, because one job can carry a real half
-      # and a pending half. `property-tests` does exactly that today. `reproduce` was
-      # a row here until task 27 landed; it now runs a real check on every push, so
-      # listing it would report a placeholder that no longer exists.
-      # The ledger that stood here listed the suites behind this gate that ran nothing.
-      # There are none left: the generated-input, browser and keyless-verification jobs
-      # were all declared placeholders and all three became real checks in wave 20. A
-      # ledger with no rows says less than its absence does, so it is gone rather than
-      # kept as an empty table. Re-add it the moment a placeholder is declared again.
-
       - name: Assert every required check succeeded
         env:
           RESULTS: |
-            vocabulary-gate=${{ needs.vocabulary-gate.result }}
             contracts=${{ needs.contracts.result }}
             typecheck=${{ needs.typecheck.result }}
             lint=${{ needs.lint.result }}

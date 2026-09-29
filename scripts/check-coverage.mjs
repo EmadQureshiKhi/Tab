@@ -6,9 +6,8 @@
  * its mechanical form: it reads the LCOV
  * report `forge coverage` writes, computes line coverage per contract, prints
  * every figure beside the floor that applies to it, and fails the build when
- * any floored contract sits below its floor. Before this existed the floors
- * were read off the terminal by hand on each batch, which is a habit rather
- * than a gate.
+ * any floored contract sits below its floor, so the floors are a gate rather
+ * than a habit.
  *
  * Two tiers, both on lines
  *

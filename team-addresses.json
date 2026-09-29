@@ -15,13 +15,94 @@
     "Classification is applied to Metered Deliveries and Settlements by the Agent the",
     "book names, which on Monad is the account that signed the transaction."
   ],
-  "network": "Monad Testnet",
-  "chainId": 10143,
+  "network": "Monad Mainnet and Monad Testnet",
   "internal": [
     {
       "address": "0x49472EF9ED99f30d4eaD45Ac9E1C16c31f70783A",
-      "role": "deployer and curation authority",
-      "why": "deployed every contract on 2026-09-21 and is the curation authority ServiceRegistry holds until a CurationMultisig replaces it"
+      "chainIds": [
+        143,
+        10143
+      ],
+      "role": "deployer, demo Service operator, Testnet curation authority and Mainnet multisig owner",
+      "why": "deployed every contract on both networks on 2026-09-22, operates tab.demo on both, holds the Testnet curation role, and is one of the three owners of the Mainnet CurationMultisig"
+    },
+    {
+      "address": "0x123c19F46C38d5b4E922D1297250a71A03DFFD17",
+      "chainIds": [
+        143
+      ],
+      "role": "Mainnet curation authority",
+      "why": "the 2-of-3 CurationMultisig ServiceRegistry names on Mainnet; all three owners are held by this project"
+    },
+    {
+      "address": "0x64e86f88706AfA73bB627Dbd7430406CF26b4F78",
+      "chainIds": [
+        143
+      ],
+      "role": "Mainnet multisig owner",
+      "why": "the second of the three CurationMultisig owners, held by this project"
+    },
+    {
+      "address": "0x1Dbd5fFB45B4Da554B0825A9A460503708c4E3F4",
+      "chainIds": [
+        143
+      ],
+      "role": "Mainnet multisig owner",
+      "why": "the third of the three CurationMultisig owners, held by this project"
+    },
+    {
+      "address": "0x3a3B6079e418C81a9dE08414Bb07ea817939e7Ce",
+      "chainIds": [
+        143,
+        10143
+      ],
+      "role": "demonstration Agent",
+      "why": "the Dashboard's Try it Agent on both networks and the Agent the walkthrough scripts run"
+    },
+    {
+      "address": "0xA4Bea810B8bDA6634Ac1819d453e64Ff0A8066E2",
+      "chainIds": [
+        143
+      ],
+      "role": "demonstration Agent",
+      "why": "a second Agent for the Mainnet walkthrough, keyed by this project"
+    },
+    {
+      "address": "0x2D5b1150007f427120be3da0F8CfbbE59B94ED6C",
+      "chainIds": [
+        143
+      ],
+      "role": "demonstration Agent",
+      "why": "a third Agent for the Mainnet walkthrough, keyed by this project"
+    },
+    {
+      "address": "0x1A63D38074787BDB19B24DD4BFCaF4c9159B8968",
+      "chainIds": [
+        10143
+      ],
+      "role": "demonstration Agent (passkey session key)",
+      "why": "a session key derived from this project's passkey account, which ran the Agent loop on Testnet"
+    },
+    {
+      "address": "0x3130ffCBE1002bA174964d24B4DD926AC5aaeb33",
+      "chainIds": [
+        10143
+      ],
+      "role": "passkey account owner",
+      "why": "the owner key of this project's passkey account on the Dashboard"
+    },
+    {
+      "address": "0xc8e380ba47cd12f4b45e6b31f7d2eb79d785a3dd",
+      "chainIds": [
+        143,
+        10143
+      ],
+      "role": "MetaMask Agent Wallet account",
+      "why": "the wallet this project drives through the mm tab plugin"
     }
+  ],
+  "networks": [
+    143,
+    10143
   ]
 }

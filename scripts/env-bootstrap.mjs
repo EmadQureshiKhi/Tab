@@ -84,10 +84,9 @@ const network = activeNetwork(record);
 const recorded = recordedAddresses(network);
 
 /*
-  The network's own coordinates come from the same entry as its addresses. The
-  template names Testnet, so without this a `--chain 143` run wrote Mainnet
-  addresses beside a Testnet chain id and RPC: every read then asked Testnet
-  about Mainnet contracts and found no code. USDC is Circle's on each network,
+  The network's own coordinates come from the same entry as its addresses, so
+  a `--chain 143` run never pairs Mainnet addresses with the template's Testnet
+  chain id and RPC. USDC is Circle's on each network,
   recorded without an envKey, so it is chosen by chain id here.
 */
 const assets = network.chainId === 143 ? record.mainnetAssets : record.testnetAssets;

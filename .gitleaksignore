@@ -4,5 +4,5 @@
 # packages/shared/src/chains.ts. The value is the public MockUsdc contract
 # address, 0x480209747417f5c830fDA188a9b9AcFa70Bc4083, recorded in
 # deployments.json and the README; the generic rule matched the field name.
-# The field has since been renamed `testAsset`.
+# The field is now named `testAsset`.
 5b18c98e59933dd202f410bea2d7e66d3b38d586:packages/shared/src/chains.ts:generic-api-key:145

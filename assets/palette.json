@@ -1,5 +1,5 @@
 {
-  "note": "The palette these assets are drawn in. Task 19.2 owns the Tailwind theme and the CI contrast script; this file is the source the assets were authored against, so the theme and the artwork cannot drift apart silently. Every ratio below was computed from the WCAG 2.1 relative-luminance formula and is stated to two decimals, rounded down.",
+  "note": "The palette these assets are drawn in. The Dashboard's theme and the CI contrast check both read this file, and the brand assets were drawn in it, so the theme and the artwork cannot drift apart silently. Every ratio below was computed from the WCAG 2.1 relative-luminance formula and is stated to two decimals, rounded down.",
   "thresholds": {
     "bodyAndNumericText": 4.5,
     "largeText": 3.0,
@@ -79,7 +79,7 @@
     { "pair": "dark.surface ink on dark.status.danger badge", "fg": "#0B1220", "bg": "#FF9A9A", "ratio": 9.22, "min": 4.5, "kind": "text" },
     { "pair": "dark.surface ink on dark.status.muted badge", "fg": "#0B1220", "bg": "#B3BECE", "ratio": 9.96, "min": 4.5, "kind": "text" },
     { "pair": "dark.surface ink on dark.status.notice badge", "fg": "#0B1220", "bg": "#C7A6F2", "ratio": 9.06, "min": 4.5, "kind": "text" },
-    { "pair": "white badge ink on light.status.pending", "fg": "#FFFFFF", "bg": "#8A5A00", "ratio": 5.93, "min": 4.5, "kind": "text", "note": "the numbered badges in latency-boundary.svg use white ink on each of the four filled badge colours" },
+    { "pair": "white badge ink on light.status.pending", "fg": "#FFFFFF", "bg": "#8A5A00", "ratio": 5.93, "min": 4.5, "kind": "text", "note": "numbered badges use white ink on each of the four filled badge colours" },
     { "pair": "white badge ink on light.accent", "fg": "#FFFFFF", "bg": "#0B6B62", "ratio": 6.38, "min": 4.5, "kind": "text" },
     { "pair": "white badge ink on light.status.danger", "fg": "#FFFFFF", "bg": "#A4262C", "ratio": 7.26, "min": 4.5, "kind": "text" },
     { "pair": "white badge ink on light.text", "fg": "#FFFFFF", "bg": "#0B1220", "ratio": 18.72, "min": 4.5, "kind": "text" }
@@ -87,8 +87,6 @@
   "colourIsNeverAlone": [
     "A status always carries its name as text; the badge shape differs per status as well, so it survives a greyscale render.",
     "Curation tier always carries the words Curated Tier or Permissionless Tier.",
-    "Diagram bands carry a numbered badge, a text label, and a distinct border style: a fine hairline, long-dashed, thick solid, or fine-dotted.",
-    "Clearing states in the state-machine figure carry a distinct border style and the same glyph vocabulary og/slots.json publishes for the badge, so a state reads the same in a figure and on a card.",
-    "Diagram edges carry a distinct weight and dash pattern for authority against observation, and the reading rule is written into the figure."
+    "Diagram bands carry a numbered badge, a text label, and a distinct border style: a fine hairline, long-dashed, thick solid, or fine-dotted."
   ]
 }

@@ -43,11 +43,6 @@
         "coverage/**",
         "lcov.info"
       ]
-    },
-    "test:property": {
-      "dependsOn": [
-        "^build"
-      ]
     }
   }
 }

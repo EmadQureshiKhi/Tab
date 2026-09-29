@@ -9,7 +9,7 @@
 # test, or verify Tab. If you would rather not install Docker, a native server serves
 # the same purpose and the rest of the repository cannot tell the difference:
 #
-#   winget install PostgreSQL.PostgreSQL.17
+#   install PostgreSQL 16 or later from your platform's package manager
 #   DATABASE_URL=postgres://postgres:YOUR_PASSWORD@127.0.0.1:5432/postgres
 #
 # Bring it up, apply the schema, and index one pass:

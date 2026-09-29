@@ -51,11 +51,9 @@ const usdc = new Contract(MAINNET.usdc, ["function balanceOf(address) view retur
 
 const endpoint = value("endpoint", "/profiler/address/transactions");
 /*
-  Whose history to ask for. Nansen's `monad` is Monad Mainnet, and every
-  address this project deploys and funds lives on Testnet, so the honest
-  default answers with an empty list: it is a true statement about a real
-  address rather than a demonstration. Pass `--address` one with Mainnet
-  activity to see rows; Nansen's own collection address is one.
+  Whose history to ask for. Nansen's `monad` is Monad Mainnet, so the default
+  is this project's own Mainnet Agent or deployer; pass `--address` to ask
+  about any other Mainnet address.
 */
 const address = value("address", env.AGENT_ADDRESS ?? env.DEPLOYER_ADDRESS ?? payer.address).toLowerCase();
 const days = Number.parseInt(value("days", "30"), 10);

@@ -78,7 +78,7 @@
         "creditBaselineBaseUnits": "5000000",
         "growthFactorBps": 5000
       },
-      "note": "Second deployment on Testnet. The first (2026-09-21, from block 64486362) had no Permit2 path; TabBook's settlement surface is wired once and for all, so adding one meant a fresh set.",
+      "note": "TabBook's settlement surface is wired once at deployment, to TabSettlement, which serves both the direct and the Permit2 path.",
       "permit2": {
         "address": "0x000000000022D473030F116dDEE9F6B43aC78BA3",
         "note": "Uniswap's Permit2 at its canonical address, the same on every chain it exists on. TabSettlement verifies gasless Settlements against it. Not deployed by Tab, so no envKey: PERMIT2_ADDRESS is a network constant."
@@ -126,7 +126,7 @@
         "registeredIn": "0x11d9c5365f572827c8e4b9a52921ff3353db2f8e5c550264590ab44e1ac61d40",
         "bondedIn": "0x561b1126dc6e8f71acdadf2931940b2238dc6234f459af282bf80e57df6791e1",
         "blockNumber": 64554808,
-        "note": "The demo Service the gateway meters for, registered by script/04_RegisterDemoService.s.sol: the deploying account operates it, collects at its own address in both Assets, and staked 50 MockUsdc in Bond. Permissionless Tier until the curation authority promotes it.",
+        "note": "The demo Service the gateway meters for, registered by script/04_RegisterDemoService.s.sol: the deploying account operates it, collects at its own address in both Assets, and staked 50 mUSDC and 20 USDC in Bond. Permissionless Tier until the curation authority promotes it.",
         "frontedTools": {
           "tools": [
             "apihub.run",
@@ -160,22 +160,35 @@
         "ServiceRegistry": {
           "address": "0x4F791F13F94944fCB2F884f8C7991cAa583884A6",
           "envKey": "SERVICE_REGISTRY_ADDRESS",
-          "note": "Takes only the curation authority in its constructor and references no other Tab contract."
+          "note": "Takes only the curation authority in its constructor and references no other Tab contract.",
+          "txHash": "0x305ef89e9dc5dff05b53e22a27aa3da02f7e36782c49ccc05ab2f159ecbcf89e",
+          "blockNumber": 107094526
         },
         "Bond": {
           "address": "0xbA86C0D053ba88afDECbED8aBa5b2eC3973fb230",
           "envKey": "BOND_ADDRESS",
-          "note": "Real escrow: deposits pull the Asset in, withdrawals pay it out, and freeOf is what TabBook reads."
+          "note": "Real escrow: deposits pull the Asset in, withdrawals pay it out, and freeOf is what TabBook reads.",
+          "txHash": "0xef4fac23e17cde615a54c1cb92b3e4f3e743b07ca83c0717998f0d9de9b804fb",
+          "blockNumber": 107094534
         },
         "TabBook": {
           "address": "0x0Dabf8E52280D0F128f546602a99b6DC4fbb80DC",
           "envKey": "TAB_BOOK_ADDRESS",
-          "note": "Constructed over ServiceRegistry and Bond with the credit parameters; its settlement surface was wired one-shot at deployment."
+          "note": "Constructed over ServiceRegistry and Bond with the credit parameters; its settlement surface was wired one-shot at deployment.",
+          "txHash": "0xebe445043bd802f0f7e977675abf7118a27aedeeb8945c8cd8d7199af4399878",
+          "blockNumber": 107094536,
+          "wiredIn": {
+            "function": "setSettlementSurface(address)",
+            "txHash": "0xe710c3f8ac10be02213fb3abb05a702d84d63cc1f6252c7020de991d9e25d7ca",
+            "blockNumber": 107094540
+          }
         },
         "TabSettlement": {
           "address": "0x32A96bfEABe766B4898b961B333B7B89f079a9a9",
           "envKey": "TAB_SETTLEMENT_ADDRESS",
-          "note": "The one way a tab is paid, by the Agent's key or by a Permit2 signature anyone may submit. Holds nothing."
+          "note": "The one way a tab is paid, by the Agent's key or by a Permit2 signature anyone may submit. Holds nothing.",
+          "txHash": "0x682b488d2037fb70667b3e28083411cacec38b3653967e870d194ad9bdc9be0c",
+          "blockNumber": 107094538
         }
       },
       "permit2": {
@@ -190,12 +203,16 @@
           "service": {
             "agentId": 10254,
             "recordedAs": "ERC8004_SERVICE_AGENT_ID",
-            "owner": "0x49472EF9ED99f30d4eaD45Ac9E1C16c31f70783A"
+            "owner": "0x49472EF9ED99f30d4eaD45Ac9E1C16c31f70783A",
+            "txHash": "0x5f944114baf261e0daa4219bcf462d16dd2df7c5d7fd5f5f539f31f820f0fab8",
+            "blockNumber": 107094754
           },
           "agent": {
             "agentId": 10255,
             "recordedAs": "ERC8004_AGENT_ID",
-            "owner": "0x49472EF9ED99f30d4eaD45Ac9E1C16c31f70783A"
+            "owner": "0x49472EF9ED99f30d4eaD45Ac9E1C16c31f70783A",
+            "txHash": "0x6d2f5b90c6bafe6b749f752a617625cd27a076f433ce942e80f16741acd5fe36",
+            "blockNumber": 107094756
           }
         }
       },
@@ -211,7 +228,9 @@
             "0x64e86f88706AfA73bB627Dbd7430406CF26b4F78",
             "0x1Dbd5fFB45B4Da554B0825A9A460503708c4E3F4"
           ],
-          "note": "A 2-of-3 CurationMultisig, deployed before ServiceRegistry because the authority is a constructor immutable with no setter. Its owner set is immutable too, so it can only change at a new deployment. All three owners are held by this project today, which a one-person deployment cannot honestly dress up as three parties: what the contract enforces is 2-of-3, and who holds the three is a separate question. The role moves a Service to the Curated tier and nothing else, every change it makes is queued 48 hours in public first, and the multisig has no receive and no payable function so it can hold no value."
+          "note": "A 2-of-3 CurationMultisig, deployed before ServiceRegistry because the authority is a constructor immutable with no setter. Its owner set is immutable too, so it can only change at a new deployment. All three owners are held by this project today, which a one-person deployment cannot honestly dress up as three parties: what the contract enforces is 2-of-3, and who holds the three is a separate question. The role moves a Service to the Curated tier and nothing else, every change it makes is queued 48 hours in public first, and the multisig has no receive and no payable function so it can hold no value.",
+          "txHash": "0x86dd88029d11c8a5c505d32eac228ccbf7d99751c040005e07458265d34dd5e1",
+          "blockNumber": 107094289
         }
       },
       "parameters": {
@@ -223,7 +242,8 @@
         "serviceIdText": "tab.demo",
         "operator": "0x49472EF9ED99f30d4eaD45Ac9E1C16c31f70783A",
         "assets": [
-          "0x754704Bc059F8C67012fEd69BC8A327a5aafb603"
+          "0x754704Bc059F8C67012fEd69BC8A327a5aafb603",
+          "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a"
         ],
         "collection": "0x49472EF9ED99f30d4eaD45Ac9E1C16c31f70783A",
         "tool": "quote.generate",
@@ -251,7 +271,7 @@
               "0xc62376abee46fa78de4f68d92dfbe196f685cd44fb8384a652e0b8103805fd4c",
               "0x21df41d4390cdb70d8bebfa260243597bc641c8251a55374bbf7cf1b2c53469e"
             ],
-            "note": "AcceptedAsset with its Collection, then the quote.generate price. A third change queued before these carried a payload of the right length and the wrong shape, which decoded to a collection of 0x...01; it was cancelled before it could apply, which is what the 48-hour hold is for."
+            "note": "AcceptedAsset with its Collection, then the quote.generate price."
           },
           "queuedAt": "2026-09-22",
           "appliedAt": "2026-09-25",
@@ -261,6 +281,14 @@
             "0xd3a587bbbcb3dbe16cbe7655e4f8ddd7abccddceafc193fad1bc35245bb4a13b",
             "0x5a0bd76b942f10643d7dc8b7c2924c679beb7cf5843d60be14db8d9ffb18fec8"
           ]
+        },
+        "registeredIn": {
+          "txHash": "0x8f86846b7a3814aedd28c2468d4858b3dbaf2622a06be2a57709884983462ab2",
+          "blockNumber": 107094822
+        },
+        "bondedIn": {
+          "txHash": "0x8fbcb0274c03e937c674a92a0a152add13e8b0e0633061fba2d649f6bc662caa",
+          "blockNumber": 107094887
         }
       },
       "startBlock": 107094526

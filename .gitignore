@@ -25,10 +25,6 @@ lcov.info
 .env.*
 !.env.example
 
-# ---------------------------------------------------------------- vocabulary gate
-# The denylist is materialised locally and in CI, never committed.
-.vocabulary-denylist
-
 # ---------------------------------------------------------------- editor and OS
 .DS_Store
 Thumbs.db

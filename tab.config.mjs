@@ -32,14 +32,15 @@ const RPC_URL = process.env.MONAD_RPC_URL ?? "https://testnet-rpc.monad.xyz";
 /**
  * The Asset a Settlement is paid in, resolved the way the gateway resolves the
  * Asset it meters in, so the two agree: `GATEWAY_ASSET_ADDRESS` when set, then
- * the mock token the deploy script shipped on Testnet, then the canonical USDC
- * (`USDC_ADDRESS` on Testnet, Circle's Mainnet address otherwise).
+ * the mock token the deploy script shipped on Testnet, then `USDC_ADDRESS`, then
+ * Circle's USDC on the chain named above, so the chain id and the Asset always
+ * belong to the same network.
  */
 const ASSET_ADDRESS = (
   process.env.GATEWAY_ASSET_ADDRESS ??
   process.env.MOCK_USDC_ADDRESS ??
   process.env.USDC_ADDRESS ??
-  "0x754704Bc059F8C67012fEd69BC8A327a5aafb603"
+  (CHAIN_ID === 143n ? "0x754704Bc059F8C67012fEd69BC8A327a5aafb603" : "0x534b2f3A21130d7a60830c2Df862319e593943A3")
 ).toLowerCase();
 
 /**

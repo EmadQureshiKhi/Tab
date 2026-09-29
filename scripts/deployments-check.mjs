@@ -5,7 +5,7 @@
  * `deployments.json` records every address this deployment produced, each one
  * read back off the chain. `.env.example` is the tracked contract for every
  * variable the workspace reads. Those two files name the same addresses through
- * different keys, and nothing until now made them agree.
+ * different keys, and this gate makes them agree.
  *
  * That gap is how a deployment record goes stale without anyone noticing. A
  * contract gets redeployed and only one of the two files learns about it. A new
@@ -266,8 +266,8 @@ const CLASSIFICATION = new Map([
     {
       recorded: false,
       why:
-        "a network constant: the canonical ERC-8004 Identity Registry, at the same address on every chain " +
-        "it is deployed to. Empty means that canonical address; nothing here created it",
+        "a network constant: the canonical ERC-8004 Identity Registry of the selected Monad network. " +
+        "Empty means that network's canonical address; nothing here created it",
     },
   ],
   [

@@ -23,11 +23,6 @@
     "env:list": "node scripts/env-check.mjs --list",
     "deployments:check": "node scripts/deployments-check.mjs",
     "deployments:classify": "node scripts/deployments-check.mjs --list",
-    "vocab:check": "node scripts/vocab-check.mjs",
-    "vocab:denylist": "node scripts/vocab-check.mjs --materialise",
-    "hooks:install": "git config core.hooksPath .githooks",
-    "art": "node scripts/art.mjs",
-    "art:check": "node scripts/art.mjs --check",
     "e2e": "bash scripts/e2e.sh"
   },
   "dependencies": {

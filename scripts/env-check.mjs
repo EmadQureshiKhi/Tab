@@ -42,12 +42,6 @@
  * the patterns above and their documentation are descriptions of reads rather
  * than reads.
  *
- * `spike/` is advisory scope. Its probes are throwaway exploration rather than
- * part of the shipped command surface, and their ad-hoc knobs do not belong in
- * the tracked contract - so an undeclared read there is named in a warning
- * instead of failing the build. Nothing is hidden: every such read is printed
- * with its variable name and location.
- *
  * Platform-provided variables - NODE_ENV, CI, the GITHUB_* and RUNNER_* job
  * surface, npm_* and TURBO_* tooling variables, and the rest of PLATFORM_NAMES
  * and PLATFORM_PREFIXES below - are supplied by the runtime and are not part of
@@ -56,10 +50,8 @@
  *
  * The reverse direction: a declaration nothing reads
  *
- * This is a WARNING, not a failure. `.env.example` legitimately runs ahead of
- * the code: it declares the deployment address keys before the deployment
- * scripts that consume them exist, and it declares variables that only a CI job
- * definition supplies. Failing the build on those would punish declarations
+ * This is a WARNING, not a failure. `.env.example` declares some variables that
+ * only a deployment script or a CI job definition supplies. Failing the build on those would punish declarations
  * that are correct but early, and the pressure that creates - delete the
  * declaration to make the gate quiet - is exactly backwards for a file whose
  * whole job is to be complete. So the check names them and moves on.
@@ -67,8 +59,7 @@
  * Two escape valves keep that from becoming permanent noise. `CI_ONLY_NAMES`
  * declares the variables a job definition supplies and no source will ever
  * read, so they are exempt from the warning entirely. And `--strict-unused`
- * promotes the remaining warnings to a failure, which is the flag to turn on
- * once the deployment scripts land and every declaration has a consumer.
+ * promotes the remaining warnings to a failure.
  *
  * Values are never printed. Only names, counts, and locations. That holds even
  * when a real `.env` is on disk, because this script reads `.env.example` and
@@ -135,8 +126,8 @@ const EXCLUDED_BASENAMES = new Set([
 /** The Foundry dependency tree declares its own variables. */
 const EXCLUDED_PREFIXES = ["packages/contracts/lib/"];
 
-/** Exploration probes. Undeclared reads here warn rather than fail. */
-const ADVISORY_PREFIXES = ["spike/"];
+/** Paths whose undeclared reads warn rather than fail. None today. */
+const ADVISORY_PREFIXES = [];
 
 /** Extensions carrying JavaScript or TypeScript environment reads. */
 const JS_EXTENSIONS = new Set(["ts", "tsx", "mts", "cts", "js", "jsx", "mjs", "cjs"]);
