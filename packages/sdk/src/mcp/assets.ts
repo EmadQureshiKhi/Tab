@@ -12,7 +12,7 @@
  * tool results say so rather than guessing.
  */
 import type { Address, Result } from "@tabai/shared";
-import { MAINNET_ASSETS, MONAD_MAINNET, MONAD_TESTNET, TESTNET_ASSETS, isAddress, ok } from "@tabai/shared";
+import { MAINNET_ASSETS, MONAD_MAINNET, MONAD_TESTNET, TAB_HOSTED, TESTNET_ASSETS, isAddress, ok } from "@tabai/shared";
 import { validationError } from "../errors.js";
 import type { AssetRef } from "../payments/strategy.js";
 
@@ -38,7 +38,7 @@ export const KNOWN_CHAIN_IDS = [MONAD_MAINNET.chainId, MONAD_TESTNET.chainId] as
 /**
  * The stablecoins this SDK can name, per chain. On Testnet that is Circle's
  * USDC from the shared table plus the mock token the deployment shipped, read
- * from `MOCK_USDC_ADDRESS`. The mock is named `mUSDC` here although its own
+ * from `MOCK_USDC_ADDRESS` or, failing that, the hosted deployment's. The mock is named `mUSDC` here although its own
  * `symbol()` says `USDC`, because a Service that accepts both must show two
  * Assets and not one word twice.
  */
@@ -56,8 +56,12 @@ function knownAssets(chainId: number, env: NodeJS.ProcessEnv): readonly { addres
       symbol: asset.symbol,
       decimals: asset.decimals,
     }));
-    const mock = env["MOCK_USDC_ADDRESS"];
-    return mock !== undefined && isAddress(mock) ? [...known, { address: mock.toLowerCase(), symbol: "mUSDC", decimals: 6 }] : known;
+    // The environment names the test token for a deployment of its own; the
+    // hosted Testnet deployment's is known without it, so a fresh install
+    // shows `mUSDC` rather than an address with no symbol.
+    const configured = env["MOCK_USDC_ADDRESS"];
+    const mock = configured !== undefined && isAddress(configured) ? configured : TAB_HOSTED[MONAD_TESTNET.chainId].testToken;
+    return mock !== undefined ? [...known, { address: mock.toLowerCase(), symbol: "mUSDC", decimals: 6 }] : known;
   }
   return [];
 }

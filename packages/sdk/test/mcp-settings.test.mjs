@@ -10,7 +10,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { TAB_HOSTED, resolveTabMcpSettings } from "../dist/index.js";
+import { TAB_HOSTED, assetFacts, resolveTabMcpSettings } from "../dist/index.js";
 
 const silent = { debug: () => {}, info: () => {}, warn: () => {}, error: () => {} };
 // The filesystem root holds no tab.config, so only the arguments and the env below count.
@@ -57,4 +57,10 @@ test("TAB_HOSTED_DEFAULTS=off and hostedDefaults: false both leave everything un
     assert.equal(settings.registryUrl, undefined);
     assert.equal(settings.services.length, 0);
   }
+});
+
+test("the hosted Testnet test token is named mUSDC with nothing exported", () => {
+  const facts = assetFacts(10143, TAB_HOSTED[10143].testToken, {});
+  assert.equal(facts.symbol, "mUSDC");
+  assert.equal(facts.decimals, 6);
 });
