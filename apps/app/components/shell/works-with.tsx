@@ -15,7 +15,7 @@
 import { RevealGroup, RevealItem } from "../motion/reveal";
 
 /*
- * Eight clients, each with its own mark.
+ * Seven clients with MCP support of their own, each with its own mark.
  *
  * Every file here carries real fills rather than `currentColor`. A mark drawn in
  * `currentColor` inherits nothing inside an `<img>`, so it resolves to black and
@@ -30,7 +30,6 @@ const CLIENTS = [
   { name: "Gemini", href: "https://gemini.google.com", icon: "/logos/clients/Google_Gemini_icon_2025.svg" },
   { name: "Zed", href: "https://zed.dev", icon: "/logos/clients/zed-logo.svg" },
   { name: "Perplexity", href: "https://perplexity.ai", icon: "/logos/clients/perplexity.svg" },
-  { name: "DeepSeek", href: "https://deepseek.com", icon: "/logos/clients/DeepSeek-icon.svg" },
 ] as const;
 
 export function WorksWith() {
@@ -45,9 +44,10 @@ export function WorksWith() {
         </h2>
       </div>
 
-      <RevealGroup className="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-4 lg:grid-cols-8">
+      {/* A centred wrap rather than a fixed grid, so a short last row sits in the middle at every width. */}
+      <RevealGroup className="flex flex-wrap justify-center gap-x-6 gap-y-10">
         {CLIENTS.map((client) => (
-          <RevealItem key={client.name}>
+          <RevealItem key={client.name} className="w-[calc(50%-0.75rem)] sm:w-[calc(25%-1.125rem)] lg:w-[calc((100%-9rem)/7)]">
             <a
               href={client.href}
               target="_blank"

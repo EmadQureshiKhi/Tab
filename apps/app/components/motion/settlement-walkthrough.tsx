@@ -92,8 +92,8 @@ const STEPS: readonly Step[] = [
     where: "Client to gateway",
     call: "tab_discover",
     rows: [
-      { label: "Services", value: "3 registered" },
-      { label: "Tool", value: "search" },
+      { label: "Service", value: "tab.demo" },
+      { label: "Tool", value: "quote.generate" },
       { label: "Price", value: "0.01 USDC per call" },
       { label: "Prepayment", value: "none", lead: true },
     ],
@@ -146,17 +146,17 @@ const STEPS: readonly Step[] = [
   {
     key: "restored",
     title: "Headroom back",
-    detail: "The Open Tab is zero and the Credit Limit has grown, in the same block.",
+    detail: "The Open Tab is zero and the headroom is back, in the same block.",
     where: "Monad",
     onChain: true,
     call: "TabBook.creditLimit",
     rows: [
       { label: "Open Tab", value: "0.00 USDC" },
       { label: "Settlements", value: "1" },
-      { label: "Credit Limit", value: "0.06 USDC" },
-      { label: "Headroom", value: "0.06 USDC", lead: true },
+      { label: "Credit Limit", value: "0.05 USDC" },
+      { label: "Headroom", value: "0.05 USDC", lead: true },
     ],
-    note: "The limit is a function of history on chain. Every figure on this site is that same read.",
+    note: "The figures here illustrate one cycle. Every figure elsewhere on this site is read from Monad.",
   },
 ];
 
