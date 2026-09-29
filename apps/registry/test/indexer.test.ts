@@ -19,9 +19,9 @@ import { MemorySink } from "../src/sink.js";
 
 const AGENT = "0x1111111111111111111111111111111111111111";
 const COLLECTION = "0x2222222222222222222222222222222222222222";
-const ASSET = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48";
+const ASSET = "0x754704bc059f8c67012fed69bc8a327a5aafb603";
 const SERVICE_ID = `0x${"11".repeat(32)}`;
-const SETTLEMENT_SURFACE = "0x0dabf8e52280d0f128f546602a99b6dc4fbb80dc";
+const SETTLEMENT_SURFACE = "0x654fac48185e4b71779eec2457b1f24aedf46717";
 
 const word = (seed: number): string => `0x${seed.toString(16).padStart(2, "0").repeat(32)}`;
 
@@ -277,9 +277,10 @@ test("the cursor never claims a block the batch did not cover", async () => {
   assert.equal(sink.storedLogs.length, 0);
 });
 
-test("every event this service indexes reaches its own table", async () => {
-  // Not a decoding test, that is `decode.test.ts`. This asserts the routing: 17
-  // events, 17 destinations, no two events sharing a table by accident.
+test("a tick hands each decoded log to the sink as a typed row under its own event", async () => {
+  // Not a decoding test, that is `decode.test.ts`, and the one-table-per-event map
+  // is pinned in `schema.test.ts`. This asserts the hand-off between the two: the
+  // tick files the row under the event it decoded, and counts it there.
   const chain = new ScriptedChain(110);
   chain.put(105, [settlementLog(105, word(0xaa), 0, 1n)]);
   const sink = new MemorySink();

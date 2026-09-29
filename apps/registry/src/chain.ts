@@ -85,10 +85,10 @@ export class EthersLogSource implements LogSource {
    * Every indexed signature from every watched address in one call.
    *
    * The `topics[0]` set is part of the filter rather than applied after the fact,
-   * so the five contracts' other events - wiring, `DeliveryRecorded`,
-   * `TabDelinquencyCleared` - never cross the wire. The decoder
-   * still tolerates one arriving, because an endpoint that ignores the topic filter
-   * must not be able to stop the indexer.
+   * so the watched contracts' other events, such as `SettlementSurfaceWired` and
+   * `SettledGasless`, never cross the wire. The decoder still tolerates one
+   * arriving, because an endpoint that ignores the topic filter must not be able
+   * to stop the indexer.
    */
   async getLogs(fromBlock: number, toBlock: number): Promise<readonly RawLog[]> {
     const logs: Log[] = await this.provider.getLogs({

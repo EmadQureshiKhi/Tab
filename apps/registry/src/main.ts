@@ -56,7 +56,8 @@ async function createLogSource(config: RegistryConfig, live: LogSource): Promise
 
 async function main(): Promise<void> {
   const once = process.argv.includes("--once");
-  const config = loadConfig(readProcessEnvironment());
+  const environment = readProcessEnvironment();
+  const config = loadConfig(environment);
 
   const provider = createProvider(config);
   await requireChainId(provider, config.chainId);
@@ -111,16 +112,20 @@ async function main(): Promise<void> {
 
   // The allowlist is read once, at start. Reading it per request would turn an edit
   // into a silent mid-flight change of the counting rule, and a deployment that cannot
-  // read it serves everything except `/adoption` rather than publishing figures under
-  // an empty allowlist, which would call every address external.
-  const configured = process.env.TEAM_ADDRESSES_PATH?.trim();
+  // read it, or finds no entry for the chain it indexes, serves everything except
+  // `/adoption` rather than publishing figures under an empty allowlist, which would
+  // call every address external.
+  const configured = environment.TEAM_ADDRESSES_PATH?.trim();
   const allowlistPath =
     configured !== undefined && configured.length > 0
       ? resolve(configured)
       : ((await findTeamAddresses(dirname(fileURLToPath(import.meta.url)))) ?? resolve(process.cwd(), "team-addresses.json"));
   const team = await loadTeamAddresses(allowlistPath);
+  const classifier = team.ok ? createClassifier(team.value, config.chainId) : undefined;
   if (!team.ok) {
     console.warn(`registry: ${team.error.code}: ${team.error.message}. /adoption will not be served`);
+  } else if (classifier?.internalCount === 0) {
+    console.warn(`registry: ${allowlistPath} lists no address for chain ${config.chainId}. /adoption will not be served`);
   }
 
   // ERC-8004 identity and Nansen labels are context on the Agent read. Each is
@@ -143,7 +148,7 @@ async function main(): Promise<void> {
     chain,
     ...(identity === undefined ? {} : { identity }),
     ...(labels === undefined ? {} : { labels }),
-    ...(team.ok ? { adoption: { classifier: createClassifier(team.value), allowlistPath } } : {}),
+    ...(classifier !== undefined && classifier.internalCount > 0 ? { adoption: { classifier, allowlistPath } } : {}),
   });
 
   const server = serve({ fetch: app.fetch, port: config.port }, (info) => {

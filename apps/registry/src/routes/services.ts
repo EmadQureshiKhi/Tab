@@ -21,9 +21,9 @@
  * A Permissionless Tier Service can be paid, can hold Open Tabs, and its
  * Settlements verify and apply exactly like a Curated one's. What the tier decides
  * is how much those Settlements weigh in `LimitLib`: zero at the Permissionless
- * Tier, counted at the Curated Tier when the Service also holds a Bond in
- * the same Asset. `tier.creditWeight` says so on every row, so nothing here
- * can be read as permission to transact.
+ * Tier, counted at the Curated Tier when the Service also holds a Bond in the same
+ * Asset. `tier.creditWeight` says so on every row, so nothing here can be read as
+ * permission to transact.
  */
 
 import { AbiCoder } from "ethers";
@@ -151,7 +151,7 @@ interface ServiceView {
 const creditWeightOf = (tierName: string): string =>
   tierName === "Curated" ? "counted-when-bonded" : "zero";
 
-/** `null` unless the value names a known tier member. */
+/** The tier's member name, or `unknown(<n>)` for a value this build does not know. */
 const tierNameOf = (value: number): string => TIERS[value] ?? `unknown(${value})`;
 
 /**
@@ -201,8 +201,8 @@ function toServiceView(
     }
   }
 
-  // An accepted Asset is an Asset with a Collection address that currently resolves.
-  // Stake goes to the Bond escrow directly, so there is nothing else to report here.
+  // An accepted Asset is an Asset with a Collection address that currently resolves,
+  // so the accepted list is the Collection rows restated.
 
   return {
     serviceId: registration.serviceId,

@@ -11,8 +11,6 @@
  * an address gets the chain's own history from the rest of the response and this
  * as context.
  *
- * ## The endpoint
- *
  * ## Labels are the credits door, and there is another
  *
  * Nansen's API has two. Most of it takes an API key against a credit balance,
@@ -27,12 +25,14 @@
  * `scripts/nansen-x402.mjs` walks it directly. Labels are not on it, so this
  * module stays on the key.
  *
+ * ## The endpoint
+ *
  * `POST https://api.nansen.ai/api/v1/profiler/address/labels` with the key in
  * the `apikey` header, as Nansen's authentication guide names it, and a body of
  * `{ address, chain, pagination }`. `chain` is one of Nansen's slugs; `all`
  * searches every chain that shares the address format, which for an EVM key is
- * the useful question, because an address known as an exchange on Ethereum is
- * the same key on Monad. The response is `{ pagination, data: [{ label,
+ * the useful question, because an address known as an exchange on another EVM
+ * chain is the same key on Monad. The response is `{ pagination, data: [{ label,
  * category?, kind? }] }`, and a label whose `kind` includes `entity` names the
  * entity the address belongs to.
  *

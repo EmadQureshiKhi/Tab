@@ -5,17 +5,17 @@
  * ## Why restate it, and why exactly
  *
  * `LimitLib.creditLimit` is `internal pure`: it reads no storage and makes no
- * external call, and the design states that purity is the verification story
- * rather than a style preference, because it lets a third party recompute the
- * same number off chain from published history and compare it against the
- * on-chain read. This module is that third party. Every constant,
- * every filter, every division, and the order of every operation below is the
- * library's, including the two places its own documentation warns a
- * reimplementation goes wrong: the per-record weighted value is floored before
- * bucketing, and the growth factor and the bond cap are each applied once, never
- * inside a loop. `test/credit.test.ts` pins this restatement against the Foundry suite's
- * own vectors, and `credit-service.ts` cross-checks every served figure against
- * `TabBook.creditLimit` over `eth_call` before it leaves this service.
+ * external call. That purity is the verification story rather than a style
+ * preference, because it lets a third party recompute the same number off chain
+ * from published history and compare it against the on-chain read. This module is
+ * that third party. Every constant, every filter, every division, and the order of
+ * every operation below is the library's, including the two places its own
+ * documentation warns a reimplementation goes wrong: the per-record weighted value
+ * is floored before bucketing, and the growth factor and the bond cap are each
+ * applied once, never inside a loop. `credit-service.ts` cross-checks every served
+ * figure against `TabBook.creditLimit` over `eth_call` at the same block before it
+ * leaves this service, so a restatement that drifted from the library withholds
+ * the figure rather than serving a wrong one.
  *
  * Everything is a `bigint`. USDC amounts are 6-decimal integers that routinely
  * exceed what a double represents exactly, and a limit through a float is a wrong
@@ -37,15 +37,15 @@ import { AbiCoder, keccak256 } from "ethers";
 
 /** One hundred percent in basis points. */
 export const BPS = 10_000n;
-/** Share of the counterparty Bond sum a Credit Limit may reach. (D5) */
+/** Share of the counterparty Bond sum a Credit Limit may reach. */
 export const BOND_CAP_BPS = 9_500n;
 /** Largest share of the returned Credit Limit one counterparty may contribute. */
 export const CONCENTRATION_BPS = 2_500n;
-/** Weight a Settlement carries on the day it settled. (D4) */
+/** Weight a Settlement carries on the day it settled. */
 export const MIN_WEIGHT_BPS = 2_500n;
 /** Weight a Settlement carries once it has aged the full ramp. */
 export const MAX_WEIGHT_BPS = 10_000n;
-/** Span of the age ramp in whole days. (D4) */
+/** Span of the age ramp in whole days. */
 export const RAMP_DAYS = 30n;
 /** Growth in basis points earned across the whole ramp. */
 export const RAMP_SPAN_BPS = 7_500n;

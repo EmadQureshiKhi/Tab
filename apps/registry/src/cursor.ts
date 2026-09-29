@@ -167,8 +167,8 @@ export interface Page<T> {
  * The caller queries `pageSize + 1` rows. Whether the extra row came back is what
  * decides the next cursor, so `nextCursor` is `null` only when the feed is
  * genuinely exhausted, never merely because a page came back exactly full. A
- * client following cursors therefore performs one extra request at the end of a
- * walk and no more, and never stops one page early.
+ * client following cursors therefore stops on the last page, never spends a
+ * request on an empty one, and never stops one page early.
  */
 export function toPage<T>(
   rows: readonly T[],

@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS registry.event_log (
   block_number  BIGINT              NOT NULL CHECK (block_number >= 0),
   block_hash    registry.hex_word   NOT NULL,
   -- Null where the block header was not read. A log carries no timestamp, so the
-  -- timestamp is a second chain read, and a failed read must not cost us the log.
+  -- timestamp is a separate RPC read, and a failed read must not cost us the log.
   block_time    TIMESTAMPTZ,
   tx_hash       registry.hex_word   NOT NULL,
   tx_index      INTEGER             NOT NULL CHECK (tx_index >= 0),

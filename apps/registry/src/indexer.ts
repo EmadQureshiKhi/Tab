@@ -7,7 +7,7 @@
  * block range it is about to write before writing it. So a range can be indexed
  * any number of times and the rows are the same afterwards. Nothing depends on
  * remembering what was already written, on a "last seen" comparison, or on getting
- * an upsert conflict clause right in seventeen places. Restarting the process,
+ * an upsert conflict clause right in twenty-two places. Restarting the process,
  * re-running from an earlier block, or running the same tick twice all converge on
  * the same rows.
  *
@@ -53,7 +53,7 @@
  * ## What a tick will not do
  *
  * It will not advance the cursor past blocks it did not write, it will not stop on
- * a log it does not recognise, the four watched contracts emit events beyond this
+ * a log it does not recognise, since the watched contracts emit events beyond this
  * surface and those are counted and skipped, and it will not treat a missing block
  * timestamp as a reason to drop a settled amount.
  */

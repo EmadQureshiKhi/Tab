@@ -25,7 +25,7 @@ const TAB_ID = `0x${"33".repeat(32)}`;
 const TOOL = `0x${"44".repeat(32)}`;
 const BLOCK_HASH = `0x${"ab".repeat(32)}`;
 const TX_HASH = `0x${"cd".repeat(32)}`;
-const TAB_BOOK = "0xba86c0d053ba88afdecbed8aba5b2ec3973fb230";
+const TAB_BOOK = "0x87571030cce27c84836baff85288eb1d85d908a4";
 const UINT256_MAX = (1n << 256n) - 1n;
 
 function encodeLog(

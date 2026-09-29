@@ -414,9 +414,10 @@ export interface AgentAssetVolumeRow {
   readonly settlementCount: number;
 }
 
-export interface PrepaidDrawRow {
+export interface AgentAssetDeliveriesRow {
   readonly agent: string;
   readonly asset: string;
+  readonly deliveryCount: number;
 }
 
 // ------------------------------------------------------------------ identity (ERC-8004)
@@ -489,7 +490,7 @@ export interface RegistryReads {
   creditAssets(agent: string): Promise<readonly AgentAssetRow[]>;
   bondLedgers(serviceIds: readonly string[]): Promise<readonly BondLedgerRow[]>;
   settlementVolumeByAgentAsset(): Promise<readonly AgentAssetVolumeRow[]>;
-  prepaidDraws(): Promise<readonly PrepaidDrawRow[]>;
+  deliveryCountsByAgentAsset(): Promise<readonly AgentAssetDeliveriesRow[]>;
   /**
    * Every ERC-8004 agent whose current owner or current `agentWallet` is the
    * address, lowest agent id first. Both are matched because either is a key the
@@ -1083,11 +1084,19 @@ export class PostgresReads implements RegistryReads {
     }));
   }
 
-  async prepaidDraws(): Promise<readonly PrepaidDrawRow[]> {
+  async deliveryCountsByAgentAsset(): Promise<readonly AgentAssetDeliveriesRow[]> {
     const rows = await this.client<RawRow[]>`
-      SELECT p.agent AS agent, p.asset AS asset
-        FROM registry.prepaid_consumed p`;
-    return rows.map((row) => ({ agent: String(row.agent), asset: String(row.asset) }));
+      SELECT d.agent        AS agent,
+             d.asset        AS asset,
+             COUNT(*)::int  AS delivery_count
+        FROM registry.delivery_recorded d
+       GROUP BY d.agent, d.asset
+       ORDER BY d.agent, d.asset`;
+    return rows.map((row) => ({
+      agent: String(row.agent),
+      asset: String(row.asset),
+      deliveryCount: Number(row.delivery_count),
+    }));
   }
 
   // ---------------------------------------------------------------- identity

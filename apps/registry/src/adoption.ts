@@ -8,25 +8,30 @@
  * missing entry quietly suppress real adoption, which is the less honest failure but
  * the more flattering one, and that is exactly why it is not the default here.
  *
- * ## What can and cannot be counted
+ * ## What is counted
  *
- * A Settlement emits `Settled` from the surface that moved the money, so the count of
- * distinct external Agents holding at least one Settlement and the settled volume per
- * Asset attributable to them are both exact at the index horizon.
- *
- * The delivery figure counts prepaid-funded deliveries through `PrepaidConsumed` and
- * is a **lower bound** on all deliveries. It is served as one, named as one, and must
- * not be published as a total.
+ * A Settlement emits `Settled` from the surface that moved the money, and a Metered
+ * Delivery emits `DeliveryRecorded` from `TabBook`. Both are indexed, so the count of
+ * distinct external Agents holding at least one Settlement, the settled volume per
+ * Asset attributable to them, and the count of their Metered Deliveries are all exact
+ * at the index horizon.
  *
  * ## Attribution
  *
  * Deliveries are classified by the Agent whose tab was charged, and Settlements by the
  * Agent the book names, which on Monad is the account that signed the settlement
- * transaction. There is one address space, so one allowlist.
+ * transaction.
+ *
+ * ## One file, two networks
+ *
+ * The same key controls the same address on Mainnet and Testnet, but a contract such
+ * as the Mainnet `CurationMultisig` exists on one network only. So every entry names
+ * the chain ids it holds on, either itself (`chainIds`) or through the file-wide
+ * `networks` list, and the classifier is built for the one chain this process indexes.
+ * A file carrying a single top-level `chainId` reads as a one-network allowlist.
  */
 
-import { access } from "node:fs/promises";
-import { readFile } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 
 import { causeOf, err, ok, type Result } from "@tabai/shared";
@@ -36,12 +41,15 @@ export interface InternalAddress {
   readonly address: string;
   readonly role: string;
   readonly why: string;
+  /** The Monad chain ids this address is ours on. Never empty. */
+  readonly chainIds: readonly number[];
 }
 
 /** The allowlist as it is served, addresses already lowercased. */
 export interface TeamAddresses {
   readonly network: string;
-  readonly chainId: number;
+  /** Every chain id the file covers, ascending. */
+  readonly chainIds: readonly number[];
   readonly internal: readonly InternalAddress[];
 }
 
@@ -50,7 +58,38 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 
 const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
 
-function parseEntries(raw: unknown, field: string): Result<InternalAddress[]> {
+const malformed = (message: string): Result<never> =>
+  err({ category: "VALIDATION", code: "TEAM_ADDRESSES_MALFORMED", message, retryable: false });
+
+const isChainId = (value: unknown): value is number =>
+  typeof value === "number" && Number.isSafeInteger(value) && value > 0;
+
+/** A non-empty list of distinct chain ids, or `undefined` when the value is not one. */
+function chainIdList(value: unknown): number[] | undefined {
+  if (!Array.isArray(value) || value.length === 0 || !value.every(isChainId)) return undefined;
+  return [...new Set(value)];
+}
+
+/**
+ * The file-wide chain ids an entry without its own inherits: `networks` when present,
+ * else the single `chainId`, else none, in which case every entry must name its own.
+ */
+function fileChainIds(parsed: Record<string, unknown>): Result<number[]> {
+  if (parsed.networks !== undefined) {
+    const networks = chainIdList(parsed.networks);
+    if (networks === undefined) {
+      return malformed('team-addresses.json field "networks" must be a non-empty array of chain ids');
+    }
+    return ok(networks);
+  }
+  if (parsed.chainId !== undefined) {
+    if (!isChainId(parsed.chainId)) return malformed('team-addresses.json field "chainId" must be a positive integer');
+    return ok([parsed.chainId]);
+  }
+  return ok([]);
+}
+
+function parseEntries(raw: unknown, field: string, inherited: readonly number[]): Result<InternalAddress[]> {
   if (!Array.isArray(raw)) {
     return err({
       category: "VALIDATION",
@@ -79,7 +118,22 @@ function parseEntries(raw: unknown, field: string): Result<InternalAddress[]> {
         retryable: false,
       });
     }
-    entries.push({ address: item.address.toLowerCase(), role: item.role, why: item.why });
+    // An entry scoped to no network would classify nothing anywhere, which reads as an
+    // insider list that silently shrank. So it is refused rather than dropped.
+    let chainIds: readonly number[] = inherited;
+    if (item.chainIds !== undefined) {
+      const own = chainIdList(item.chainIds);
+      if (own === undefined) {
+        return malformed(`team-addresses.json entry ${item.address} has a "chainIds" that is not a non-empty array of chain ids`);
+      }
+      chainIds = own;
+    }
+    if (chainIds.length === 0) {
+      return malformed(
+        `team-addresses.json entry ${item.address} names no chain id, and the file has no "networks" or "chainId" to inherit`,
+      );
+    }
+    entries.push({ address: item.address.toLowerCase(), role: item.role, why: item.why, chainIds });
   }
   return ok(entries);
 }
@@ -134,12 +188,16 @@ export async function loadTeamAddresses(path: string): Promise<Result<TeamAddres
     });
   }
 
-  const internal = parseEntries(parsed.internal, "internal");
+  const inherited = fileChainIds(parsed);
+  if (!inherited.ok) return inherited;
+
+  const internal = parseEntries(parsed.internal, "internal", inherited.value);
   if (!internal.ok) return internal;
 
+  const covered = new Set([...inherited.value, ...internal.value.flatMap((entry) => entry.chainIds)]);
   return ok({
     network: typeof parsed.network === "string" ? parsed.network : "unknown",
-    chainId: typeof parsed.chainId === "number" ? parsed.chainId : 0,
+    chainIds: [...covered].sort((left, right) => left - right),
     internal: internal.value,
   });
 }
@@ -150,19 +208,27 @@ export interface Classifier {
   isExternal(address: string): boolean;
   /** The role, when the address is ours. Undefined for an external address. */
   roleOf(address: string): string | undefined;
+  /** The chain the classifier was built for. */
+  readonly chainId: number;
+  /** Addresses classified as ours on that chain. */
   readonly internalCount: number;
 }
 
 /**
- * Builds the classifier over the allowlist. Lookups are case-insensitive, because an
- * address arrives checksummed from some sources and lower-case from the index.
+ * Builds the classifier over the allowlist for one chain. Only entries that name
+ * `chainId` count as ours, so an address listed for the other network alone is
+ * external here. Lookups are case-insensitive, because an address arrives checksummed
+ * from some sources and lower-case from the index.
  */
-export function createClassifier(team: TeamAddresses): Classifier {
-  const roles = new Map(team.internal.map((entry) => [entry.address, entry.role]));
+export function createClassifier(team: TeamAddresses, chainId: number): Classifier {
+  const roles = new Map(
+    team.internal.filter((entry) => entry.chainIds.includes(chainId)).map((entry) => [entry.address, entry.role]),
+  );
   return {
     isInternal: (address) => roles.has(address.toLowerCase()),
     isExternal: (address) => !roles.has(address.toLowerCase()),
     roleOf: (address) => roles.get(address.toLowerCase()),
+    chainId,
     internalCount: roles.size,
   };
 }
@@ -175,10 +241,11 @@ export interface AgentAssetVolume {
   readonly settlementCount: number;
 }
 
-/** One indexed prepaid draw, which stands in for a Metered Delivery. */
-export interface DeliveryDraw {
+/** One Agent's Metered Deliveries in one Asset, as indexed. */
+export interface AgentAssetDeliveries {
   readonly agent: string;
   readonly asset: string;
+  readonly deliveryCount: number;
 }
 
 /** Settled volume in one Asset, split by who settled it. */
@@ -200,9 +267,9 @@ export interface AdoptionMetrics {
   readonly internalSettlementCount: number;
   /** Settled volume per Asset, split. Exact. */
   readonly volumeByAsset: readonly VolumeSplit[];
-  /** Metered Deliveries from external Agents. A LOWER BOUND, see `deliveryBasis`. */
-  readonly externalDeliveryLowerBound: number;
-  readonly internalDeliveryLowerBound: number;
+  /** Metered Deliveries charged to external Agents. Exact. */
+  readonly externalDeliveryCount: number;
+  readonly internalDeliveryCount: number;
   /** How each figure was derived, so a third party can reproduce it. */
   readonly basis: {
     readonly agents: string;
@@ -212,6 +279,7 @@ export interface AdoptionMetrics {
     readonly classification: string;
   };
   readonly allowlist: {
+    readonly chainId: number;
     readonly internalCount: number;
     readonly path: string;
   };
@@ -224,9 +292,9 @@ const SETTLEMENT_BASIS =
 const VOLUME_BASIS =
   "sum of Settled.amount grouped by asset and by the classification of the credited Agent. Exact at the index horizon, in Asset base units";
 const DELIVERY_BASIS =
-  "count of indexed PrepaidConsumed events, which fire only on a delivery paid wholly or partly out of prepaid credit. DeliveryRecorded is not indexed, so this is a LOWER BOUND on Metered Deliveries and must not be published as a total";
+  "count of indexed DeliveryRecorded events by the Agent whose tab was charged, classified against team-addresses.json. Exact at the index horizon: TabBook emits one for every Metered Delivery";
 const CLASSIFICATION_BASIS =
-  "every Monad address absent from the `internal` list in team-addresses.json is external. The allowlist is exhaustive by intent, so an omission inflates the external figures rather than suppressing them";
+  "every Monad address absent from the `internal` list in team-addresses.json for the indexed chain id is external. The allowlist is exhaustive by intent, so an omission inflates the external figures rather than suppressing them";
 
 /**
  * Computes the metrics from already-read rows.
@@ -238,7 +306,7 @@ const CLASSIFICATION_BASIS =
 export function computeAdoption(
   classifier: Classifier,
   volumes: readonly AgentAssetVolume[],
-  draws: readonly DeliveryDraw[],
+  deliveries: readonly AgentAssetDeliveries[],
   allowlistPath: string,
 ): AdoptionMetrics {
   const externalAgents = new Set<string>();
@@ -261,11 +329,11 @@ export function computeAdoption(
     byAsset.set(asset, bucket);
   }
 
-  let externalDraws = 0;
-  let internalDraws = 0;
-  for (const draw of draws) {
-    if (classifier.isExternal(draw.agent)) externalDraws += 1;
-    else internalDraws += 1;
+  let externalDeliveries = 0;
+  let internalDeliveries = 0;
+  for (const row of deliveries) {
+    if (classifier.isExternal(row.agent)) externalDeliveries += row.deliveryCount;
+    else internalDeliveries += row.deliveryCount;
   }
 
   const volumeByAsset: VolumeSplit[] = [...byAsset.entries()]
@@ -283,8 +351,8 @@ export function computeAdoption(
     externalSettlementCount: externalSettlements,
     internalSettlementCount: internalSettlements,
     volumeByAsset,
-    externalDeliveryLowerBound: externalDraws,
-    internalDeliveryLowerBound: internalDraws,
+    externalDeliveryCount: externalDeliveries,
+    internalDeliveryCount: internalDeliveries,
     basis: {
       agents: AGENT_BASIS,
       settlements: SETTLEMENT_BASIS,
@@ -292,6 +360,6 @@ export function computeAdoption(
       deliveries: DELIVERY_BASIS,
       classification: CLASSIFICATION_BASIS,
     },
-    allowlist: { internalCount: classifier.internalCount, path: allowlistPath },
+    allowlist: { chainId: classifier.chainId, internalCount: classifier.internalCount, path: allowlistPath },
   };
 }

@@ -1,74 +1,50 @@
 /**
- * Agent credit reads: Credit Limit, Open Tab, headroom, and delinquency.
+ * Agent credit reads: Credit Limit, Open Tab, headroom, delinquency, prepaid
+ * credit, and the `LimitWitness` a metering Service needs.
  *
- * ## The Credit Limit is reported as unavailable, and that is the considered answer
+ * ## The Credit Limit is recomputed, then confirmed by the chain
  *
  * `TabBook.creditLimit(agent, asset, witness)` answers only against a
- * `LimitWitness` whose records fold to the stored history commitment, and **every
- * Settlement advances that commitment**. So a mirrored history is stale the
- * instant a settlement lands, and the witness path then reverts
- * `HistoryLengthMismatch` rather than returning a figure. Three options were open,
- * and this is what became of each.
- *
- * *Recompute `LimitLib` here.* `TabBook._recordOf` commits eight fields per
- * Settlement. Five are reachable from the indexed rows, `serviceId`, `asset`, and
- * `amount` from `SettlementRecorded`, `settledAt` from the log's block timestamp,
- * and `curated` from the registration tier plus applied tier changes. Three are
- * not: `firstDeliveryAt` rides on `TabBook.DeliveryRecorded`, `bonded` and the
- * per-counterparty Bond amounts on `Bond`'s ledger events, and none of those three
- * events is in this service's surface. Two of `LimitLib`'s four filters rest on
- * exactly those fields, and both caps are computed from them, so the result would
- * not be an approximation of the Credit Limit, it would be a different number
- * wearing its name.
- *
- * *Serve the last successfully read value with its staleness.* There is no first
- * successful read to cache, for the same reason: assembling a witness needs the
- * same three fields.
- *
- * *Report the inputs and name the gap.* This is what the route does. `creditLimit`
- * and `headroom` come back `null` beside a machine-readable `unavailable` block
- * that names each missing input and the event that carries it, and everything the
- * index does hold is reported in full: the settled history, the last observed Open
- * Tab per tab with its block, and delinquency. Returning a plausible number
- * instead would be the one outcome that
- * cannot be checked against the chain, which is the property this whole read layer
- * exists to preserve.
- *
- * The route to a real figure is not unknown, only out of this task's reach: index
- * `HistoryExtended`, which carries the committed record in full and exists so a
- * third party can rebuild the witness from logs alone, and either fold it here or
- * hand it to `TabBook.creditLimit`. That is a schema change, and the schema belongs
- * to the indexer.
+ * `LimitWitness` whose records fold to the stored history commitment. The index
+ * rebuilds that witness from `HistoryExtended`, which carries every committed
+ * `LimitLib.SettlementRecord` in full, and from the Bond ledger and
+ * `AuthorisationSet` rows for the counterparties. `credit-service.ts` recomputes
+ * `LimitLib` over it at the index horizon block and serves the figure only when
+ * `TabBook.creditLimit` at that same block returns the same number. Where the
+ * chain disagrees or cannot be read, `creditLimit` and `headroom` come back `null`
+ * beside a machine-readable `unavailable` block naming why, with the recomputed
+ * figure attached so nothing is hidden. Headroom is checked against
+ * `TabBook.headroom` the same way.
  *
  * ## Open Tab is an observation, not the live figure
  *
- * An Open Tab moves both ways. A Settlement reduces it, and that reduction
- * is indexed as `SettlementApplied.openAfter`. A Metered Delivery raises it, and
- * `DeliveryRecorded` is not indexed. So what is reported is the tab as at its last
- * settlement, labelled as such, with the block it was observed in. It is a lower
- * bound on the tab now, and the live figure is `TabBook.assetOpen(agent, asset)`, a
- * public read that needs no signature.
+ * An Open Tab moves both ways. A Settlement reduces it, and that reduction is
+ * indexed as `SettlementApplied.openAfter`. A Metered Delivery raises it, and
+ * `DeliveryRecorded` carries the charge but not the running total, so the tab is
+ * reported as at its last settlement, labelled as such, with the block it was
+ * observed in. It is a lower bound on the tab now, and the live figure is
+ * `TabBook.assetOpen(agent, asset)`, a public read that needs no signature. The
+ * headroom block carries that read at the horizon block.
  *
- * ## Prepaid credit is exact, and it is the only figure here that is
+ * ## Prepaid credit is exact
  *
- * Every other derived number on this route is hedged, because the events behind it
- * are incomplete. Prepaid credit is the exception. `TabBook` raises `tab.prepaid` in
- * exactly one place, `applySettlement`, which emits `SettlementApplied` carrying the
- * rise as `toPrepaid`. It lowers `tab.prepaid`
- * in exactly one place, `_recordOnTab`, which emits `PrepaidConsumed` carrying the
- * fall as `consumed`. Both events are indexed, and there is no third mover, so the
- * difference is the balance as at the index horizon rather than an observation as at
- * some last settlement.
+ * `TabBook` raises `tab.prepaid` in exactly one place, `applySettlement`, which
+ * emits `SettlementApplied` carrying the rise as `toPrepaid`. It lowers
+ * `tab.prepaid` in exactly one place, `_recordOnTab`, which emits
+ * `PrepaidConsumed` carrying the fall as `consumed`. Both events are indexed, and
+ * there is no third mover, so the difference is the balance as at the index
+ * horizon rather than an observation as at some last settlement.
  *
- * That is what makes a prepaid-funded delivery explain itself. An Open Tab that did
- * not move across a delivery used to be indistinguishable from no delivery at all;
- * now the draw that paid for it is a row, naming what was spent, what was left, and
- * how much of the same charge had to be borrowed once the balance ran out.
+ * That is what makes a prepaid-funded delivery explain itself. An Open Tab that
+ * does not move across a delivery would otherwise be indistinguishable from no
+ * delivery at all; the draw that paid for it is a row, naming what was spent,
+ * what was left, and how much of the same charge had to be borrowed once the
+ * balance ran out.
  *
- * The borrowing figure is the one exception to the exception, and is labelled a lower
- * bound wherever it is served: a delivery that drew no prepaid credit emits no
- * `PrepaidConsumed`, so only borrowing that happened on a draw is counted. The whole
- * of it rides on `DeliveryRecorded`, which is still not indexed.
+ * The borrowing figure is labelled a lower bound wherever it is served: a
+ * delivery that drew no prepaid credit emits no `PrepaidConsumed`, so only
+ * borrowing that happened on a draw is counted here. Every delivery, with its
+ * full charge, is served by `GET /deliveries`.
  *
  * ## Identity and labels are context, served beside the facts
  *
@@ -156,8 +132,8 @@ interface AgentAssetView {
 /**
  * The prepaid balance is exact, and this says why in the response itself.
  *
- * Every other derived figure on this route is hedged, so a reader has no reason to
- * believe an unhedged one unless it argues for itself. `tab.prepaid` is raised only
+ * The Open Tab and borrowing figures on this route are hedged, so a reader has no
+ * reason to believe an unhedged one beside them unless it argues for itself. `tab.prepaid` is raised only
  * by `SettlementApplied.toPrepaid` and lowered only by `PrepaidConsumed.consumed`,
  * both of which this service indexes, so the difference is the balance rather than an
  * approximation of it.
@@ -294,7 +270,7 @@ export function createAgentRoutes(reads: RegistryReads, options: AgentRouteOptio
       agents: page.items,
       nextCursor: page.nextCursor,
       // Deliberately no per-row Credit Limit. A figure costs a witness rebuild and
-      // four chain reads per Agent and Asset, so a page of fifty would be hundreds
+      // seven chain reads per Agent and Asset, so a page of fifty would be hundreds
       // of round trips for a listing nobody reads a limit off. The detail route
       // serves it, and this names where.
       creditLimit: {

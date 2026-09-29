@@ -21,9 +21,9 @@
  * a live read would disagree with every fixture figure by construction. The
  * service is therefore written against {@link CreditChainReader}, and the tests
  * supply a reader that answers what a chain holding the fixture would answer, in
- * both the agreeing and the disagreeing shapes. The live implementation is
- * exercised on its own against an address with no history, where the true answer
- * is known without a fixture.
+ * both the agreeing and the disagreeing shapes. The live implementation is a thin
+ * `eth_call` wrapper with no suite of its own, and a live read that answered
+ * wrongly would make the cross-check withhold a figure, never serve a wrong one.
  *
  * Block objects on this RPC arrive without `mixHash`; `ethers` v6 tolerates the
  * omission, which is why the block timestamp read is safe here.

@@ -6,8 +6,8 @@
  * reorganisation rewind, idempotence, is exercisable without a database, and
  * exercising it is how it stays correct. `MemorySink` is not a mock standing in
  * for behaviour it does not have. It implements the same three operations with the
- * same semantics, so a test that runs the real indexer against the real chain
- * through this sink is testing the real logic.
+ * same semantics, so a test that runs the real indexer through this sink, against
+ * a scripted log source, is testing the real logic.
  *
  * The contract every implementation owes:
  *

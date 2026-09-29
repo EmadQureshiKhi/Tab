@@ -12,8 +12,8 @@
  * empty or subtly wrong table. Three specific ways that could happen here are all
  * closed by these assertions:
  *
- * - **A reordered field.** `SettlementRecorded` carries eleven fields, four of them
- *   `uint64` in a row. An encode-then-decode round trip is symmetric and would not
+ * - **A reordered field.** `Settled` carries eight fields, three of them `uint128`
+ *   in a row. An encode-then-decode round trip is symmetric and would not
  *   notice them swapped; reading the declaration out of the source does.
  * - **A changed `indexed` flag.** It moves a field between `topics` and `data`, so
  *   the decode shifts silently by one.
@@ -54,9 +54,10 @@ const CONTRACTS_SRC = join(
 );
 
 /**
- * The ERC-8004 sources, vendored verbatim under `vendor/erc8004`: the canonical
- * Identity registry from `erc-8004/erc-8004-contracts`, and OpenZeppelin's
- * `IERC721`, which is where the `Transfer` the registry inherits is declared.
+ * The ERC-8004 sources, vendored under `vendor/erc8004` and unmodified below
+ * the registry's provenance header: the canonical Identity registry from
+ * `erc-8004/erc-8004-contracts`, and OpenZeppelin's `IERC721`, which is where
+ * the `Transfer` the registry inherits is declared.
  * They are the authority for the identity events exactly as `packages/contracts`
  * is for Tab's; see `src/erc8004.ts` for the provenance.
  */
@@ -317,7 +318,7 @@ test("nothing moves prepaid credit except the two events the Agent read subtract
 
   // And each one is answered by an event in this service's surface.
   assert.ok(INDEXED_EVENT_NAMES.includes("PrepaidConsumed"), "the decrement is indexed");
-  assert.ok(INDEXED_EVENT_NAMES.includes("SettlementApplied"), "both increments are indexed");
+  assert.ok(INDEXED_EVENT_NAMES.includes("SettlementApplied"), "the increment is indexed");
 });
 
 test("the vendored ERC-8004 registry is the 2.0.0 contract and declares the three identity events", () => {

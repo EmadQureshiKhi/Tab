@@ -1,5 +1,5 @@
 /**
- * The four Solidity enumerations that reach this service through an event, and
+ * The two Solidity enumerations that reach this service through an event, and
  * their member names.
  *
  * An enumeration is a `uint8` on the wire, so an indexer that stored the number
@@ -17,12 +17,6 @@
 /** `ServiceRegistry.ChangeKind`, which registry fact a timelocked change rewrites. */
 export const CHANGE_KINDS = ["Tier", "Price", "Collection", "AcceptedAsset", "SettlementWindow"] as const;
 
-/** `ServiceRegistry.EmitterKind`, which Settlement signature an emitter may produce. */
-export const EMITTER_KINDS = ["None", "Asset", "SettlementContract"] as const;
-
-/** `ServiceRegistry.CollectionKind`, whether a Collection Address collects for a tab or a Bond. */
-export const COLLECTION_KINDS = ["Tab", "Bond"] as const;
-
 /** `ServiceRegistry.Tier`, the curation tier, which gates Credit Limit weight and nothing else. */
 export const TIERS = ["Permissionless", "Curated"] as const;
 
@@ -38,10 +32,10 @@ export type SolidityEnumName = keyof typeof SOLIDITY_ENUMS;
  * The member name for a value, or `"unknown(<n>)"` when the chain reports a member
  * this build does not know.
  *
- * It does not throw. A contract upgrade that appends a member must not stop the
- * indexer: the number is stored either way, so an unknown name costs legibility
- * for one row and nothing else, whereas a throw would stall the whole stream
- * behind a single log.
+ * It does not throw. A redeployment that appends a member must not stop an
+ * indexer still running this build: the number is stored either way, so an
+ * unknown name costs legibility for one row and nothing else, whereas a throw
+ * would stall the whole stream behind a single log.
  */
 export function enumMemberName(enumName: SolidityEnumName, value: bigint | number): string {
   const members: readonly string[] = SOLIDITY_ENUMS[enumName];

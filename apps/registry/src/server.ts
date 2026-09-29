@@ -1,10 +1,10 @@
 /**
  * The Hono surface: the two probes a container host needs, and the read API.
  *
- * The probes came with the indexer in task 18.1. The reads are task 18.2 and mount
- * here, on the same app and the same port, because they answer from the same
- * database the indexer writes and a second listener would only add a second thing
- * to configure and monitor. `routes/index.ts` carries the route table.
+ * The reads mount on the same app and the same port as the probes, because they
+ * answer from the same database the indexer writes and a second listener would
+ * only add a second thing to configure and monitor. `routes/index.ts` carries the
+ * route table.
  *
  * Everything on this app is unauthenticated by design and all of it is safe that
  * way: every field either restates a public chain fact that any node hands to
@@ -89,7 +89,19 @@ export function createApp(deps: ServerDependencies): Hono {
       service: "tab-registry",
       description:
         "Read API over the Tab rail on Monad. Indexes registry, tab and settlement events, and serves a Credit Limit only where an on-chain cross-check agrees.",
-      routes: ["/services", "/agents/:address", "/settlements", "/adoption", "/healthz", "/readyz"],
+      routes: [
+        "/settlements",
+        "/settlements/:settlementId",
+        "/deliveries",
+        "/services",
+        "/services/:serviceId",
+        "/agents",
+        "/agents/:agent",
+        "/agents/:agent/witness/:asset",
+        ...(deps.adoption === undefined ? [] : ["/adoption"]),
+        "/healthz",
+        "/readyz",
+      ],
     }),
   );
 

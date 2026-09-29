@@ -7,10 +7,10 @@
  * The canonical registries are deployed at the same vanity addresses on every
  * supported chain, Monad included. Their sources are the authority for every
  * signature in this file, exactly as `packages/contracts/src/*.sol` is for the Tab
- * events: `vendor/erc8004/IdentityRegistryUpgradeable.sol` is a verbatim copy of
- * `contracts/IdentityRegistryUpgradeable.sol` from
- * `github.com/erc-8004/erc-8004-contracts` at commit `b9e466c` (the 2.0.0
- * contracts, which is the version `getVersion()` answers on Monad Testnet), and
+ * events: `vendor/erc8004/IdentityRegistryUpgradeable.sol` is a verbatim copy,
+ * below a two-line provenance header, of `contracts/IdentityRegistryUpgradeable.sol`
+ * from `github.com/erc-8004/erc-8004-contracts` at commit `b9e466c` (the 2.0.0
+ * contracts, which is the version `getVersion()` answers on Monad), and
  * `vendor/erc8004/IERC721.sol` is OpenZeppelin 5.4.0's interface, which is where
  * the `Transfer` the registry inherits is declared. `test/signatures.test.ts`
  * re-reads both and fails when a declaration here drifts from them.

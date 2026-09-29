@@ -33,8 +33,8 @@
  *
  * Headroom is the limit less `TabBook.assetOpen` at the same block. The Open Tab
  * is read rather than derived because a Metered Delivery raises it and
- * `DeliveryRecorded` is not indexed; the read is checked against
- * `TabBook.headroom` the same way.
+ * `DeliveryRecorded` carries the charge but not the running total; the read is
+ * checked against `TabBook.headroom` the same way.
  *
  * ## Delinquency
  *
@@ -452,7 +452,7 @@ export interface ServiceBondView extends BondLedgerRow {
   readonly basis: string;
   readonly computedAt: { readonly blockNumber: number } | null;
   /**
-   * The chain's own four figures and its free amount, **as decimal strings**.
+   * The chain's own two figures and its free amount, **as decimal strings**.
    *
    * Strings rather than `bigint`s because this crosses an HTTP boundary: `c.json`
    * calls `JSON.stringify`, which throws on a `bigint` rather than coercing it, so a

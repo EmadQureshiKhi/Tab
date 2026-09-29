@@ -285,6 +285,7 @@ export const readProcessEnvironment = (): EnvironmentMap => ({
   HYPERSYNC_CHUNK_BLOCKS: process.env.HYPERSYNC_CHUNK_BLOCKS,
   NANSEN_API_KEY: process.env.NANSEN_API_KEY,
   NANSEN_CHAIN: process.env.NANSEN_CHAIN,
+  TEAM_ADDRESSES_PATH: process.env.TEAM_ADDRESSES_PATH,
 });
 
 /**

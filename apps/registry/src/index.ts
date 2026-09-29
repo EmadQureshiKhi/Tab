@@ -7,8 +7,8 @@
  * believing this service. Nothing here signs anything, holds a key, or writes to
  * chain.
  *
- * Task 18.1 delivers the schema and the indexer. The read endpoints are task 18.2
- * and mount onto the same Hono app.
+ * The indexer writes the schema under `sql/`, and the read endpoints mount onto
+ * the same Hono app as the health probes.
  */
 
 export const WORKSPACE_ID_REGISTRY = "@tabai/registry" as const;

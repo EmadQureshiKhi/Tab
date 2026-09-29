@@ -28,10 +28,10 @@ import {
 import { runTick, type LogSource } from "../src/indexer.js";
 import { MemorySink } from "../src/sink.js";
 
-const SETTLEMENT_SURFACE = "0x0dabf8e52280d0f128f546602a99b6dc4fbb80dc";
+const SETTLEMENT_SURFACE = "0x654fac48185e4b71779eec2457b1f24aedf46717";
 const AGENT = "0x1111111111111111111111111111111111111111";
 const COLLECTION = "0x2222222222222222222222222222222222222222";
-const ASSET = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48";
+const ASSET = "0x754704bc059f8c67012fed69bc8a327a5aafb603";
 const SERVICE_ID = `0x${"11".repeat(32)}`;
 const ADDRESSES = { TabSettlement: SETTLEMENT_SURFACE };
 

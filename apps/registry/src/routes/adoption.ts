@@ -1,11 +1,9 @@
 /**
- * `GET /adoption`: the measured adoption split.
+ * `GET /adoption`: the measured adoption split between this project's own addresses
+ * and everyone else's.
  *
- * The figures are the point, and so is what they are not. Two are exact and one is a
- * lower bound, and the body says which is which in its own words rather than leaving a
- * reader to infer it from a footnote elsewhere. A count of Metered Deliveries served
- * without that caveat would be a smaller number presented as a total, which is the one
- * mistake this route exists to make impossible.
+ * Every figure is exact at the index horizon, and the body says how each was derived
+ * in its own words rather than leaving a reader to infer it from a footnote elsewhere.
  *
  * Unauthenticated, like every other read here: the rows restate public chain facts.
  *
@@ -39,10 +37,10 @@ export function createAdoptionRoutes(
   const app = new Hono();
 
   app.get("/adoption", async (context) => {
-    const [index, volumes, draws] = await Promise.all([
+    const [index, volumes, deliveries] = await Promise.all([
       reads.horizon(DEFAULT_STREAM),
       reads.settlementVolumeByAgentAsset(),
-      reads.prepaidDraws(),
+      reads.deliveryCountsByAgentAsset(),
     ]);
 
     const metrics = computeAdoption(
@@ -53,7 +51,7 @@ export function createAdoptionRoutes(
         amount: BigInt(row.amount),
         settlementCount: row.settlementCount,
       })),
-      draws,
+      deliveries,
       allowlistPath,
     );
 

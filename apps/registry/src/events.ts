@@ -238,11 +238,11 @@ export const envelopeOf = (log: RawLog): LogEnvelope => ({
  * Decodes one log, or returns `null` when its `topics[0]` is not one this service
  * indexes.
  *
- * A `null` is not an error and is never a reason to stop: the five contracts emit
- * events beyond this surface, wiring events, `DeliveryRecorded`,
- * `TabDelinquencyCleared`, `CreditLimitZeroed` - and a log the filter let through
- * but this file does not name is skipped and counted, never dropped silently and
- * never fatal. The same rule the ingestion core follows on chain.
+ * A `null` is not an error and is never a reason to stop: the five watched
+ * contracts emit events beyond this surface, such as `SettlementSurfaceWired`,
+ * `SettledGasless`, and the Identity registry's approvals, and a log the filter
+ * let through but this file does not name is skipped and counted, never dropped
+ * silently and never fatal.
  *
  * @throws Error when a recognised `topics[0]` fails to decode, which means the
  * declaration here and the contract have diverged and every later row would be

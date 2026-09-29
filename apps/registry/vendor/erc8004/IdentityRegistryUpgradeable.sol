@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: MIT
+// Vendored from erc-8004/erc-8004-contracts, contracts/IdentityRegistryUpgradeable.sol at commit
+// b9e466c (the 2.0.0 contracts). Unmodified below this header; see apps/registry/src/erc8004.ts.
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721URIStorageUpgradeable.sol";

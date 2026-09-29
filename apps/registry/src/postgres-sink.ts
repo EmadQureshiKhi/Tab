@@ -8,7 +8,7 @@
  * key is `(block_hash, log_index)`.
  *
  * The typed rows ride the cascade: deleting an `event_log` row deletes the decoded
- * row that hangs off it, so this file never has to enumerate twenty-six tables to
+ * row that hangs off it, so this file never has to enumerate twenty-two tables to
  * undo a range. The foreign keys that make that true are declared in the files
  * under `sql/`, which are also what {@link PostgresSink.applySchema} applies.
  */
@@ -28,9 +28,10 @@ import { eventLog, indexedBlock, indexerCursor, TYPED_TABLES } from "./schema.js
  * Rows per insert statement.
  *
  * Postgres caps a statement at 65535 bind parameters. The widest table here has
- * thirteen columns, so 500 rows is roughly a tenth of the ceiling, comfortable at
- * a 2000-block chunk on a busy range, and small enough that one oversized batch
- * cannot produce a statement the server refuses.
+ * thirteen columns, so 500 rows is roughly a tenth of the ceiling. A batch is
+ * split into statements of at most that many rows, so however wide a block range
+ * one tick reads, from the RPC or from HyperSync, no statement it produces is one
+ * the server refuses.
  */
 const INSERT_CHUNK = 500;
 

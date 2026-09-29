@@ -12,8 +12,8 @@
  *
  * The tests never touch the database `DATABASE_URL` names. That one is the
  * live index on a developer's machine, and a read route serves everything it
- * holds, so a feed test asserting "exactly these three Settlements" was true
- * on a fresh index and false the moment the indexer had seen a real one. The
+ * holds, so a feed test asserting "exactly these three Settlements" would be
+ * true on a fresh index and false the moment the indexer saw a real one. The
  * suite runs against `REGISTRY_TEST_DATABASE_URL` when that is set and
  * otherwise against a sibling database named `<database>_test` on the same
  * server, which it creates if it is missing. The schema is applied there, the
@@ -37,6 +37,7 @@ import { AbiCoder, keccak256 } from "ethers";
 import postgres from "postgres";
 import { REGISTRY_INTERFACE, decodeLog, type IndexedEventName, type RawLog } from "../src/events.js";
 import { encodeCursor } from "../src/cursor.js";
+import { createClassifier } from "../src/adoption.js";
 import { PostgresReads } from "../src/queries.js";
 import { PostgresSink } from "../src/postgres-sink.js";
 import { toTypedInsert } from "../src/rows.js";
@@ -579,6 +580,39 @@ test("deliveries are served newest first with their units and charge", { skip },
   }
 });
 
+test("adoption counts every Metered Delivery exactly, from DeliveryRecorded", { skip }, async () => {
+  if (reads === null) throw new Error("test: no reads");
+  const counts = await reads.deliveryCountsByAgentAsset();
+  assert.deepEqual(
+    counts.filter((row) => row.agent === AGENT_A || row.agent === AGENT_B),
+    [{ agent: AGENT_A, asset: ASSET_A, deliveryCount: 2 }],
+    "both of Agent A's deliveries, and none for Agent B, whose only draw was prepaid",
+  );
+
+  // Agent A is ours on this chain only, so both deliveries count as internal here.
+  const classifier = createClassifier(
+    { network: "fixture", chainIds: [10143], internal: [{ address: AGENT_A, role: "fixture", why: "fixture", chainIds: [10143] }] },
+    10143,
+  );
+  const adoptionApp = createApp({
+    status: () => IDLE_STATUS,
+    databaseReachable: () => reads.ping(),
+    reads,
+    adoption: { classifier, allowlistPath: "fixture" },
+  });
+  const response = await adoptionApp.request("/adoption");
+  assert.equal(response.status, 200);
+  const body = (await response.json()) as { internalDeliveryCount: number; allowlist: { chainId: number; internalCount: number } };
+  assert.equal(body.internalDeliveryCount, 2);
+  assert.deepEqual(body.allowlist, { chainId: 10143, internalCount: 1, path: "fixture" });
+
+  // The origin lists the route only where it is mounted.
+  const root = (await (await adoptionApp.request("/")).json()) as { routes: string[] };
+  assert.ok(root.routes.includes("/adoption"));
+  const plainRoot = (await (await request("/")).json()) as { routes: string[] };
+  assert.equal(plainRoot.routes.includes("/adoption"), false);
+});
+
 // ------------------------------------------------------------------ the Service
 
 test("the Service directory serves tier, prices, window, and payout addresses", { skip }, async () => {
@@ -821,7 +855,7 @@ test("the Agent read folds the identity events to owner, wallet and URI, and mat
   assert.equal(body.labels.labels?.length, 1);
 });
 
-test("an agent with no URI in the index has it read live, and a card that cannot be fetched says why", { skip }, async () => {
+test("an agent registered with an empty URI is served from the index, with no live read and a card that says why it is absent", { skip }, async () => {
   if (identityApp === null) throw new Error("test: no app");
   const body = (await (await identityApp.request(`/agents/${AGENT_B}`)).json()) as IdentityBody;
   assert.notEqual(body.identity, null);

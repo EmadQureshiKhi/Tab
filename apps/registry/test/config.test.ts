@@ -18,28 +18,27 @@ import { MONAD_TESTNET_CHAIN_ID, loadConfig, readProcessEnvironment, watchedAddr
 import { ERC8004_REGISTRIES } from "@tabai/shared";
 
 /**
- * Realistic addresses, not live configuration.
+ * The Testnet deployment's addresses, in checksum case so the lowercasing is observable.
  *
- * These were copied from `deployments.json` when the fixture was written and are deliberately not
- * kept in step with it: nothing here reads that file or asserts against it, so the subject is the
- * loader's handling of well-formed addresses rather than any particular deployment.
+ * Nothing here reads `deployments.json` or asserts against it: the subject is the loader's
+ * handling of well-formed addresses rather than any particular deployment.
  */
 const complete = {
   MONAD_RPC_URL: "https://testnet-rpc.monad.xyz",
   MONAD_CHAIN_ID: "10143",
   RPC_BATCH_MAX_COUNT: "1",
-  TAB_BOOK_ADDRESS: "0xbA86C0D053ba88afDECbED8aBa5b2eC3973fb230",
-  TAB_SETTLEMENT_ADDRESS: "0x0Dabf8E52280D0F128f546602a99b6DC4fbb80DC",
-  SERVICE_REGISTRY_ADDRESS: "0x123c19F46C38d5b4E922D1297250a71A03DFFD17",
-  BOND_ADDRESS: "0x4F791F13F94944fCB2F884f8C7991cAa583884A6",
+  TAB_BOOK_ADDRESS: "0x87571030cCe27C84836bAfF85288eB1d85d908a4",
+  TAB_SETTLEMENT_ADDRESS: "0x654Fac48185e4B71779eEc2457B1F24aEdf46717",
+  SERVICE_REGISTRY_ADDRESS: "0x3638DB35A76E5a22EA1E827636dA994be622c139",
+  BOND_ADDRESS: "0x29aDfD90Fc7c9026563Fc60651f696ab089080E7",
   DATABASE_URL: "postgres://user:password@localhost:5432/tab",
 } as const;
 
 test("a complete environment loads, and addresses are lowercased", () => {
   const config = loadConfig(complete);
   assert.equal(config.chainId, MONAD_TESTNET_CHAIN_ID);
-  assert.equal(config.addresses.TabBook, "0xba86c0d053ba88afdecbed8aba5b2ec3973fb230");
-  assert.equal(config.addresses.TabSettlement, "0x0dabf8e52280d0f128f546602a99b6dc4fbb80dc");
+  assert.equal(config.addresses.TabBook, "0x87571030cce27c84836baff85288eb1d85d908a4");
+  assert.equal(config.addresses.TabSettlement, "0x654fac48185e4b71779eec2457b1f24aedf46717");
 });
 
 test("batching stays at one call per request unless the environment says otherwise", () => {
