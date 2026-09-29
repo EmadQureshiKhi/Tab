@@ -45,6 +45,11 @@ export const SHARED_WORKSPACE_ID = WORKSPACE_ID;
 export { ok, err, wrap, causeOf } from "@tabai/shared";
 export type { Result, TabError, ErrorCategory, Address, Bytes32, Hex } from "@tabai/shared";
 
+// Where this project hosts its read API and demo Service on each network, which
+// the MCP server falls back to when nothing else is configured.
+export { TAB_HOSTED } from "@tabai/shared";
+export type { TabHosted, HostedService } from "@tabai/shared";
+
 export * from "./logger.js";
 export * from "./errors.js";
 export * from "./payments/index.js";

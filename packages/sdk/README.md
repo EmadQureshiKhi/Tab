@@ -142,7 +142,7 @@ export default {
     {
       serviceId: "0x7461622e64656d6f000000000000000000000000000000000000000000000000",
       name: "tab.demo",
-      endpoint: "http://localhost:8788",
+      endpoint: "https://gateway-testnet-production-a657.up.railway.app",
     },
   ],
 
@@ -187,7 +187,8 @@ The key is read at the moment a Settlement is built, and never from this file. `
 | `MONAD_RPC_URL` | every read. The MCP server and `doctor` need only this |
 | `MONAD_CHAIN_ID` | `143` for Mainnet, `10143` for Testnet. Defaults to Testnet |
 | `TAB_BOOK_ADDRESS`, `TAB_SETTLEMENT_ADDRESS`, `SERVICE_REGISTRY_ADDRESS`, `BOND_ADDRESS` | resolving credit, Services and Bond |
-| `NEXT_PUBLIC_REGISTRY_API_URL` | the Service directory and an agent's history, if you use the read API rather than the chain |
+| `NEXT_PUBLIC_REGISTRY_API_URL` | the Service directory and an agent's history. Defaults to the project's hosted registry for the chosen network |
+| `TAB_HOSTED_DEFAULTS` | `off` stops the hosted registry and demo Service from filling in what you did not configure |
 | `AGENT_PRIVATE_KEY` | broadcasting a Settlement, and nothing else. Never written to a configuration file |
 
 ---
@@ -390,9 +391,18 @@ A Settlement is final when its block is. **Nothing in an agent's request path wa
 
 ## Status
 
-The contracts are live on Mainnet and Testnet, and everything in this package runs against them today.
-A hosted read API, a public demo Service endpoint and a Dashboard are coming soon on Monad.
-Until then, `tab_discover` and `tab_status` need a Tab registry you point `registryUrl` at, and a Service's `endpoint` is wherever that Service runs.
+Live on Monad Mainnet and Monad Testnet.
+
+| | Mainnet (`143`) | Testnet (`10143`) |
+| --- | --- | --- |
+| Registry read API | `https://registry-mainnet-production.up.railway.app` | `https://registry-testnet-production.up.railway.app` |
+| Demo Service `tab.demo` | `https://gateway-mainnet-production.up.railway.app` | `https://gateway-testnet-production-a657.up.railway.app` |
+
+**With nothing configured, this package uses them.** `tab_discover` and `tab_status` read the hosted registry for the chosen network, and `tab_call` can reach the demo Service, so a fresh `npx -y @tabai/sdk connect` works before you set anything.
+Anything you configure wins, and `TAB_HOSTED_DEFAULTS=off` switches the defaults off entirely.
+They are exported as `TAB_HOSTED`.
+
+The Dashboard, which shows either network, is at `https://trytabai.vercel.app`, and the documentation at `https://trytabai-docs.vercel.app`.
 
 ---
 

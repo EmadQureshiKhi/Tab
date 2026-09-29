@@ -9,7 +9,7 @@
  * Addresses of Tab's own contracts are deployment output and live in
  * `deployments.json`, never here.
  */
-import type { Address } from "./hex.js";
+import type { Address, Bytes32 } from "./hex.js";
 
 /** A Monad network a Tab deployment can target. */
 export interface ChainDescriptor {
@@ -102,6 +102,46 @@ export const PERMIT2_ADDRESS = "0x000000000022D473030F116dDEE9F6B43aC78BA3" as c
 
 /** The x402 facilitator that verifies and settles `exact` payments on Monad. */
 export const X402_FACILITATOR_URL = "https://x402-facilitator.molandak.org" as const;
+
+/** A Service this project hosts, and where it is reached. */
+export interface HostedService {
+  readonly serviceId: Bytes32;
+  readonly name: string;
+  readonly endpoint: string;
+}
+
+/** What this project hosts on one network: the read API and the demo Service. */
+export interface TabHosted {
+  readonly registryUrl: string;
+  readonly demoService: HostedService;
+}
+
+/**
+ * The read API and the demo Service this project runs, per network.
+ *
+ * Defaults, never authority: the chain is the authority on every figure, and a
+ * configured `registryUrl` or `services` entry always wins over these. They are
+ * here so that a fresh install can discover and call something before its owner
+ * has configured anything, which is the first thing anyone tries.
+ */
+export const TAB_HOSTED = {
+  [MONAD_MAINNET.chainId]: {
+    registryUrl: "https://registry-mainnet-production.up.railway.app",
+    demoService: {
+      serviceId: "0x7461622e64656d6f000000000000000000000000000000000000000000000000",
+      name: "tab.demo",
+      endpoint: "https://gateway-mainnet-production.up.railway.app",
+    },
+  },
+  [MONAD_TESTNET.chainId]: {
+    registryUrl: "https://registry-testnet-production.up.railway.app",
+    demoService: {
+      serviceId: "0x7461622e64656d6f000000000000000000000000000000000000000000000000",
+      name: "tab.demo",
+      endpoint: "https://gateway-testnet-production-a657.up.railway.app",
+    },
+  },
+} as const satisfies Readonly<Record<MonadChainId, TabHosted>>;
 
 /** The two ERC-8004 registries a Tab deployment reads and writes. */
 export interface Erc8004Registries {

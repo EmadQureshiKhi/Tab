@@ -168,14 +168,15 @@ Five variables, each already part of the Tab environment contract, with the depl
 | `TAB_BOOK_ADDRESS` | `tab authorise` | that network's `TabBook` from `deployments.json` |
 | `TAB_SETTLEMENT_ADDRESS` | `tab settle` | that network's `TabSettlement` from `deployments.json` |
 | `MOCK_USDC_ADDRESS` | naming the Testnet test token `mUSDC` | the Testnet `MockUsdc` from `deployments.json`; unused on Mainnet |
-| `NEXT_PUBLIC_REGISTRY_API_URL` | `tab discover`, `tab status`, and the Service check in `tab settle` | none; the error names the variable |
+| `NEXT_PUBLIC_REGISTRY_API_URL` | `tab discover`, `tab status`, and the Service check in `tab settle` | the project's hosted registry for that network; `TAB_HOSTED_DEFAULTS=off` turns that off |
 
 Every command prints where each setting came from, so a default is never mistaken for a choice.
 
 Two optional ones: `MONAD_RPC_URL` makes the plugin read the chain through that endpoint instead of the wallet's own RPC client, and `MONAD_EXPLORER_URL` changes the links.
 
 `tab call` needs to know where a Service is.
-The chain records no URL for a Service, deliberately, so the endpoint comes from a `tab.config.mjs` in the working directory or any parent, exactly as it does for the `@tabai/sdk` MCP server:
+The chain records no URL for a Service, deliberately.
+The project's hosted demo Service, `tab.demo`, is known without any setup; any other endpoint comes from a `tab.config.mjs` in the working directory or any parent, exactly as it does for the `@tabai/sdk` MCP server:
 
 ```js
 export default {
@@ -183,7 +184,7 @@ export default {
     {
       serviceId: "0x7461622e64656d6f000000000000000000000000000000000000000000000000",
       name: "tab.demo",
-      endpoint: "http://localhost:8788",
+      endpoint: "https://gateway-testnet-production-a657.up.railway.app",
     },
   ],
 };

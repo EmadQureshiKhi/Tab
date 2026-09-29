@@ -5,7 +5,9 @@ import { createHost } from "../dist/host-context.js";
 import { parseCallArguments, runCall, runDiscover, runStatus } from "../dist/tab/reads.js";
 import { AGENT, ENV, fakeContext, fakeIo, SERVICE_ID, SETTINGS, stubRegistryFetch, USDC } from "./fixtures.mjs";
 
-const HERMETIC = ENV;
+// The project's hosted read API and demo Service are the SDK's last-resort defaults.
+// Tests switch them off so that nothing here can reach a real host by accident.
+const HERMETIC = { ...ENV, TAB_HOSTED_DEFAULTS: "off" };
 // No tab.config sits at the filesystem root, so the SDK's config walk finds nothing and every read stays hermetic.
 const cwd = "/";
 
@@ -50,6 +52,14 @@ test("discover needs no wallet and no registry when the limit is malformed", asy
 test("discover with no registry configured reports the variable rather than a connection error", async () => {
   const result = await runDiscover({ settings: { ...SETTINGS, registryUrl: undefined }, env: HERMETIC, cwd }, {});
   assert.equal(result.error.code, "REGISTRY_UNCONFIGURED");
+});
+
+test("with nothing configured, discover reads the project's hosted registry for the network", async () => {
+  const registryFetch = stubRegistryFetch();
+  const result = await runDiscover({ settings: { ...SETTINGS, registryUrl: undefined }, env: ENV, cwd, registryFetch }, {});
+  assert.ok(result.ok, result.ok ? "" : result.error.message);
+  assert.ok(registryFetch.calls.length > 0);
+  assert.ok(registryFetch.calls.every((url) => url.startsWith("https://registry-testnet-production.up.railway.app/")));
 });
 
 test("status reads the wallet's address as the Agent and reports per Asset", async () => {

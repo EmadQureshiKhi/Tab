@@ -1,6 +1,6 @@
 {
   "name": "@tabai/agent-wallet-plugin",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Tab commands for the MetaMask Agent Wallet CLI (mm): discover priced Services on Monad, call one on credit, read the Open Tab, and settle or authorise with the wallet's own policy-gated key.",
   "keywords": [
     "oclif-plugin",

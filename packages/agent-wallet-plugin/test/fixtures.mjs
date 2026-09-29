@@ -67,7 +67,8 @@ export function stubRegistryFetch(overrides = {}) {
   const calls = [];
   const send = async (url) => {
     calls.push(url);
-    const path = url.replace("http://registry.test", "");
+    const parsed = new URL(url);
+    const path = `${parsed.pathname}${parsed.search}`;
     const services = overrides.services ?? SERVICES_BODY;
     if (path.startsWith("/services/")) return json(200, { index: services.index, service: services.services[0] });
     if (path.startsWith("/services")) return json(200, services);

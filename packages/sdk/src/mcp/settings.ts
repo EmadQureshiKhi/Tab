@@ -28,7 +28,7 @@
  */
 
 import type { Address } from "@tabai/shared";
-import { isAddress } from "@tabai/shared";
+import { CHAINS, TAB_HOSTED, isAddress, isMonadChainId } from "@tabai/shared";
 
 import type { TabServiceEntry } from "../payments/config.js";
 import { loadTabConfig, type TabConfig } from "../payments/config.js";
@@ -65,6 +65,12 @@ export interface TabMcpSettingsOptions {
   readonly agent?: string;
   readonly chainId?: number;
   readonly registryUrl?: string;
+  /**
+   * Whether the project's hosted read API and demo Service fill in what nothing
+   * else names. Default true; `TAB_HOSTED_DEFAULTS=off` in the environment
+   * turns them off as well.
+   */
+  readonly hostedDefaults?: boolean;
   readonly rpcUrl?: string;
   readonly explorerUrl?: string;
   readonly services?: readonly TabServiceEntry[];
@@ -184,14 +190,6 @@ export async function resolveTabMcpSettings(
     delete sources["agent"];
   }
 
-  const envRegistry = registryUrlFromEnv(env);
-  const registryUrl = pick(
-    "registryUrl",
-    options.registryUrl,
-    config.registryUrl,
-    envRegistry === undefined ? undefined : { value: envRegistry.url, source: envRegistry.source },
-  );
-
   const envRpc = trimmed(env["MONAD_RPC_URL"]);
   const rpcUrl = pick(
     "rpcUrl",
@@ -209,6 +207,29 @@ export async function resolveTabMcpSettings(
   );
   const chainId = chainIdText !== undefined && /^[0-9]+$/.test(chainIdText) ? Number(chainIdText) : DEFAULT_CHAIN_ID;
 
+  /*
+    What this project hosts on the chosen network: its read API and its demo
+    Service. The lowest-priority source for both, so anything configured wins,
+    and switched off with TAB_HOSTED_DEFAULTS=off for a setup that must reach
+    nothing it did not name.
+  */
+  const hosted =
+    options.hostedDefaults !== false && trimmed(env["TAB_HOSTED_DEFAULTS"]) !== "off" && isMonadChainId(chainId)
+      ? TAB_HOSTED[chainId]
+      : undefined;
+
+  const envRegistry = registryUrlFromEnv(env);
+  let registryUrl = pick(
+    "registryUrl",
+    options.registryUrl,
+    config.registryUrl,
+    envRegistry === undefined ? undefined : { value: envRegistry.url, source: envRegistry.source },
+  );
+  if (registryUrl === undefined && hosted !== undefined) {
+    registryUrl = hosted.registryUrl;
+    sources["registryUrl"] = "default (the project's hosted read API)";
+  }
+
   const envExplorer = trimmed(env["MONAD_EXPLORER_URL"]);
   const explorerUrl =
     pick(
@@ -216,10 +237,12 @@ export async function resolveTabMcpSettings(
       options.explorerUrl,
       undefined,
       envExplorer === undefined ? undefined : { value: envExplorer, source: "env MONAD_EXPLORER_URL" },
-    ) ?? DEFAULT_EXPLORER_URL;
+    ) ?? (isMonadChainId(chainId) ? CHAINS[chainId].explorerUrl : DEFAULT_EXPLORER_URL);
 
-  const services = mergeServices(options.services ?? [], config.services ?? []);
-  if (services.length > 0) sources["services"] = options.services === undefined ? "tab.config" : "options";
+  const configured = mergeServices(options.services ?? [], config.services ?? []);
+  if (configured.length > 0) sources["services"] = options.services === undefined ? "tab.config" : "options";
+  const services = hosted === undefined ? configured : mergeServices(configured, [hosted.demoService]);
+  if (configured.length === 0 && services.length > 0) sources["services"] = "default (the project's hosted demo Service)";
 
   const strategyId = trimmed(options.strategyId);
   if (strategyId !== undefined) sources["strategyId"] = "options";
