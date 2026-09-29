@@ -60,7 +60,7 @@ function knownAssets(chainId: number, env: NodeJS.ProcessEnv): readonly { addres
     // hosted Testnet deployment's is known without it, so a fresh install
     // shows `mUSDC` rather than an address with no symbol.
     const configured = env["MOCK_USDC_ADDRESS"];
-    const mock = configured !== undefined && isAddress(configured) ? configured : TAB_HOSTED[MONAD_TESTNET.chainId].testToken;
+    const mock = configured !== undefined && isAddress(configured) ? configured : TAB_HOSTED[MONAD_TESTNET.chainId].testAsset;
     return mock !== undefined ? [...known, { address: mock.toLowerCase(), symbol: "mUSDC", decimals: 6 }] : known;
   }
   return [];

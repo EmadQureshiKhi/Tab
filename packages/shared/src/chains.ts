@@ -115,7 +115,7 @@ export interface TabHosted {
   readonly registryUrl: string;
   readonly demoService: HostedService;
   /** The test token the hosted deployment prices in, where it ships one: `mUSDC`, 6 decimals. */
-  readonly testToken?: Address;
+  readonly testAsset?: Address;
 }
 
 /**
@@ -142,7 +142,7 @@ export const TAB_HOSTED = {
       name: "tab.demo",
       endpoint: "https://gateway-testnet-production-a657.up.railway.app",
     },
-    testToken: "0x480209747417f5c830fDA188a9b9AcFa70Bc4083",
+    testAsset: "0x480209747417f5c830fDA188a9b9AcFa70Bc4083",
   },
 } as const satisfies Readonly<Record<MonadChainId, TabHosted>>;
 

@@ -60,7 +60,7 @@ test("TAB_HOSTED_DEFAULTS=off and hostedDefaults: false both leave everything un
 });
 
 test("the hosted Testnet test token is named mUSDC with nothing exported", () => {
-  const facts = assetFacts(10143, TAB_HOSTED[10143].testToken, {});
+  const facts = assetFacts(10143, TAB_HOSTED[10143].testAsset, {});
   assert.equal(facts.symbol, "mUSDC");
   assert.equal(facts.decimals, 6);
 });
