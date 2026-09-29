@@ -400,12 +400,9 @@ export interface AdoptionMetrics {
   readonly externalSettlementCount: number;
   readonly internalSettlementCount: number;
   readonly volumeByAsset: readonly AdoptionVolumeRow[];
-  /**
-   * Lower bounds, not totals: the registry counts these from `PrepaidConsumed`,
-   * which fires only on a delivery that draws on prepaid credit.
-   */
-  readonly externalDeliveryLowerBound: number;
-  readonly internalDeliveryLowerBound: number;
+  /** Exact counts of Metered Deliveries, from every `DeliveryRecorded` the registry indexed. */
+  readonly externalDeliveryCount: number;
+  readonly internalDeliveryCount: number;
   /** How each figure above was arrived at, in the registry's own words. */
   readonly basis: Readonly<Record<string, string>>;
   readonly allowlistInternalCount: number;

@@ -14,13 +14,11 @@
  * external, so an incomplete list can only ever overstate adoption. That is the one
  * failure mode worth naming on the page, and it is named.
  *
- * ## Floors are labelled as floors
+ * ## Every figure carries its basis
  *
- * The registry's adoption figures count Metered Deliveries from `PrepaidConsumed`,
- * which fires only when a delivery draws on prepaid credit. That count is
- * therefore a floor and not a total, and it is drawn and worded as one, with the
- * registry's own basis sentence beside it. Publishing it as a total would be the
- * easiest way for this page to be wrong.
+ * The registry counts Metered Deliveries exactly, from every `DeliveryRecorded`
+ * it indexed, and each figure is drawn with the registry's own basis sentence
+ * beside it, so a reader sees how it was arrived at.
  *
  * ## No chart library
  *
@@ -97,10 +95,9 @@ export default async function AnalyticsPage() {
               title="Metered Deliveries"
               noun="Metered Delivery"
               plural="Metered Deliveries"
-              external={adoption.value.externalDeliveryLowerBound}
-              internal={adoption.value.internalDeliveryLowerBound}
+              external={adoption.value.externalDeliveryCount}
+              internal={adoption.value.internalDeliveryCount}
               basis={adoption.value.basis["deliveries"] ?? ""}
-              lowerBound
             />
             <figure className="flex flex-col gap-3 rounded-lg border border-border/60 bg-muted/30 p-5">
               <figcaption className="font-mono text-xs tracking-wider text-muted-foreground uppercase">
