@@ -7,10 +7,11 @@
 </p>
 
 <p align="center">
-  <img alt="Network: Monad Testnet" src="https://img.shields.io/badge/network-Monad%20Testnet-0D7676">
+  <img alt="Networks: Monad Mainnet and Monad Testnet" src="https://img.shields.io/badge/networks-Monad%20Mainnet%20%2B%20Testnet-0D7676">
   <img alt="Settlement: same chain, one transaction" src="https://img.shields.io/badge/settlement-one%20transaction-0D7676">
-  <img alt="164 contract tests passing" src="https://img.shields.io/badge/contract%20tests-164%20passing-2f8132">
-  <img alt="Deployed on Monad Testnet" src="https://img.shields.io/badge/status-deployed%20%26%20live-2f8132">
+  <img alt="165 contract tests passing" src="https://img.shields.io/badge/contract%20tests-165%20passing-2f8132">
+  <img alt="Live on Monad Mainnet and Testnet" src="https://img.shields.io/badge/status-live%20on%20Mainnet%20%26%20Testnet-2f8132">
+  <a href="https://www.npmjs.com/package/@tabai/sdk"><img alt="npm @tabai/sdk" src="https://img.shields.io/npm/v/@tabai/sdk?label=%40tabai%2Fsdk&color=0D7676"></a>
   <a href="./LICENSE"><img alt="Source-available licence" src="https://img.shields.io/badge/license-source--available-444"></a>
 </p>
 
@@ -30,6 +31,20 @@ The section [On Monad, end to end](#on-monad-end-to-end) lists every piece.
 
 Built by **Emad Qureshi**. Source-available: free to read, run and evaluate, and any other use needs permission.
 Live on Monad Mainnet and on Monad Testnet.
+
+## Live
+
+| | Where |
+| --- | --- |
+| Dashboard | [trytabai.vercel.app](https://trytabai.vercel.app). The switch in the header picks Mainnet or Testnet, and every page, figure, link and the Try it button follow it |
+| Documentation | [trytabai-docs.vercel.app](https://trytabai-docs.vercel.app) |
+| SDK, CLI and MCP server | [`@tabai/sdk`](https://www.npmjs.com/package/@tabai/sdk) on npm: `npx -y @tabai/sdk connect` |
+| MetaMask Agent Wallet plugin | [`@tabai/agent-wallet-plugin`](https://www.npmjs.com/package/@tabai/agent-wallet-plugin): `mm plugins install @tabai/agent-wallet-plugin` |
+| Registry read API | Mainnet `https://registry-mainnet-production.up.railway.app`, Testnet `https://registry-testnet-production.up.railway.app` |
+| Metering gateway (demo Service `tab.demo`) | Mainnet `https://gateway-mainnet-production.up.railway.app`, Testnet `https://gateway-testnet-production-a657.up.railway.app` |
+
+Testnet is the free playground: its demo Service prices in a mintable test token.
+On Mainnet the Assets are real USDC and AUSD, so the Dashboard rate-limits Mainnet trial calls, each of which spends real gas.
 
 ---
 
@@ -109,6 +124,10 @@ The Assets are the canonical USDC and AUSD and no token was shipped, which is th
 The curation role is held by a 2-of-3 `CurationMultisig`, deployed first because `ServiceRegistry` takes the authority as a constructor immutable.
 All three of its owners are held by this project today: a one-person deployment cannot honestly dress that up as three parties, and `deployments.json` says so beside the address. What the contract enforces is 2-of-3, and who holds the three is a separate question.
 The demo Service is registered with a 1 USDC Bond and holds ERC-8004 identity `10254`; the demo Agent holds `10255`.
+It accepts USDC and AUSD and prices `quote.generate` at 0.01 in each, plus the two fronted tools `apihub.run` and `nansen.query` at one base unit a unit, all applied on 2026-09-25 after the registry's 48-hour hold.
+The ERC-8004 Identity and Reputation registries on Mainnet are `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` and `0x8004BAa17C55a88189AE136b182e5fdA19dE9b63`.
+Deployment block `107094526`, every transaction hash and the applied change ids are in [`deployments.json`](./deployments.json), under `networks.143`.
+RPC `https://rpc.monad.xyz`, explorer `https://monadvision.com`.
 
 ### Monad Testnet, chain id `10143`
 
@@ -125,7 +144,7 @@ The demo Service is registered with a 1 USDC Bond and holds ERC-8004 identity `1
 The demo Service also prices its tool in Circle's Testnet USDC, `0x534b2f3A21130d7a60830c2Df862319e593943A3`.
 On Mainnet the Assets are the canonical USDC and AUSD, and the deploy script ships no token.
 
-Three contracts Tab reads but did not deploy: Uniswap's Permit2 at `0x000000000022D473030F116dDEE9F6B43aC78BA3`, and the ERC-8004 Identity and Reputation registries at `0x8004A818BFB912233c491871b3d84c89A494BD9e` and `0x8004B663056A597Dffe9eCcC1965A193B7388713`.
+Three contracts Tab reads but did not deploy: Uniswap's Permit2 at `0x000000000022D473030F116dDEE9F6B43aC78BA3` (the same on both networks), and the Testnet ERC-8004 Identity and Reputation registries at `0x8004A818BFB912233c491871b3d84c89A494BD9e` and `0x8004B663056A597Dffe9eCcC1965A193B7388713`.
 The demo Service is ERC-8004 agent `1913` and the demo Agent is `1914`.
 
 The deployment block (`64554587`), every transaction hash, the demo Service and the curation authority are in [`deployments.json`](./deployments.json), under `networks.10143`.
@@ -167,9 +186,11 @@ Node `>= 20.10.0`, pnpm `9.15.3` (pinned through `packageManager`, never npm), a
 
 ```bash
 pnpm install
-pnpm env:bootstrap        # writes .env from .env.example plus the recorded addresses
+pnpm env:bootstrap        # writes .env from .env.example plus the recorded Testnet addresses
 cd packages/contracts && set -a && source ../../.env && set +a && forge script script/02_VerifyDeployment.s.sol:VerifyDeployment --rpc-url monad_testnet --sig "run()"
 ```
+
+For Mainnet, `node scripts/env-bootstrap.mjs --print --chain 143` prints the same environment with Mainnet's chain id, RPC and addresses, and the same script verifies it with `--rpc-url monad`.
 
 The verification is a `view` run.
 It reads every wired slot of the recorded deployment from both ends and reverts on the first disagreement, and it needs no key and no funded account.
@@ -294,7 +315,7 @@ Eight gates guard this repository, and CI runs every one of them.
 | Gate | Command | What it refuses to let through |
 | --- | --- | --- |
 | Build, types, lint, tests | `pnpm build && pnpm typecheck && pnpm lint && pnpm test` | the ordinary four |
-| Contract tests | `forge test` in `packages/contracts` | **164 tests**, including property tests and Permit2 signatures against the canonical bytecode |
+| Contract tests | `forge test` in `packages/contracts` | **165 tests**, including property tests and Permit2 signatures against the canonical bytecode |
 | Coverage floors | `pnpm coverage` | 90 % of lines on the money-handling contracts, 75 % on the registry and the multisig |
 | Dependency direction | `pnpm lint:deps` | an import that points the wrong way through the workspace |
 | Environment contract | `pnpm env:check` | a `process.env` read that `.env.example` does not declare |
@@ -310,19 +331,19 @@ Contributor detail lives in [`CONTRIBUTING.md`](./CONTRIBUTING.md): the vocabula
 
 ## Status
 
-**Deployed on Monad Mainnet and on Monad Testnet.**
+**Live on Monad Mainnet and on Monad Testnet.**
 
 | | |
 | --- | --- |
-| Contracts | Deployed and verified from both ends of every wired slot on **both** Monad networks: five on Testnet, four plus a 2-of-3 curation multisig on Mainnet |
-| Contract tests | 164 passing, including property tests |
-| Off-chain rail | Registry indexer and read API, the metering gateway with x402, the Hub and the relay, and the delinquency keeper |
-| Client tooling | SDK, CLI, an MCP server with four tools, and the MetaMask Agent Wallet plugin |
-| Interfaces | Dashboard with passkey accounts, and a documentation site |
-| Workspace tests | 640 across nine packages |
+| Contracts | Deployed and verified from both ends of every wired slot on **both** networks: five on Testnet, four plus a 2-of-3 curation multisig on Mainnet. The keyless verification script passes on each |
+| Mainnet demo Service | Bonded, accepting USDC and AUSD, with `quote.generate` and both fronted tools priced; the demo Agent has authorised it |
+| Hosted rail | A registry and a metering gateway per network on Railway, each registry with its own Postgres and Envio HyperSync; the Dashboard and the docs on Vercel |
+| Dashboard | One deployment serving both networks, chosen in the header, with passkey accounts and a rate-limited Try it on Mainnet |
+| Client tooling | `@tabai/sdk` (SDK, CLI, MCP server with four tools) and `@tabai/agent-wallet-plugin` on npm |
+| Tests | 165 contract tests, including property tests, and 659 across the eight TypeScript packages |
 
-Nothing in the rail is pinned to a testnet.
-The same contracts and the same deployment sequence carry to Monad Mainnet with an address change and no code change, and the SDK names both networks by chain id.
+Nothing in the rail is pinned to one network.
+The same contracts, scripts and services run on both, and the SDK, the plugin and the Dashboard name each network by chain id.
 
 ---
 
