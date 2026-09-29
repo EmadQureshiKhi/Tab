@@ -79,7 +79,29 @@ function activeNetwork(record) {
   return network;
 }
 
-const recorded = recordedAddresses(activeNetwork(JSON.parse(readFileSync(RECORD, "utf8"))));
+const record = JSON.parse(readFileSync(RECORD, "utf8"));
+const network = activeNetwork(record);
+const recorded = recordedAddresses(network);
+
+/*
+  The network's own coordinates come from the same entry as its addresses. The
+  template names Testnet, so without this a `--chain 143` run wrote Mainnet
+  addresses beside a Testnet chain id and RPC: every read then asked Testnet
+  about Mainnet contracts and found no code. USDC is Circle's on each network,
+  recorded without an envKey, so it is chosen by chain id here.
+*/
+const assets = network.chainId === 143 ? record.mainnetAssets : record.testnetAssets;
+const coordinates = new Map(
+  [
+    ["MONAD_CHAIN_ID", network.chainId],
+    ["MONAD_RPC_URL", network.rpcUrl],
+    ["MONAD_EXPLORER_URL", network.explorerUrl],
+    ["REGISTRY_START_BLOCK", network.startBlock],
+    ["USDC_ADDRESS", assets?.USDC],
+  ]
+    .filter(([, value]) => value !== undefined && value !== null && value !== "")
+    .map(([key, value]) => [key, String(value)]),
+);
 
 const filled = [];
 const output = readFileSync(TEMPLATE, "utf8")
@@ -88,6 +110,8 @@ const output = readFileSync(TEMPLATE, "utf8")
     const match = /^([A-Z0-9_]+)=(.*)$/.exec(line);
     if (!match) return line;
     const [, key] = match;
+    const coordinate = coordinates.get(key);
+    if (coordinate !== undefined) return `${key}=${coordinate}`;
     const address = recorded.get(key);
     if (address === undefined) return line;
     filled.push(key);

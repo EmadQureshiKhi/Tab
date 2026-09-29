@@ -262,7 +262,8 @@
             "0x5a0bd76b942f10643d7dc8b7c2924c679beb7cf5843d60be14db8d9ffb18fec8"
           ]
         }
-      }
+      },
+      "startBlock": 107094526
     }
   },
   "testnetAssets": {
