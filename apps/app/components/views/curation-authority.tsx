@@ -13,10 +13,9 @@
  * sits there, so the only honest way to describe it is to ask. The route reads
  * the address for `THRESHOLD()` and `owners()`: a `CurationMultisig` answers
  * both and is drawn as the multisig it is, with the threshold and the owners it
- * actually holds; anything else is drawn as the account it is. An earlier
- * version asserted this from the deployment it was written for, which made it
- * wrong the moment a second deployment put a multisig in the role from its
- * first block.
+ * actually holds; anything else is drawn as the account it is. Asserting it
+ * from one deployment instead would be wrong on the next, since a deployment may
+ * put a multisig in the role from its first block.
  *
  * What does not change either way is the part worth knowing: the authority is a
  * constructor argument with no setter, so the role cannot be reassigned on a

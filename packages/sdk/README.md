@@ -79,9 +79,12 @@ The one failure worth handling by name is an agent with no headroom:
 
 Both figures are present only on `LIMIT_EXCEEDED`, and they are there so the answer is actionable. **The correct response is to settle, not to retry**: retrying a call that exceeded a credit limit produces the same refusal at the same cost. A Settlement restores headroom in the block it lands.
 
-### A new agent has no credit, and that is the rule
+### A new agent starts at the baseline, and earns the rest
 
-A credit limit is capped by the Bonds of counterparties the agent already has settlement history with. An agent with no history has no counterparties, so it has no limit and must settle before it can buy on credit. Its first Settlement banks prepaid credit and creates the history a limit is computed from.
+A credit limit is capped by the Bonds of the Services the agent deals with, and a Service the agent has authorised counts as one before any Settlement.
+So a brand-new agent that authorises a bonded Service starts at `min(baseline, 95% of that Service's free Bond)`: the Service's own decision to carry a stranger, backed by its own stake.
+Anything above the baseline is earned, by settled history with at least three Curated, bonded Services.
+An agent that has authorised nobody has no counterparties and no limit.
 
 ---
 

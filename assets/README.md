@@ -76,7 +76,7 @@ Hue 180 is the only chromatic hue the *chrome* uses. The spread either side of i
 
 `palette.json` is the Dashboard's eleven-token theme, including the five status colours. `apps/app` generates its Tailwind theme from it and a CI contrast script cross-checks every published ratio, so it remains authoritative **for the interface**.
 
-The figures deliberately do not read it. An interface with five statuses to distinguish needs five colours; a static figure does not, and an earlier version that used the full palette read as a chart rather than as a figure, every panel competing for attention and nothing carrying meaning. The two are separately owned and neither constrains the other.
+The figures deliberately do not read it. An interface with five statuses to distinguish needs five colours; a static figure does not, and a figure drawn in the full palette reads as a chart rather than as a figure, every panel competing for attention and nothing carrying meaning. The two are separately owned and neither constrains the other.
 
 ## Accessibility
 

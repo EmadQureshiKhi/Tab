@@ -50,7 +50,6 @@ pnpm deployments:check    # the deployment MONAD_CHAIN_ID names, joined against 
 
 The repository carries an editorial gate.
 It fails the build when prohibited terminology appears anywhere git considers part of the tree, in file contents, in filenames, or in directory names, so every document, comment, identifier and string speaks about Tab on Monad in Tab's own vocabulary.
-It is also how the port is kept honest: the denylist carries the names of the design Tab left behind, so none of them can drift back in.
 
 ```bash
 pnpm vocab:check                             # everything git tracks, plus untracked paths git does not ignore

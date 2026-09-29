@@ -3,11 +3,10 @@
  *
  * `ServiceRegistry` takes one address as its authority and never looks at what
  * sits there. It could be a person's account, or a multisig, or nothing at all
- * by the time anyone reads this. The Dashboard used to assert the answer from
- * the deployment it was written for, which was true on one network and false on
- * the next: a Mainnet deployment puts a `CurationMultisig` in the role from the
- * first block, and a page saying the multisig "takes the role at the next
- * deployment" was then wrong about the deployment it was drawing.
+ * by the time anyone reads this, and the answer differs by network: Mainnet puts
+ * a `CurationMultisig` in the role from the first block, while Testnet's is an
+ * account. An answer written into the page would be true on one network and false
+ * on the other.
  *
  * So the page asks. A `CurationMultisig` answers `THRESHOLD()` and `owners()`;
  * anything else reverts or returns nothing, and is reported as the plain

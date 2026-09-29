@@ -29,8 +29,7 @@ The chain applies the payment.
 Tab sits on the rest of Monad's agent stack rather than beside it: an Agent that runs out of credit is offered the same charge over x402, the API Hub's pay-per-request services are fronted on credit, Agents and Services carry ERC-8004 identities, and a Settlement can be signed with a Permit2 witness so the Agent never needs gas.
 The section [On Monad, end to end](#on-monad-end-to-end) lists every piece.
 
-Built by **Emad Qureshi**. Source-available: free to read, run and evaluate, and any other use needs permission.
-Live on Monad Mainnet and on Monad Testnet.
+Built by **Emad Qureshi**.
 
 ## Live
 
@@ -88,11 +87,11 @@ A Credit Limit is a pure function of the Settlements the chain already applied.
 | Age ramp | 25 % to 100 % weight over 30 days | a burst of fresh settlement counting as seasoned history |
 | Bond cap | 95 % of the counterparties' free Bond | credit that nothing stands behind |
 | Concentration cap | 25 % per counterparty | one Service carrying an Agent's whole limit |
-| Curated counterparties | at least 3 before Curated weight applies | a ring of two buying credit from itself |
+| Curated counterparties | at least 3 before any growth above the baseline | a ring of two buying credit from itself |
 | History bound | 512 records, 32 counterparties | an unbounded witness |
 
-A cold-start Agent therefore has **no** credit, and that is the rule rather than a fault: with no settlement history it has no counterparties, so its first purchase must be a Settlement.
-That first Settlement banks prepaid credit and creates the history a limit is computed from.
+A new Agent that authorises a bonded Service starts at `min(baseline, 95 % of that Service's free Bond)`: the Service's own decision to carry a stranger up to the baseline, backed by its own stake.
+Anything above the baseline is earned, by settled history with at least three Curated, bonded Services.
 
 The history is not stored as an array.
 `TabBook` keeps a rolling commitment per Agent and Asset, emits every record on `HistoryExtended`, and refuses any witness that does not fold back to the commitment.
@@ -120,9 +119,8 @@ Everything below was read back off the chain by [`script/02_VerifyDeployment.s.s
 | `TabBook` | `0x0Dabf8E52280D0F128f546602a99b6DC4fbb80DC` |
 | `TabSettlement` | `0x32A96bfEABe766B4898b961B333B7B89f079a9a9` |
 
-The Assets are the canonical USDC and AUSD and no token was shipped, which is the deploy script's default on any chain.
-The curation role is held by a 2-of-3 `CurationMultisig`, deployed first because `ServiceRegistry` takes the authority as a constructor immutable.
-All three of its owners are held by this project today: a one-person deployment cannot honestly dress that up as three parties, and `deployments.json` says so beside the address. What the contract enforces is 2-of-3, and who holds the three is a separate question.
+The Assets are the canonical USDC and AUSD, and no token was shipped.
+The curation role is held by a 2-of-3 `CurationMultisig` (see [the one privileged role](#the-one-privileged-role)).
 The demo Service is registered with a 1 USDC Bond and holds ERC-8004 identity `10254`; the demo Agent holds `10255`.
 It accepts USDC and AUSD and prices `quote.generate` at 0.01 in each, plus the two fronted tools `apihub.run` and `nansen.query` at one base unit a unit, all applied on 2026-09-25 after the registry's 48-hour hold.
 The ERC-8004 Identity and Reputation registries on Mainnet are `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` and `0x8004BAa17C55a88189AE136b182e5fdA19dE9b63`.
@@ -142,20 +140,18 @@ RPC `https://rpc.monad.xyz`, explorer `https://monadvision.com`.
 `LimitLib` is a pure library, linked at compile time, and holds no address of its own.
 `MockUsdc` is a mintable six-decimal test token shipped to Testnet only, with EIP-3009 under the same EIP-712 domain as Circle's USDC so the x402 `exact` scheme runs against it; the rail names it `mUSDC` to keep it apart from the real one.
 The demo Service also prices its tool in Circle's Testnet USDC, `0x534b2f3A21130d7a60830c2Df862319e593943A3`.
-On Mainnet the Assets are the canonical USDC and AUSD, and the deploy script ships no token.
 
 Three contracts Tab reads but did not deploy: Uniswap's Permit2 at `0x000000000022D473030F116dDEE9F6B43aC78BA3` (the same on both networks), and the Testnet ERC-8004 Identity and Reputation registries at `0x8004A818BFB912233c491871b3d84c89A494BD9e` and `0x8004B663056A597Dffe9eCcC1965A193B7388713`.
 The demo Service is ERC-8004 agent `1913` and the demo Agent is `1914`.
 
 The deployment block (`64554587`), every transaction hash, the demo Service and the curation authority are in [`deployments.json`](./deployments.json), under `networks.10143`.
-That file holds one entry per network and `MONAD_CHAIN_ID` names which one is live, so moving a deployment between Testnet and Mainnet is a change to `.env` rather than to the code: nothing in the rail is pinned to a network, and the gate refuses a chain id the record has nothing under.
 RPC `https://testnet-rpc.monad.xyz`, explorer `https://testnet.monadvision.com`, faucet `https://faucet.monad.xyz`.
 
 ---
 
 ## On Monad, end to end
 
-Every piece below is in the tree and exercised by tests; the Testnet deployment runs all of it.
+Every piece below is in the tree, exercised by tests, and running in the hosted deployment.
 
 | Piece | What Tab does with it | Where |
 | --- | --- | --- |
@@ -342,8 +338,7 @@ Contributor detail lives in [`CONTRIBUTING.md`](./CONTRIBUTING.md): the vocabula
 | Client tooling | `@tabai/sdk` (SDK, CLI, MCP server with four tools) and `@tabai/agent-wallet-plugin` on npm |
 | Tests | 165 contract tests, including property tests, and 659 across the eight TypeScript packages |
 
-Nothing in the rail is pinned to one network.
-The same contracts, scripts and services run on both, and the SDK, the plugin and the Dashboard name each network by chain id.
+Nothing in the rail is pinned to one network: `deployments.json` holds one entry per chain id, `MONAD_CHAIN_ID` selects it, and the same contracts, scripts and services run on both.
 
 ---
 
