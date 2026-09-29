@@ -308,7 +308,7 @@ It asks the address the registry actually checks for its threshold and its owner
 
 ## Verify any of this yourself
 
-Eight gates guard this repository, and CI runs every one of them.
+Seven gates guard this repository, and CI runs every one of them.
 
 | Gate | Command | What it refuses to let through |
 | --- | --- | --- |
@@ -318,12 +318,11 @@ Eight gates guard this repository, and CI runs every one of them.
 | Dependency direction | `pnpm lint:deps` | an import that points the wrong way through the workspace |
 | Environment contract | `pnpm env:check` | a `process.env` read that `.env.example` does not declare |
 | Deployment record | `pnpm deployments:check` | `deployments.json` and `.env.example` describing two different deployments, or a `MONAD_CHAIN_ID` with nothing deployed under it |
-| Vocabulary | `pnpm vocab:check` | a term outside the project's vocabulary, in contents, filenames or paths |
 | Contrast | `pnpm --filter @tabai/app lint` | any interface colour pair under WCAG AA |
 
 And keylessly, against the live chain, the verification script above.
 
-Contributor detail lives in [`CONTRIBUTING.md`](./CONTRIBUTING.md): the vocabulary gate, the coverage floors, and the traps worth knowing before you spend gas.
+Contributor detail lives in [`CONTRIBUTING.md`](./CONTRIBUTING.md): the coverage floors and the traps worth knowing before you spend gas.
 
 ---
 

@@ -2,8 +2,8 @@
 /**
  * Tracked-versus-ignored assertion for the `secret-scan` job.
  *
- * The ignore rules keep local working directories and the vocabulary denylist
- * file out of version control. A secret
+ * The ignore rules keep local working directories and secrets out of version
+ * control. A secret
  * scanner will not catch a breach of that rule: a scratch directory or a
  * populated `.env` can enter history carrying nothing a detector recognises and
  * still be exactly the thing the rule exists to prevent. So the rule is asserted
@@ -11,8 +11,8 @@
  *
  * The assertion is `git ls-files --cached --ignored --exclude-standard`: every
  * path git tracks that git also ignores. That set should be empty. It is
- * deliberately wider than the local-only rules alone - build output and the
- * denylist file are covered by the same sweep - because a tracked path that the
+ * deliberately wider than the local-only rules alone - build output and
+ * local secrets are covered by the same sweep - because a tracked path that the
  * ignore rules exclude is a contradiction whichever rule produced it.
  *
  * One exemption, and only one: a submodule gitlink. The Foundry dependency tree
@@ -139,10 +139,10 @@ if (offenders.length > 0) {
   );
   for (const offender of offenders) console.error(`  x ${offender}`);
   console.error(
-    "\ntracked-ignore: the ignore rules keep every local working directory and the vocabulary",
+    "\ntracked-ignore: the ignore rules keep every local working directory and every secret out of",
   );
   console.error(
-    "tracked-ignore: denylist file out of version control. Remove each path from the index, and if it",
+    "tracked-ignore: version control. Remove each path from the index, and if it",
   );
   console.error("tracked-ignore: carried a secret, rotate that secret before anything else.");
   process.exit(1);

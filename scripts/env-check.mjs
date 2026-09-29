@@ -178,10 +178,7 @@ const PLATFORM_PREFIXES = [
  * Declared for a CI job definition to supply, and no source will ever read
  * them, so the unreferenced-declaration warning skips them.
  *
- * `VOCAB_DENYLIST` deliberately has no entry here: `scripts/vocab-check.mjs`
- * reads it through `process.env[DENYLIST_ENV]`, and the identifier resolution
- * above finds that read, so the variable is genuinely referenced. Add a name
- * here only when nothing in the tree can ever reference it.
+ * Add a name here only when nothing in the tree can ever reference it.
  */
 const CI_ONLY_NAMES = new Set([]);
 

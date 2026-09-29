@@ -48,17 +48,6 @@ pnpm env:list             # print the declared set
 pnpm deployments:check    # the deployment MONAD_CHAIN_ID names, joined against .env.example
 ```
 
-## The vocabulary gate
-
-A vocabulary check runs in CI and in the pre-commit hook, so every document, comment, identifier and string uses the project's own terms consistently.
-
-```bash
-pnpm vocab:check                             # everything git tracks
-node scripts/vocab-check.mjs --staged        # staged paths only, which is what the hook runs
-```
-
-Its term list comes from the `VOCAB_DENYLIST` setting; with no list configured it exits `2` rather than passing.
-
 ## The coverage gate
 
 The contracts carry per-contract line-coverage floors, enforced in CI inside the `contracts` job rather than read off a terminal by hand.
