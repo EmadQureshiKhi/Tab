@@ -10,7 +10,8 @@ The CLI is what writes that line.
 The server plugins are what a Service meters through.
 The payment-strategy seam is the one you reach for when your Agent signs with something other than a plain key, and it is deliberately small.
 
-Everything on this page is runnable against Monad Testnet as written.
+Everything on this page runs as written against the hosted Testnet deployment.
+For Mainnet, set `MONAD_CHAIN_ID=143` and use the Mainnet addresses and gateway from the [introduction](/#where-it-runs).
 
 ## Install
 
@@ -75,7 +76,11 @@ On Testnet the mock token is named `mUSDC` wherever a symbol is printed, so a re
 
 ## tab.config
 
-`doctor` warns when two things are missing, and both live here rather than in the environment, because neither is a secret: the Agent whose Open Tab a call meters to, and where a Service can be reached.
+With nothing configured, the SDK reads the hosted registry read API for the chosen network and knows the hosted demo Service, `tab.demo`, at its hosted gateway.
+Both are exported as `TAB_HOSTED`, anything you configure takes precedence over them, and `TAB_HOSTED_DEFAULTS=off` switches them off for a setup that must reach nothing it did not name.
+
+What `doctor` still asks for is the Agent whose Open Tab a call meters to, and it lives here rather than in the environment because it is not a secret.
+So do any Services beyond the demo one, because the chain records no URL for a Service.
 
 A `tab.config.mjs` beside your project, or any parent directory:
 
@@ -102,14 +107,13 @@ export default {
   // Whose Open Tab a metered call lands on.
   agent: process.env.AGENT_ADDRESS,
 
-  registryUrl: process.env.NEXT_PUBLIC_REGISTRY_API_URL,
-
   // The chain records no URL for a Service, deliberately, so the address lives here.
+  // tab.demo is known without this entry; it is spelled out to add the Hub.
   services: [
     {
       serviceId: "0x7461622e64656d6f000000000000000000000000000000000000000000000000",
       name: "tab.demo",
-      endpoint: "http://localhost:8788",
+      endpoint: "https://gateway-testnet-production-a657.up.railway.app",
       // The API Hub provider this Service fronts on credit. tab_discover lists
       // its endpoints under the Service, priced by the Hub.
       hub: { provider: "defillama", prefix: "apihub" },
@@ -136,7 +140,7 @@ export default {
       return createRelayedMonadStrategy({
         signer,
         tabSettlement: process.env.TAB_SETTLEMENT_ADDRESS,
-        relayUrl: "http://localhost:8788/relay/settle",
+        relayUrl: "https://gateway-testnet-production-a657.up.railway.app/relay/settle",
         assets,
       });
     },
@@ -152,7 +156,7 @@ The relayed strategy needs one `approve(Permit2, amount)` on the Asset before it
 Returning `undefined`, as the one above does when no key is set, means "not available here" rather than "this config is broken": the strategy is skipped and everything else in the file stands.
 That is the whole reason the entry is a factory rather than an object, and it is what lets one config file serve a read-only process and a settling one without branching.
 
-With that file in place and no key set, `doctor` passes every check but one, and the warning is the missing signing key.
+With that file in place, `MONAD_RPC_URL` set and `connect` already run, the one warning `doctor` leaves is the missing signing key.
 Supply `AGENT_PRIVATE_KEY` and it reports none.
 
 ## As a dependency
@@ -169,6 +173,7 @@ import { createTabToolset, createTab402Client, createMonadStrategy, createRelaye
 ```
 
 The package ships its own types and carries no workspace dependency, so it installs and type-checks on its own.
+Beside the main entry point, `@tabai/sdk/hub` (the API Hub manifest reader) and `@tabai/sdk/metering` (the metering-signature digest) are pure entry points for a bundle that must not carry the `tab.config` file walk.
 
 | Import | What it is |
 | --- | --- |
@@ -183,6 +188,7 @@ The package ships its own types and carries no workspace dependency, so it insta
 | `createX402Client`, `createX402Facilitator`, `handlePrepaidRequest`, `exactRequirementFor` | The x402 client and server halves, over Monad's facilitator |
 | `createX402FrontedProxy`, `createX402UpstreamPricing`, `fetchHubManifest` | Fronting an x402 upstream on credit, and reading the API Hub's manifest |
 | `revertMappingFor` | The single table mapping a contract revert to a category, code, disposition and remedy |
+| `TAB_HOSTED` | The hosted registry read API and demo Service per network, which the MCP server falls back to |
 
 ## The four MCP tools
 
@@ -285,7 +291,7 @@ The history behind that witness is held between calls and read from the registry
 ```ts
 import { createTab402Client } from "@tabai/sdk";
 
-const client = createTab402Client({ baseUrl: "http://localhost:8788", agent });
+const client = createTab402Client({ baseUrl: "https://gateway-testnet-production-a657.up.railway.app", agent });
 const result = await client.fetch("/meter/echo");
 ```
 
@@ -327,7 +333,8 @@ app.all("/hub/apihub/*", (c) => proxy(c.req.raw));
 `preflight` runs between the upstream's `402` and the operator's signature, with the quoted amount in hand, so an Agent with no headroom is refused before the Service's own funds move.
 A fronted tool must be priced on chain like any other, and because its price is not known until the upstream answers, the amount rides in the unit count: the Service publishes one base unit per unit and a call consumes as many as it cost.
 An unpriced fronted tool reverts `UnknownTool`, the plugin delivers the work anyway, and the Service pays the upstream and bills nobody.
-The API Hub takes USDC on Monad Mainnet and nothing else, so a Service on Testnet names that chain and Asset in `upstreamPayment` and pays there with a key funded there, while the Agent is metered here in the Service's own Asset, base unit for base unit.
+The API Hub takes USDC on Monad Mainnet and nothing else.
+A Mainnet Service pays it on its own chain; a Testnet Service names that chain and Asset in `upstreamPayment` and pays there with a key funded there, while the Agent is metered on Testnet in the Service's own Asset, base unit for base unit.
 The metering gateway mounts the API Hub at `/hub/apihub` and Nansen at `/hub/nansen` from `GATEWAY_HUB_UPSTREAMS`, each with a `payOn` naming Mainnet USDC, and `tab_discover` lists a fronted provider's endpoints from the Hub's manifest.
 
 ### Relaying gasless Settlements
@@ -385,13 +392,14 @@ An integrator needs a much smaller set than a developer does.
 
 | Variable | Needed for |
 | --- | --- |
-| `MONAD_RPC_URL` | every read. The MCP server and `doctor` need only this |
+| `MONAD_RPC_URL` | `doctor`'s chain checks, and the provider a signer in `tab.config` sends through. The MCP tools read through the registry read API and need no RPC |
 | `MONAD_CHAIN_ID` | `143` for Mainnet, `10143` for Testnet. Defaults to Testnet |
 | `MONAD_EXPLORER_URL` | the links a page or a receipt prints. Never read by the contracts or the SDK's chain calls |
 | `TAB_BOOK_ADDRESS`, `TAB_SETTLEMENT_ADDRESS`, `SERVICE_REGISTRY_ADDRESS`, `BOND_ADDRESS` | resolving credit, Services and Bond |
 | `MOCK_USDC_ADDRESS`, `USDC_ADDRESS` | the Testnet Assets: the mock for demos and tests, and Circle's |
 | `PERMIT2_ADDRESS` | the gasless path. A network constant, the same on Testnet and Mainnet |
-| `NEXT_PUBLIC_REGISTRY_API_URL` | the Service directory and the Agent's history, if you use the read API rather than the chain |
+| `NEXT_PUBLIC_REGISTRY_API_URL` | the Service directory and the Agent's history. Defaults to the hosted read API for the chosen network |
+| `TAB_HOSTED_DEFAULTS` | `off` stops the hosted read API and demo Service from filling in what you did not configure |
 | `AGENT_PRIVATE_KEY` | broadcasting a Settlement, signing a Permit2 witness, or paying an x402 offer, and nothing else. Never written to a configuration file |
 | `GATEWAY_PRIVATE_KEY` | the Service operator key a gateway meters, relays and pays upstreams with. A Service needs it; an Agent never does |
 | `X402_ENABLED`, `X402_FACILITATOR_URL` | the offer on a `402` and the prepaid path, and the facilitator that settles them |
@@ -423,5 +431,5 @@ The rest are the Service's, and where one of them stops a delivery from being me
 pnpm --filter @tabai/contracts test
 ```
 
-runs the contract suite, and the verification script in the contracts package reads every deployed address back from the chain.
+runs the 165 contract tests, and the verification script in the contracts package reads every deployed address back from the chain.
 No private key, no funded account, no write.

@@ -1,8 +1,8 @@
 /**
  * The loader that turns the MDX collection into pages with URLs.
  *
- * `baseUrl` is `/docs` rather than `/`, so the site keeps the same shape it had
- * before this rebuild and every link already published to it still resolves.
+ * `baseUrl` is `/`: the site is only documentation, so every page sits at the
+ * root and the introduction is the landing page.
  */
 
 import { loader } from "fumadocs-core/source";

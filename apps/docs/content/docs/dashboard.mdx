@@ -3,7 +3,7 @@ title: "Using the Dashboard"
 description: "Finding a tool, calling one, authorising a Service, registering one, and posting a Bond, all from the browser."
 ---
 
-Everything the SDK does from a terminal, the Dashboard does from a browser.
+Everything the SDK does from a terminal, the Dashboard does from a browser, at [trytabai.vercel.app](https://trytabai.vercel.app).
 Every page reads the chain and shows what it read; three of them sign, and they say so before they do.
 Signing takes a wallet extension or a passkey; the passkey needs nothing installed.
 
@@ -31,7 +31,7 @@ Nothing on this site reads through one: a wallet here signs, and only when you p
 | Page | Wallet |
 | --- | --- |
 | Browse, Explorer, Agents, Services, Analytics | not needed |
-| Trying a tool from Browse | not needed, because nothing is paid to call |
+| Trying a tool from Browse | not needed, because the call is metered to the site's demonstration Agent |
 | Authorise | needed, to send `TabBook.authorise`. A passkey account can sign this one |
 | Register a Service, Post a Bond | needed, to send `registerService`, `deposit` and `withdraw` |
 | Keys | a passkey, which the page creates or signs in with |
@@ -39,9 +39,9 @@ Nothing on this site reads through one: a wallet here signs, and only when you p
 Connecting picks from the wallets your browser announces, or a passkey.
 Signing costs MON for gas, and there is no fee to this project and no token to hold.
 
-There is no chain toggle.
-A deployment serves one chain, and the badge in the header names it, with the chain id and the explorer it links out to.
-Wherever a page can offer a command, the command carries the addresses of that deployment rather than a placeholder.
+One deployment serves Monad Mainnet and Monad Testnet.
+The switch in the header picks the network, says which one is showing in words, and every page, figure, explorer link and the Try it button follow it.
+Wherever a page can offer a command, the command carries the addresses of the selected network rather than a placeholder.
 
 ## Finding and calling a tool
 
@@ -56,7 +56,7 @@ Wherever a page can offer a command, the command carries the addresses of that d
     The second tab is the setup, filled in for that tool rather than shown as a template: the connect command, a prompt for any client that speaks MCP, and the call itself.
   </Step>
   <Step n="04" title="Or call it here">
-    The third tab calls the Service for real. It needs no wallet, no balance and no approval, because nothing is paid to make the call. The delivery is recorded in `TabBook` before the Service answers, so the wait is a block rather than a queue.
+    The third tab, Try it, calls the Service for real. It needs no wallet, no balance and no approval, because the charge lands on the site's demonstration Agent. The delivery is recorded in `TabBook` before the Service answers, so the wait is a block rather than a queue. On Mainnet that charge and its gas are real, so trial calls there are limited to a few a minute and a fixed number a day.
   </Step>
 </Steps>
 
@@ -164,13 +164,15 @@ The mark zeroes the Agent's Credit Limit in that Asset until a Settlement closes
 
 ## The API behind the pages
 
-Three routes under `/api` serve the pages and are open to anything else that wants them.
+Four routes under `/api` serve the pages and are open to anything else that wants them.
+Each answers for the network the header switch selected.
 
 | Route | What it returns |
 | --- | --- |
-| `/api/health` | the chain the deployment serves, the block it last read, and whether the read API answered |
+| `/api/health` | the chain it answers for, the build it came from, and whether the registry read API answered. `?network=mainnet` or `?network=testnet` names the network for a monitor |
 | `/api/settlements` | the most recent Settlements, each under its `settlementId` |
-| `/api/stream` | a live feed of deliveries and Settlements as server-sent events, falling back to polling where the connection cannot be held open |
+| `/api/stream` | new Settlements as server-sent events as they are indexed, with the page falling back to polling where the connection cannot be held open |
+| `/api/try` | the Try it call: one metered call to a Service this repository publishes an endpoint for, never to a URL the request names, rate-limited on Mainnet |
 
 Every figure on every page is either read from the chain or served by the registry read API, which serves a Credit Limit only where its own recomputation agrees with `TabBook.creditLimit` on chain.
 A read that failed is shown as unavailable with its reason, never as a zero.

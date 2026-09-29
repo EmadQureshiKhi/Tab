@@ -18,7 +18,7 @@ A capitalised noun in this list names a concept with an exact definition; the sa
 | Term | What it names |
 | --- | --- |
 | **Monad** | the chain Tab's contracts run on |
-| **Monad Testnet** | the network Tab is deployed to for development, chain id 10143 |
+| **Monad Testnet** | chain id 10143, where the Assets are Circle's Testnet USDC and `mUSDC`, and trying Tab costs nothing |
 | **Monad Mainnet** | chain id 143, where the Assets are the canonical USDC and AUSD |
 | **MON** | the gas token. Tab charges no fee in it and holds none |
 | **chain id** | the `uint256` a deployment is scoped to. Two words, lower case, because it is a field name |
@@ -42,7 +42,7 @@ A capitalised noun in this list names a concept with an exact definition; the sa
 | **Asset** | an ERC-20 token on the deployment's chain used for Settlement |
 | **Collection address** | the address, one per Service and Asset, that `TabSettlement` transfers Settlements to |
 | **delivery** | a `TabBook` record attributing a priced unit of work to an Agent |
-| **Settlement** | one call to `TabSettlement.settle` that moved an Asset to a Collection address and lowered a tab in the same transaction |
+| **Settlement** | one payment through `TabSettlement`, by `settle`, `settleBatch` or `settleWithPermit2`, that moved an Asset to a Collection address and was applied to a tab in the same transaction |
 | **`settlementId`** | the identifier `TabBook` assigns to one Settlement. Always in code face, because it is a field name |
 | **Settlement Window** | the time a tab may stay open, from its oldest unsettled delivery, before anyone may mark it delinquent |
 | **Credit Limit** | the maximum aggregate Open Tab, per Asset, that an Agent may hold |
@@ -65,7 +65,7 @@ A capitalised noun in this list names a concept with an exact definition; the sa
 | **`TabBook`** | the ledger of tabs, authorisations, Settlements and the history commitment |
 | **`TabSettlement`** | the one way a tab is paid. Holds nothing |
 | **`LimitLib`** | the pure credit arithmetic |
-| **`CurationMultisig`** | the intended holder of the curation role |
+| **`CurationMultisig`** | the m-of-n contract that holds the curation role on Mainnet, 2-of-3 there |
 | **registry read API** | the indexer that serves Services, Agents, Settlements and deliveries, and a Credit Limit only where its cross-check agrees |
 | **metering gateway** | the Service-side process that meters through the SDK's plugin with the operator's key, offers x402 on a refusal, fronts upstreams and relays gasless Settlements |
 | **relay** | `POST /relay/settle` on the gateway, which submits a Permit2 Settlement the Agent signed and pays its gas |

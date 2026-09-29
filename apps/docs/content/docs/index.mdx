@@ -30,7 +30,7 @@ The last sentence is the whole product.
     The Agent calls `TabSettlement.settle` with the Service, the Asset and an amount. Nothing in Tab can move an Agent's funds, because nothing in Tab ever holds them.
   </Step>
   <Step n="04" title="The transfer and the ledger entry are one transaction">
-    `TabSettlement` moves the Asset from the Agent to the Service's Collection address and calls `TabBook.applySettlement` in the same call. If the transfer fails the tab does not fall; if the book refuses the Settlement, the transfer does not happen.
+    `TabSettlement` calls `TabBook.applySettlement` and moves the Asset from the Agent to the Service's Collection address in the same transaction. If the transfer fails the tab does not fall; if the book refuses the Settlement, the transfer does not happen.
   </Step>
 </Steps>
 
@@ -58,7 +58,7 @@ All five are the same answer wearing different clothes, which is that some party
 Tab does not answer the question, because it does not ask it.
 
 `TabSettlement` is the one way a tab is paid.
-It pulls the Asset from the Agent with `transferFrom`, sends it to the Collection address the Service registered, and calls `TabBook.applySettlement`, all inside one transaction.
+It calls `TabBook.applySettlement` and moves the Asset with `transferFrom`, straight from the Agent to the Collection address the Service registered, all inside one transaction.
 No component of Tab is trusted to say a Settlement occurred, because the chain applied the payment itself.
 There is deliberately no such component to compromise.
 
@@ -112,8 +112,19 @@ The [boundaries page](/limitations) carries the rest, each with the bound that s
 
 ## Where it runs
 
-One chain per deployment.
-Gas is paid in MON, and every amount anywhere in the system is an integer count of base units.
+Tab is live on Monad Mainnet and on Monad Testnet, as two deployments of the same contracts.
+Each deployment lives on one chain, gas is paid in MON, and every amount anywhere in the system is an integer count of base units.
+
+| Surface | Where |
+| --- | --- |
+| Dashboard | [trytabai.vercel.app](https://trytabai.vercel.app). One deployment serves both networks: the switch in its header picks one, and every page, figure, link and the Try it button follow it |
+| Registry read API | Mainnet `https://registry-mainnet-production.up.railway.app`, Testnet `https://registry-testnet-production.up.railway.app` |
+| Metering gateway for the demo Service `tab.demo` | Mainnet `https://gateway-mainnet-production.up.railway.app`, Testnet `https://gateway-testnet-production-a657.up.railway.app` |
+| SDK, CLI and MCP server | [`@tabai/sdk`](https://www.npmjs.com/package/@tabai/sdk) on npm. With nothing configured it reads the hosted registry and knows `tab.demo` on the chosen network |
+| MetaMask Agent Wallet plugin | [`@tabai/agent-wallet-plugin`](https://www.npmjs.com/package/@tabai/agent-wallet-plugin) on npm, installed with `mm plugins install @tabai/agent-wallet-plugin` |
+
+Testnet is the free playground, where `tab.demo` also prices in a mintable test token.
+On Mainnet the Assets are real USDC and AUSD, so the Dashboard rate-limits Mainnet trial calls, each of which spends real gas.
 
 | | Testnet | Mainnet |
 | --- | --- | --- |
@@ -125,7 +136,7 @@ Gas is paid in MON, and every amount anywhere in the system is an integer count 
 | ERC-8004 Identity | `0x8004A818BFB912233c491871b3d84c89A494BD9e` | `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` |
 | ERC-8004 Reputation | `0x8004B663056A597Dffe9eCcC1965A193B7388713` | `0x8004BAa17C55a88189AE136b182e5fdA19dE9b63` |
 
-Testnet MON comes from the faucet at `https://faucet.monad.xyz`, and Testnet USDC from Circle's faucet at `https://faucet.circle.com`, twenty at a time.
+Testnet MON comes from the faucet at `https://faucet.monad.xyz`, and Testnet USDC from Circle's faucet at `https://faucet.circle.com`.
 The contracts on Testnet, deployed from block `64554587`:
 
 | Contract | Address |
@@ -147,12 +158,13 @@ The contracts on Mainnet:
 | `TabSettlement` | `0x32A96bfEABe766B4898b961B333B7B89f079a9a9` |
 
 Every one of those addresses, on either network, can be read back with no key and no funded account, and the verification script in the contracts package does exactly that.
-The demo Service `tab.demo` is registered on both: on Testnet with a Bond and prices in both Testnet Assets, holding ERC-8004 identity `1913` beside the demo Agent's `1914`; on Mainnet with a 1 USDC Bond and prices in both USDC and AUSD, holding `10254` beside the Agent's `10255`.
+The demo Service `tab.demo` is registered on both: on Testnet with a Bond of 50 mUSDC and 20 USDC and prices in both Testnet Assets, holding ERC-8004 identity `1913` beside the demo Agent's `1914`; on Mainnet with a 1 USDC Bond and prices in both USDC and AUSD, holding `10254` beside the Agent's `10255`.
 
-The curation role differs between them, and that is the only difference that is not an address.
-On Testnet the deploying account holds it. On Mainnet a 2-of-3 `CurationMultisig` does, deployed before the registry because the authority is a constructor argument with no setter and construction is the only moment it can be chosen.
-All three of its owners are held by this project today, which a one-person deployment cannot honestly call three parties; the Service directory reads the threshold and the owners off the chain and draws what it finds, so nobody has to take that on trust.
-The page [On Monad](/on-monad) lists what else the deployment plugs into: x402, the API Hub, Permit2, ERC-8004, HyperSync, Nansen, Mera, the MetaMask Agent Wallet, Chainlink CRE and Kuru.
+The curation role is the one difference between the two that is not an address.
+On Testnet the deploying account holds it.
+On Mainnet a 2-of-3 `CurationMultisig` does, deployed before the registry because the authority is a constructor argument with no setter.
+The [boundaries page](/limitations#one-authority-decides-the-curated-tier) says who holds its three keys today.
+The page [On Monad](/on-monad) lists what else the deployment plugs into: x402, the API Hub, Permit2, ERC-8004, HyperSync, Nansen, Mera, the MetaMask Agent Wallet, Chainlink CRE, Kuru and AUSD.
 
 ## Read further
 

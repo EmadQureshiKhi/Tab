@@ -37,10 +37,11 @@ Nothing lands on the Open Tab, because nothing is owed.
 
 **The upstream fronted on credit.**
 The reverse direction is the one that changes what an Agent can do.
-The Monad API Hub is sixty-odd data providers behind one x402 endpoint, each priced per call in USDC, and every one of them is prepaid.
+The Monad API Hub puts dozens of data providers behind one x402 endpoint, each priced per call in USDC, and every one of them is prepaid.
 A Tab Service fronts them: the Agent calls `/hub/apihub/run` on the Service on credit, the Service forwards to the Hub, reads the price off the Hub's `402`, pays it with its own key, and meters the Agent's Open Tab for that price plus its published margin.
 The Agent never signs an x402 payment and never holds the Hub's currency; it settles its tab later, in one transaction, like any other charge.
-The Hub takes USDC on Monad Mainnet only, so the Testnet Service pays it there with a key funded there and meters the Agent in mUSDC here, base unit for base unit; the two chains meet in the Service's own books and nowhere in Tab's contracts.
+The Hub takes USDC on Monad Mainnet only.
+The Mainnet Service pays it on its own chain; the Testnet Service pays it on Mainnet with a key funded there and meters the Agent in mUSDC on Testnet, base unit for base unit, so the two networks meet in the Service's own books and nowhere in Tab's contracts.
 The fronted tool is priced on chain like any other, at one base unit per unit, and a call consumes as many units as it cost, because the chain refuses a unit price the price list does not hold and a fronted price is not known until the upstream answers.
 `/hub/nansen/*` fronts Nansen's own x402 API the same way.
 `tab_discover` reads the Hub's manifest and lists a fronted provider's endpoints under the Service as the tools they are, and Browse lists them as `fronted` cards after the tools priced on chain.
@@ -64,8 +65,8 @@ The SDK's `monad-relayed` strategy signs and posts; `tab_settle` takes it as `st
 
 ## ERC-8004: who the parties are
 
-Monad's Identity and Reputation registries are at `0x8004A818BFB912233c491871b3d84c89A494BD9e` and `0x8004B663056A597Dffe9eCcC1965A193B7388713` on Testnet.
-The demo Service is agent `1913` and the demo Agent is agent `1914`, registered by the third script in the contracts package with a registration file each that says what the party does and how it settles.
+Monad's Identity and Reputation registries are at `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` and `0x8004BAa17C55a88189AE136b182e5fdA19dE9b63` on Mainnet, and at `0x8004A818BFB912233c491871b3d84c89A494BD9e` and `0x8004B663056A597Dffe9eCcC1965A193B7388713` on Testnet.
+The demo Service is agent `10254` on Mainnet and `1913` on Testnet, and the demo Agent is `10255` and `1914`, each registered by the third script in the contracts package with a registration file that says what the party does and how it settles.
 
 The registry indexes the Identity Registry's `Transfer`, `Registered`, `URIUpdated` and `MetadataSet` events into one row per agent, reads each agent's registration file and its reputation summary, and serves them: an Agent's page opens with every identity whose owner or wallet is that address, and a Service's row carries its operator's.
 Each section states the block it was read at and the registry it was read from.
@@ -91,7 +92,8 @@ The [Dashboard page](/dashboard#keys-from-a-passkey) walks through it.
 
 ## MetaMask Agent Wallet
 
-`packages/agent-wallet-plugin` registers `mm tab` with the MetaMask Agent Wallet CLI.
+`@tabai/agent-wallet-plugin` registers `mm tab` with the MetaMask Agent Wallet CLI.
+It installs from npm with `mm plugins install @tabai/agent-wallet-plugin` and defaults to the recorded deployment on both networks.
 
 | Command | What it does |
 | --- | --- |

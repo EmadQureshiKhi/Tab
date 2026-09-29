@@ -6,9 +6,6 @@ description: "What Tab does, what it deliberately does not, and the bound on eac
 Every system has edges.
 This page is where Tab's are written down, each with the bound that says how far it reaches, so nothing here is a surprise once you have built on it.
 
-A boundary named without its bound reads as either worse or better than it is.
-Each one below carries both.
-
 ## Where the edges are
 
 ### One chain per deployment
@@ -24,7 +21,7 @@ The Dashboard shows both, one at a time: the switch on its masthead picks the ne
 
 Nothing in Tab reads an Agent's balance, and nothing needs to.
 The Credit Limit is capped at 95 percent of the free Bond the Agent's counterparties have escrowed, so the party at risk when an Agent fails to settle is a Service that chose to carry that Agent, and it is at risk for at most what it staked.
-The consequence for a new Agent is stated plainly: with no counterparties its limit is zero, authorising a bonded Service lifts it to the bond-capped baseline, and anything above that is earned by settled history.
+For a new Agent that means: with no counterparties its limit is zero, authorising a bonded Service lifts it to the bond-capped baseline, and anything above that is earned by settled history.
 An Agent that holds a fortune and has never settled has no credit, because a balance is not a repayment record.
 
 ### A delinquent tab zeroes credit rather than slashing anyone
@@ -53,7 +50,9 @@ Every change it makes is queued and held for 48 hours behind `RegistryChangeQueu
 And the role reaches nothing else: it has no power over metering, over any tab, over any Settlement, or over any Bond.
 
 The authority is a constructor argument of `ServiceRegistry` with no setter, so it cannot be reassigned on a live registry, by this project or by anyone.
-The intended holder is `CurationMultisig`, an m-of-n owner set with an immutable owner list that holds the curation role and nothing else.
+On Mainnet it is a 2-of-3 `CurationMultisig` at `0x123c19F46C38d5b4E922D1297250a71A03DFFD17`, with an immutable owner set, a permissionless `execute`, and no way to hold value; on Testnet it is the deploying account.
+All three of the multisig's owners are held by this project today, so the contract enforces 2-of-3 but three independent parties do not yet stand behind it.
+The Service directory reads the threshold and the owners off the chain and draws what it finds, so nobody has to take that on trust.
 
 ### Collusion is bounded, not eliminated
 
