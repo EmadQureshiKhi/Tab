@@ -95,7 +95,7 @@ contract ServiceRegistryTimelockTest is Test {
         assertEq(registry.priceOf(SERVICE, usdc, TOOL), PRICE_QUEUED, "after apply");
     }
 
-    function test_priceChangeForAnUnacceptedAssetIsRefusedAtQueueTime() public {
+    function test_priceChangeForAnUnacceptedAssetQueuesButIsRefusedAtApply() public {
         vm.prank(operator);
         (bytes32 changeId, uint64 eta) = registry.queueChange(
             SERVICE, IServiceRegistry.ChangeKind.Price, abi.encode(dai, TOOL, PRICE_QUEUED)

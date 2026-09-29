@@ -21,9 +21,9 @@ contract TabBookFixture is Test {
     TabSettlement internal settlement;
     address internal permit2;
     MockUsdc internal usdc;
-    MockUsdc internal usdt;
+    MockUsdc internal ausd;
     address internal USDC;
-    address internal USDT;
+    address internal AUSD;
 
     address internal constant AGENT = address(0xA6E7);
     address internal constant OTHER_AGENT = address(0xA6E8);
@@ -44,7 +44,7 @@ contract TabBookFixture is Test {
     bytes32 internal constant SERVICE_TWO = keccak256("service-two");
     bytes32 internal constant SERVICE_THREE = keccak256("service-three");
     bytes32 internal constant SERVICE_SHORT = keccak256("service-short");
-    bytes32 internal constant TOOL = keccak256("proof");
+    bytes32 internal constant TOOL = keccak256("quote.generate");
     bytes32 internal constant UNKNOWN_TOOL = keccak256("nope");
     uint256 internal constant PRICE = 1_000;
     uint256 internal constant PRICE_TWO = 2_000;
@@ -57,16 +57,16 @@ contract TabBookFixture is Test {
     uint64 internal constant START = 1_700_000_000;
     uint64 internal constant TIMELOCK = 48 hours;
 
-    /// @dev Off-chain mirror of the history the book commits to, per Asset, so witnesses can be built.
-    mapping(address => LimitLib.SettlementRecord[]) internal _mirror;
+    /// @dev The history the book is expected to commit to, per Asset, so witnesses can be built.
+    mapping(address => LimitLib.SettlementRecord[]) internal _expectedHistory;
     bytes32[] internal _counterparties;
 
     function setUp() public virtual {
         vm.warp(START);
         usdc = new MockUsdc();
-        usdt = new MockUsdc();
+        ausd = new MockUsdc();
         USDC = address(usdc);
-        USDT = address(usdt);
+        AUSD = address(ausd);
         registry = new ServiceRegistry(address(this));
         bond = new Bond();
         book = new TabBook(address(this), address(registry), address(bond), BASELINE, GROWTH_BPS);
@@ -76,10 +76,10 @@ contract TabBookFixture is Test {
         _registerService(SERVICE, OPERATOR, COLLECTION, COLLECTION_TWO);
         _curate(SERVICE);
         _fundBond(OPERATOR, USDC, BOND_STAKE);
-        _fundBond(OPERATOR, USDT, BOND_STAKE);
+        _fundBond(OPERATOR, AUSD, BOND_STAKE);
         _counterparties.push(SERVICE);
         _authorise(AGENT, SERVICE, USDC, AUTH_MAX);
-        _authorise(AGENT, SERVICE, USDT, AUTH_MAX);
+        _authorise(AGENT, SERVICE, AUSD, AUTH_MAX);
     }
 
     // ------------------------------------------------------------------ registry helpers
@@ -102,7 +102,7 @@ contract TabBookFixture is Test {
     ) internal {
         address[] memory assets = new address[](2);
         assets[0] = USDC;
-        assets[1] = USDT;
+        assets[1] = AUSD;
         address[] memory collections = new address[](2);
         collections[0] = collectionOne;
         collections[1] = collectionTwo;
@@ -147,7 +147,7 @@ contract TabBookFixture is Test {
         view
         returns (ITabBook.LimitWitness memory witness)
     {
-        LimitLib.SettlementRecord[] memory history = _mirror[asset];
+        LimitLib.SettlementRecord[] memory history = _expectedHistory[asset];
         LimitLib.BondEntry[] memory bonds = new LimitLib.BondEntry[](_counterparties.length);
         for (uint256 i = 0; i < _counterparties.length; ++i) {
             bonds[i] = LimitLib.BondEntry({serviceId: _counterparties[i], asset: bondAsset, amount: 0});
@@ -192,10 +192,10 @@ contract TabBookFixture is Test {
         return _settleFunded(serviceId, asset, amount);
     }
 
-    /// @dev Mints, approves and mirrors, without settling. Lets a test set an event expectation
+    /// @dev Mints, approves and records the expected history entry, without settling. Lets a test set an event expectation
     /// between the funding and the settlement call.
     function _fundAndApprove(bytes32 serviceId, address asset, uint128 amount) internal {
-        _mirrorAppend(serviceId, asset, amount);
+        _appendExpected(serviceId, asset, amount);
         MockUsdc(asset).mint(AGENT, amount);
         vm.prank(AGENT);
         MockUsdc(asset).approve(address(settlement), amount);
@@ -209,9 +209,9 @@ contract TabBookFixture is Test {
         (settlementId,,) = settlement.settle(serviceId, asset, amount);
     }
 
-    function _mirrorAppend(bytes32 serviceId, address asset, uint128 amount) internal {
+    function _appendExpected(bytes32 serviceId, address asset, uint128 amount) internal {
         address bondAccount = registry.serviceOf(serviceId).bondAccount;
-        _mirror[asset].push(
+        _expectedHistory[asset].push(
             LimitLib.SettlementRecord({
                 serviceId: serviceId,
                 asset: asset,
@@ -256,9 +256,9 @@ contract TabBookFixture is Test {
         _registerService(serviceId, operator, collectionOne, collectionTwo);
         _curate(serviceId);
         _fundBond(operator, USDC, BOND_STAKE);
-        _fundBond(operator, USDT, BOND_STAKE);
+        _fundBond(operator, AUSD, BOND_STAKE);
         _authorise(AGENT, serviceId, USDC, AUTH_MAX);
-        _authorise(AGENT, serviceId, USDT, AUTH_MAX);
+        _authorise(AGENT, serviceId, AUSD, AUTH_MAX);
         _counterparties.push(serviceId);
     }
 
@@ -514,7 +514,7 @@ contract TabBookTest is TabBookFixture {
     }
 
     function test_outOfScopeBondEntryIsFilteredRatherThanRejected() public view {
-        ITabBook.LimitWitness memory witness = _witnessFor(USDC, USDT);
+        ITabBook.LimitWitness memory witness = _witnessFor(USDC, AUSD);
         assertEq(book.creditLimit(AGENT, USDC, witness), 0, "no in-scope bond, no credit");
     }
 
@@ -661,26 +661,26 @@ contract TabBookTest is TabBookFixture {
 
     function test_batchSettlementPaysSeveralTabsAtOnce() public {
         _deliverAs(OPERATOR, SERVICE, USDC, 3, PRICE);
-        _deliverAs(OPERATOR, SERVICE, USDT, 2, PRICE_TWO);
-        _mirrorAppend(SERVICE, USDC, uint128(3 * PRICE));
-        _mirrorAppend(SERVICE, USDT, uint128(2 * PRICE_TWO));
+        _deliverAs(OPERATOR, SERVICE, AUSD, 2, PRICE_TWO);
+        _appendExpected(SERVICE, USDC, uint128(3 * PRICE));
+        _appendExpected(SERVICE, AUSD, uint128(2 * PRICE_TWO));
         usdc.mint(AGENT, 3 * PRICE);
-        usdt.mint(AGENT, 2 * PRICE_TWO);
+        ausd.mint(AGENT, 2 * PRICE_TWO);
         TabSettlement.Instruction[] memory batch = new TabSettlement.Instruction[](2);
         batch[0] = TabSettlement.Instruction({serviceId: SERVICE, asset: USDC, amount: uint128(3 * PRICE)});
         batch[1] =
-            TabSettlement.Instruction({serviceId: SERVICE, asset: USDT, amount: uint128(2 * PRICE_TWO)});
+            TabSettlement.Instruction({serviceId: SERVICE, asset: AUSD, amount: uint128(2 * PRICE_TWO)});
         vm.startPrank(AGENT);
         usdc.approve(address(settlement), 3 * PRICE);
-        usdt.approve(address(settlement), 2 * PRICE_TWO);
+        ausd.approve(address(settlement), 2 * PRICE_TWO);
         bytes32[] memory ids = settlement.settleBatch(batch);
         vm.stopPrank();
         assertEq(ids.length, 2, "two identities");
         assertTrue(ids[0] != ids[1], "distinct");
         assertEq(book.assetOpen(AGENT, USDC), 0, "first tab closed");
-        assertEq(book.assetOpen(AGENT, USDT), 0, "second tab closed");
+        assertEq(book.assetOpen(AGENT, AUSD), 0, "second tab closed");
         assertEq(usdc.balanceOf(COLLECTION), 3 * PRICE, "first Collection paid");
-        assertEq(usdt.balanceOf(COLLECTION_TWO), 2 * PRICE_TWO, "second Collection paid");
+        assertEq(ausd.balanceOf(COLLECTION_TWO), 2 * PRICE_TWO, "second Collection paid");
         TabSettlement.Instruction[] memory empty = new TabSettlement.Instruction[](0);
         vm.expectRevert(TabSettlement.EmptyBatch.selector);
         settlement.settleBatch(empty);
@@ -720,7 +720,7 @@ contract TabBookTest is TabBookFixture {
     function test_delinquencyZeroesCreditEmitsOneEventAndMovesNoBondFigure() public {
         _registerServiceOn(SERVICE_SHORT, OPERATOR_SHORT, COLLECTION_SEVEN, COLLECTION_EIGHT, SHORT_WINDOW);
         _fundBond(OPERATOR_SHORT, USDC, BOND_STAKE);
-        _fundBond(OPERATOR_SHORT, USDT, BOND_STAKE);
+        _fundBond(OPERATOR_SHORT, AUSD, BOND_STAKE);
         _authorise(AGENT, SERVICE_SHORT, USDC, AUTH_MAX);
         _deliver(1_000);
         _deliverAs(OPERATOR_SHORT, SERVICE_SHORT, USDC, 1_000, PRICE);
@@ -826,26 +826,26 @@ contract TabBookTest is TabBookFixture {
         _settle(USDC, 400_000);
         AssetSnapshot memory before = _snapshot(USDC);
         _runFullRoundInSecondAsset();
-        bytes32 tabUsdt = book.tabIdOf(AGENT, SERVICE, USDT);
-        assertEq(book.tabOf(tabUsdt).prepaid, 0, "second Asset spent its banked excess");
+        bytes32 tabAusd = book.tabIdOf(AGENT, SERVICE, AUSD);
+        assertEq(book.tabOf(tabAusd).prepaid, 0, "second Asset spent its banked excess");
         assertEq(
-            book.tabOf(tabUsdt).open,
+            book.tabOf(tabAusd).open,
             5 * PRICE_TWO - 9,
             "the second delivery borrowed only what the banked credit did not cover"
         );
-        assertEq(book.delinquentTabCount(AGENT, USDT), 1, "second Asset delinquent");
-        assertEq(book.creditLimit(AGENT, USDT, _witness(USDT)), 0, "second Asset credit suppressed");
+        assertEq(book.delinquentTabCount(AGENT, AUSD), 1, "second Asset delinquent");
+        assertEq(book.creditLimit(AGENT, AUSD, _witness(AUSD)), 0, "second Asset credit suppressed");
         _assertSnapshotUnchanged(before, _snapshot(USDC));
     }
 
-    function test_recordsFilteredOutOnAssetLeaveTheLaunchLimitAlone() public {
-        _buildThreeCounterpartyLaunchHistory();
+    function test_recordsFilteredOutOnAssetLeaveTheFirstAssetLimitAlone() public {
+        _buildThreeCounterpartyFirstHistory();
         AssetSnapshot memory before = _snapshot(USDC);
         uint256[3] memory secondCounterparty = _ledgerFigures(OPERATOR_TWO, USDC);
         uint256[3] memory thirdCounterparty = _ledgerFigures(OPERATOR_THREE, USDC);
-        assertEq(before.limit, ISOLATION_LIMIT, "launch limit is growth-derived and uncapped");
+        assertEq(before.limit, ISOLATION_LIMIT, "first-Asset limit is growth-derived and uncapped");
         _settleThreeCounterpartiesInSecondAsset();
-        assertEq(book.creditLimit(AGENT, USDT, _witness(USDT)), ISOLATION_LIMIT, "second Asset earns it");
+        assertEq(book.creditLimit(AGENT, AUSD, _witness(AUSD)), ISOLATION_LIMIT, "second Asset earns it");
         _assertSnapshotUnchanged(before, _snapshot(USDC));
         _assertFiguresEqual(secondCounterparty, _ledgerFigures(OPERATOR_TWO, USDC), "second counterparty");
         _assertFiguresEqual(thirdCounterparty, _ledgerFigures(OPERATOR_THREE, USDC), "third counterparty");
@@ -853,7 +853,7 @@ contract TabBookTest is TabBookFixture {
         assertEq(
             book.creditLimit(AGENT, USDC, _witness(USDC)),
             ISOLATION_LIMIT + ISOLATION_CONTRIBUTION,
-            "the same record in the launch Asset does move the limit"
+            "the same record in the first Asset does move the limit"
         );
     }
 
@@ -861,15 +861,15 @@ contract TabBookTest is TabBookFixture {
     uint256 internal constant ISOLATION_CONTRIBUTION = 1_000_000;
     uint256 internal constant ISOLATION_LIMIT = BASELINE + 3 * ISOLATION_CONTRIBUTION;
 
-    function _buildThreeCounterpartyLaunchHistory() internal {
+    function _buildThreeCounterpartyFirstHistory() internal {
         _addCounterparty(SERVICE_TWO, OPERATOR_TWO, COLLECTION_THREE, COLLECTION_FOUR);
         _addCounterparty(SERVICE_THREE, OPERATOR_THREE, COLLECTION_FIVE, COLLECTION_SIX);
         _deliverAs(OPERATOR, SERVICE, USDC, 1, PRICE);
         _deliverAs(OPERATOR_TWO, SERVICE_TWO, USDC, 1, PRICE);
         _deliverAs(OPERATOR_THREE, SERVICE_THREE, USDC, 1, PRICE);
-        _deliverAs(OPERATOR, SERVICE, USDT, 1, PRICE_TWO);
-        _deliverAs(OPERATOR_TWO, SERVICE_TWO, USDT, 1, PRICE_TWO);
-        _deliverAs(OPERATOR_THREE, SERVICE_THREE, USDT, 1, PRICE_TWO);
+        _deliverAs(OPERATOR, SERVICE, AUSD, 1, PRICE_TWO);
+        _deliverAs(OPERATOR_TWO, SERVICE_TWO, AUSD, 1, PRICE_TWO);
+        _deliverAs(OPERATOR_THREE, SERVICE_THREE, AUSD, 1, PRICE_TWO);
         vm.warp(block.timestamp + 1);
         _settleFull(SERVICE, USDC, ISOLATION_AMOUNT);
         _settleFull(SERVICE_TWO, USDC, ISOLATION_AMOUNT);
@@ -877,29 +877,29 @@ contract TabBookTest is TabBookFixture {
     }
 
     function _settleThreeCounterpartiesInSecondAsset() internal {
-        _settleFull(SERVICE, USDT, ISOLATION_AMOUNT);
-        _settleFull(SERVICE_TWO, USDT, ISOLATION_AMOUNT);
-        _settleFull(SERVICE_THREE, USDT, ISOLATION_AMOUNT);
+        _settleFull(SERVICE, AUSD, ISOLATION_AMOUNT);
+        _settleFull(SERVICE_TWO, AUSD, ISOLATION_AMOUNT);
+        _settleFull(SERVICE_THREE, AUSD, ISOLATION_AMOUNT);
     }
 
     function _crankAssertingOneEventAndNoBondMovement(bytes32 tabId) internal {
-        uint256[3] memory launchBefore = _ledgerFigures(OPERATOR, USDC);
-        uint256[3] memory secondBefore = _ledgerFigures(OPERATOR, USDT);
-        uint256[3] memory shortLaunchBefore = _ledgerFigures(OPERATOR_SHORT, USDC);
-        uint256[3] memory shortSecondBefore = _ledgerFigures(OPERATOR_SHORT, USDT);
+        uint256[3] memory firstBefore = _ledgerFigures(OPERATOR, USDC);
+        uint256[3] memory secondBefore = _ledgerFigures(OPERATOR, AUSD);
+        uint256[3] memory shortFirstBefore = _ledgerFigures(OPERATOR_SHORT, USDC);
+        uint256[3] memory shortSecondBefore = _ledgerFigures(OPERATOR_SHORT, AUSD);
         vm.recordLogs();
         book.markDelinquent(tabId);
         assertEq(_delinquentEventCount(vm.getRecordedLogs()), 1, "exactly one TabDelinquent event");
         assertTrue(book.tabOf(tabId).delinquent, "the crank did fire");
         assertEq(book.creditLimit(AGENT, USDC, _witness(USDC)), 0, "credit zeroed for the Asset");
         assertEq(book.headroom(AGENT, USDC, _witness(USDC)), 0, "no headroom");
-        _assertFiguresEqual(launchBefore, _ledgerFigures(OPERATOR, USDC), "metering Service, launch Asset");
-        _assertFiguresEqual(secondBefore, _ledgerFigures(OPERATOR, USDT), "metering Service, second Asset");
+        _assertFiguresEqual(firstBefore, _ledgerFigures(OPERATOR, USDC), "metering Service, first Asset");
+        _assertFiguresEqual(secondBefore, _ledgerFigures(OPERATOR, AUSD), "metering Service, second Asset");
         _assertFiguresEqual(
-            shortLaunchBefore, _ledgerFigures(OPERATOR_SHORT, USDC), "short-window Service, launch Asset"
+            shortFirstBefore, _ledgerFigures(OPERATOR_SHORT, USDC), "short-window Service, first Asset"
         );
         _assertFiguresEqual(
-            shortSecondBefore, _ledgerFigures(OPERATOR_SHORT, USDT), "short-window Service, second Asset"
+            shortSecondBefore, _ledgerFigures(OPERATOR_SHORT, AUSD), "short-window Service, second Asset"
         );
     }
 
@@ -944,15 +944,15 @@ contract TabBookTest is TabBookFixture {
         assertEq(actual.count, expected.count, "record count untouched");
         assertEq(actual.limit, expected.limit, "credit limit untouched");
         assertEq(actual.delinquentTabs, expected.delinquentTabs, "suppression untouched");
-        _assertFiguresEqual(expected.bondFigures, actual.bondFigures, "launch Asset bond");
+        _assertFiguresEqual(expected.bondFigures, actual.bondFigures, "first Asset bond");
     }
 
     function _runFullRoundInSecondAsset() internal {
-        _deliverAs(OPERATOR, SERVICE, USDT, 1, PRICE_TWO);
-        _settleFull(SERVICE, USDT, uint128(PRICE_TWO + 9));
-        _deliverAs(OPERATOR, SERVICE, USDT, 5, PRICE_TWO);
-        bytes32 tabUsdt = book.tabIdOf(AGENT, SERVICE, USDT);
-        vm.warp(book.tabOf(tabUsdt).oldestUnsettledAt + WINDOW);
-        book.markDelinquent(tabUsdt);
+        _deliverAs(OPERATOR, SERVICE, AUSD, 1, PRICE_TWO);
+        _settleFull(SERVICE, AUSD, uint128(PRICE_TWO + 9));
+        _deliverAs(OPERATOR, SERVICE, AUSD, 5, PRICE_TWO);
+        bytes32 tabAusd = book.tabIdOf(AGENT, SERVICE, AUSD);
+        vm.warp(book.tabOf(tabAusd).oldestUnsettledAt + WINDOW);
+        book.markDelinquent(tabAusd);
     }
 }

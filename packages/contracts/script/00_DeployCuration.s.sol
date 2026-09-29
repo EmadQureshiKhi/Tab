@@ -25,7 +25,7 @@ import {console} from "forge-std/console.sol";
 ///  - `CURATION_OWNER_3_ADDRESS`   optional
 ///  - `CURATION_THRESHOLD`         how many must approve, default 2
 ///
-///   forge script script/00_DeployCuration.s.sol:DeployCuration --rpc-url monad_mainnet --broadcast
+///   forge script script/00_DeployCuration.s.sol:DeployCuration --rpc-url monad --broadcast
 contract DeployCuration is DeploymentBase {
     error NoOwnerConfigured();
     error ThresholdAboveOwners(uint8 threshold, uint256 owners);

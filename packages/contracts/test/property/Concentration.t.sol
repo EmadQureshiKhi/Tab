@@ -4,10 +4,8 @@ pragma solidity ^0.8.23;
 import {Test} from "forge-std/Test.sol";
 import {LimitLib} from "../../src/LimitLib.sol";
 
-// Feature: tab, Property 7: Concentration cap and minimum counterparty count
-
 /// @title ConcentrationTest
-/// @notice Property 7: the concentration cap, the minimum counterparty count, and the step where the
+/// @notice The concentration cap, the minimum counterparty count, and the step where the
 /// two meet.
 ///
 /// ## The statement
@@ -29,9 +27,9 @@ import {LimitLib} from "../../src/LimitLib.sol";
 ///     held demonstrably out of the way, the returned Credit Limit is the **smallest of the four
 ///     candidates**, not any one of them, and not the candidate a reader might expect from the shape
 ///     of the distribution. The four are recomputed here from the generated shares, so the assertion
-///     compares the library against the design's closed form rather than against itself.
+///     compares the library against the closed form rather than against itself.
 ///  2. The counted contribution of every single counterparty is at most 25 percent of the returned
-///     limit, which is the requirement stated directly, and the counted contributions plus the
+///     limit, which is the rule stated directly, and the counted contributions plus the
 ///     baseline reconstruct the limit to within the flooring slack of the share, which is the fixed
 ///     point the closed form claims to solve.
 ///  3. Below three contributing counterparties the answer is `min(baseline, bondCap)`, and it stays
@@ -73,13 +71,13 @@ import {LimitLib} from "../../src/LimitLib.sol";
 /// - **Nothing about the age ramp.** Every generated Settlement is aged the full 30 days, so its
 ///   weight is exactly parity and a bucket equals the settled amount. That is deliberate: a weight
 ///   below parity would scale the shares this property is about, and burst-versus-spread weighting is
-///   Property 10's subject, tested in `test/LimitLib.t.sol`.
+///   the burst-penalty case's subject, in `test/LimitLib.t.sol`.
 /// - **Nothing about the strict bond inequality.** The bond cap appears here only as the second term
 ///   of `min(baseline, bondCap)` and as a quantity held out of the way. That the limit is strictly
-///   below the counterparty bond sum for every input is Property 6, in
+///   below the counterparty bond sum for every input is stated in
 ///   `test/property/BondInvariant.t.sol`.
 /// - **Nothing about monotonicity on append.** The padded histories here establish that repetition
-///   cannot lift the sub-threshold answer, which is a weaker and different claim than Property 5.
+///   cannot lift the sub-threshold answer, which is a weaker and different claim than monotonicity.
 /// - **Nothing about the record filters beyond the zero-weight one.** Every generated record is
 ///   curated, bonded, in the Asset, and carries a strictly earlier Metered Delivery. The four filters
 ///   are pinned individually in `test/LimitLib.t.sol`; what matters here is only that a counterparty
@@ -93,15 +91,15 @@ contract ConcentrationTest is Test {
     // ------------------------------------------------------------------ fixtures
 
     /// @notice The one Asset every computation here is scoped to.
-    address internal constant USDC = address(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
+    address internal constant USDC = address(0x754704Bc059F8C67012fEd69BC8A327a5aafb603);
 
     /// @notice Evaluation timestamp every age is measured against.
     uint64 internal constant EVALUATED_AT = 1_800_000_000;
 
-    /// @notice Baseline Credit Limit in Asset base units, from the design's worked example. (D3)
+    /// @notice Baseline Credit Limit in Asset base units, as in the worked example.
     uint256 internal constant BASELINE = 5_000_000;
 
-    /// @notice Growth factor in basis points, from the design's worked example. (D5)
+    /// @notice Growth factor in basis points, as in the worked example.
     uint256 internal constant GROWTH_BPS = 5_000;
 
     /// @notice One hundred percent in basis points, and the denominator of every ratio here.
@@ -226,7 +224,7 @@ contract ConcentrationTest is Test {
 
     // ------------------------------------------------- the two rules, bond cap held out of the way
 
-    /// @notice Property 7: below three contributing counterparties the answer is the bond-capped
+    /// @notice Below three contributing counterparties the answer is the bond-capped
     /// baseline; at three or more the answer is the smallest of the four concentration candidates, and
     /// no counterparty's counted contribution exceeds a quarter of it.
     /// @dev The bond cap is held far above every reachable growth value and asserted to be so on every
@@ -270,7 +268,7 @@ contract ConcentrationTest is Test {
         uint256 total = _sum(c);
         assertEq(limit, _smallestCandidate(c, total), "not the smallest concentration candidate");
 
-        // The requirement stated directly: the counted contribution of every single counterparty is at
+        // The rule stated directly: the counted contribution of every single counterparty is at
         // most 25 percent of the returned Credit Limit.
         uint256 share = limit / SHARE_DIVISOR;
         for (uint256 j = 0; j < c.length; ++j) {
@@ -297,7 +295,7 @@ contract ConcentrationTest is Test {
 
     // ------------------------------------------------------- both rules composed with the bond cap
 
-    /// @notice Property 7: both rules compose with the bond cap in the same direction, over a bond sum
+    /// @notice Both rules compose with the bond cap in the same direction, over a bond sum
     /// that crosses the baseline and every reachable growth value.
     /// @dev This is the half of the statement the case above deliberately holds still. The
     /// sub-threshold answer is `min(baseline, bondCap)`, and a campaign that only ever ran a generous
@@ -563,7 +561,7 @@ contract ConcentrationTest is Test {
     /// @dev Derived from the generated distribution rather than by re-running the library's bucketing
     /// scan, which is what keeps this an independent statement of the expected answer. Every record is
     /// aged the full ramp, so its weight is parity and a bucket equals the settled amount; the growth
-    /// factor is then applied once per counterparty, which is the division order the design's rounding
+    /// factor is then applied once per counterparty, which is the division order `LimitLib`'s rounding
     /// convention fixes.
     ///
     /// A counterparty settling nothing weighs nothing and is not a contributor, so it is absent here.

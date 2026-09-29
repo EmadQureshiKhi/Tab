@@ -8,7 +8,7 @@ contract ServiceRegistryRegistrationTest is Test {
     ServiceRegistry internal registry;
 
     address internal curationAuthority = makeAddr("curationAuthority");
-    address internal proofOperator = makeAddr("proofOperator");
+    address internal demoOperator = makeAddr("demoOperator");
     address internal gatewayOperator = makeAddr("gatewayOperator");
     address internal usdc = makeAddr("usdc");
     address internal ausd = makeAddr("ausd");
@@ -20,9 +20,9 @@ contract ServiceRegistryRegistrationTest is Test {
     bytes32 internal constant DEMO_SERVICE = keccak256("demo-service");
     bytes32 internal constant GATEWAY_SERVICE = keccak256("gateway-service");
     bytes32 internal constant TOOL_QUOTE = keccak256("quote.generate");
-    bytes32 internal constant TOOL_CONTINUITY = keccak256("proof.continuity");
+    bytes32 internal constant TOOL_RUN = keccak256("apihub.run");
     uint256 internal constant PRICE_QUOTE = 10_000;
-    uint256 internal constant PRICE_CONTINUITY = 25_000;
+    uint256 internal constant PRICE_RUN = 25_000;
 
     function setUp() public {
         registry = new ServiceRegistry(curationAuthority);
@@ -34,13 +34,13 @@ contract ServiceRegistryRegistrationTest is Test {
         collections[1] = collectionAusd;
         bytes32[] memory tools = new bytes32[](2);
         tools[0] = TOOL_QUOTE;
-        tools[1] = TOOL_CONTINUITY;
+        tools[1] = TOOL_RUN;
         uint256[] memory prices = new uint256[](4);
         prices[0] = PRICE_QUOTE;
-        prices[1] = PRICE_CONTINUITY;
+        prices[1] = PRICE_RUN;
         prices[2] = PRICE_QUOTE;
-        prices[3] = PRICE_CONTINUITY;
-        vm.prank(proofOperator);
+        prices[3] = PRICE_RUN;
+        vm.prank(demoOperator);
         registry.registerService(DEMO_SERVICE, assets, collections, tools, prices, 1 hours);
     }
 
@@ -51,10 +51,10 @@ contract ServiceRegistryRegistrationTest is Test {
 
     function test_registerServiceStoresPermissionlessTierAndWindow() public view {
         IServiceRegistry.Service memory service = registry.serviceOf(DEMO_SERVICE);
-        assertEq(service.operator, proofOperator, "operator");
+        assertEq(service.operator, demoOperator, "operator");
         assertEq(uint256(service.tier), uint256(IServiceRegistry.Tier.Permissionless), "tier");
         assertEq(service.settlementWindow, uint32(1 hours), "settlementWindow");
-        assertEq(service.bondAccount, proofOperator, "bondAccount");
+        assertEq(service.bondAccount, demoOperator, "bondAccount");
         assertEq(service.registeredAt, uint64(block.timestamp), "registeredAt");
         assertTrue(service.exists, "exists");
         assertEq(
@@ -77,9 +77,9 @@ contract ServiceRegistryRegistrationTest is Test {
 
     function test_priceOfReturnsRegisteredBaseUnitsPerAsset() public {
         assertEq(registry.priceOf(DEMO_SERVICE, usdc, TOOL_QUOTE), PRICE_QUOTE, "quote price");
-        assertEq(registry.priceOf(DEMO_SERVICE, usdc, TOOL_CONTINUITY), PRICE_CONTINUITY, "continuity price");
+        assertEq(registry.priceOf(DEMO_SERVICE, usdc, TOOL_RUN), PRICE_RUN, "run price");
         assertEq(registry.priceOf(DEMO_SERVICE, ausd, TOOL_QUOTE), PRICE_QUOTE, "quote price in ausd");
-        bytes32 unsold = keccak256("proof.unsold");
+        bytes32 unsold = keccak256("quote.unpriced");
         vm.expectRevert(
             abi.encodeWithSelector(IServiceRegistry.UnknownTool.selector, DEMO_SERVICE, usdc, unsold)
         );
@@ -105,7 +105,7 @@ contract ServiceRegistryRegistrationTest is Test {
         vm.expectRevert(abi.encodeWithSelector(IServiceRegistry.ServiceExists.selector, DEMO_SERVICE));
         _registerAs(gatewayOperator, DEMO_SERVICE, dai, collectionGateway, 1 hours);
         assertEq(registry.serviceCount(), 1, "count unchanged");
-        assertEq(registry.serviceOf(DEMO_SERVICE).operator, proofOperator, "holder unchanged");
+        assertEq(registry.serviceOf(DEMO_SERVICE).operator, demoOperator, "holder unchanged");
     }
 
     function test_twoServicesMaySharePayoutAddresses() public {

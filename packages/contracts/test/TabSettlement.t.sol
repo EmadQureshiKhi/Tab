@@ -150,7 +150,7 @@ contract TabSettlementTest is TabBookFixture {
             "service bound"
         );
         assertTrue(
-            settlement.witnessHash(SERVICE, USDC, 1_000) != settlement.witnessHash(SERVICE, USDT, 1_000),
+            settlement.witnessHash(SERVICE, USDC, 1_000) != settlement.witnessHash(SERVICE, AUSD, 1_000),
             "asset bound"
         );
         TabSettlement other = new TabSettlement(address(registry), address(book), permit2);
@@ -242,7 +242,7 @@ contract TabSettlementTest is TabBookFixture {
         settlement.settleWithPermit2(signer, SERVICE_TWO, USDC, amount, NONCE, deadline, signature);
         // In another Asset.
         vm.expectRevert(SignatureVerification.InvalidSigner.selector);
-        settlement.settleWithPermit2(signer, SERVICE, USDT, amount, NONCE, deadline, signature);
+        settlement.settleWithPermit2(signer, SERVICE, AUSD, amount, NONCE, deadline, signature);
         // On somebody else's behalf.
         vm.expectRevert(SignatureVerification.InvalidSigner.selector);
         settlement.settleWithPermit2(AGENT, SERVICE, USDC, amount, NONCE, deadline, signature);

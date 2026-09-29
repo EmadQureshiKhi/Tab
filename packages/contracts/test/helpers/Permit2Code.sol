@@ -13,8 +13,8 @@ import {Vm} from "forge-std/Vm.sol";
 ///   cast code 0x000000000022D473030F116dDEE9F6B43aC78BA3 --rpc-url https://testnet-rpc.monad.xyz
 ///
 /// and pinned below by their Keccak-256. The same contract sits at the same address on Monad Mainnet
-/// and on Ethereum; the only bytes that differ between chains are Permit2's two immutables, the cached
-/// chain id and the domain separator built from it. Permit2 recomputes the separator whenever
+/// and on every other chain it is deployed to; the only bytes that differ between chains are Permit2's
+/// two immutables, the cached chain id and the domain separator built from it. Permit2 recomputes the separator whenever
 /// `block.chainid` differs from the cached one, which is why an etched copy signs and verifies
 /// correctly on a local chain too.
 library Permit2Code {

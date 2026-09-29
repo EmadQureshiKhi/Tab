@@ -50,7 +50,7 @@ fail_on_revert = false
 # ---------------------------------------------------------------------------
 # Coverage profile. Named `coverage`; the default profile is untouched by it.
 #
-# Task 10.10's per-contract line-coverage gate must invoke exactly this, from
+# The per-contract line-coverage gate invokes exactly this, from
 # `packages/contracts`:
 #
 #     forge coverage --profile coverage --no-match-coverage node_modules --report lcov
@@ -67,7 +67,7 @@ fail_on_revert = false
 # run and discards every attempt to turn either back on: `via_ir = true` in a
 # profile is ignored, `--via-ir` on the command line is ignored, and
 # `--ir-minimum` is the only switch that reaches the Yul pipeline. Two separate
-# things then fail to compile, and both had to be dealt with:
+# things then fail to compile:
 #
 #   - Unoptimised legacy code generation runs out of stack inside
 #     `src/ServiceRegistry.sol`. Reproduced on solc 0.8.23, 0.8.30, and 0.8.35;
@@ -94,8 +94,8 @@ fail_on_revert = false
 #     into passing, though it can fail a little early. Measured alternatives
 #     were worse: the legacy pipeline with the optimizer on reports 77/82 and
 #     the Yul pipeline with the optimizer on reports 59/82, against 78/82 here.
-#     Branch counts for this one file are heavily understated; gate on line
-#     coverage only, which is what both thresholds already say.
+#     Branch counts for this one file are heavily understated, so the gate
+#     reads line coverage only.
 #   - If a newly added contract breaks the coverage compile with `Stack too
 #     deep`, add its path as another `compilation_restrictions` entry rather
 #     than widening the settings for everything. Keeping files on the

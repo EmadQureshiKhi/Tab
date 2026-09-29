@@ -4,7 +4,7 @@ pragma solidity ^0.8.23;
 import {Test, console} from "forge-std/Test.sol";
 import {LimitLib} from "../../src/LimitLib.sol";
 
-// Feature: tab, Property 6: Credit is strictly under the counterparty bond sum
+// The bond cap: Credit is strictly under the counterparty bond sum.
 //
 // For any Settlement history over any counterparty Service set, and for any per-counterparty
 // Bond amounts in the same Asset, the Credit Limit `LimitLib.creditLimit` returns is strictly less than
@@ -19,28 +19,28 @@ import {LimitLib} from "../../src/LimitLib.sol";
 // {testFuzz_zeroBondSumYieldsZeroCreditForAnyHistory} drives histories up to the full 512-record bound
 // at parity weight, against a baseline forced non-zero so the comparison run cannot pass vacuously.
 //
-// **The generators.** Three, named by task 8.4 and implemented as the functions below.
+// **The generators.** Three, implemented as the functions below.
 //
 //   - `genCounterpartySet(1..8)` is {_genCounterpartySet}: a count in `[1, 8]`, and identifiers that are
 //     distinct and nothing else. Distinctness is the only property of a `serviceId` this computation
-//     can observe, it buckets on equality and never on ordering or magnitude, so a set of small
+//     can observe (it buckets on equality and never on ordering or magnitude), so a set of small
 //     distinct words is the whole input space rather than a sample of it. The count reaches below the
 //     three-counterparty threshold on a quarter of the draws, which is how the baseline branch of step
 //     3 is reached at all.
 //   - `genHistory()` is {_genHistory}: a length drawn as whole rounds over the counterparty set and
 //     reaching 64 records, each record routed to a drawn member of that set, amounts drawn over
 //     `[0, 2^96)`, ages over `[0, 60]` whole days so both ends of the age ramp and the clamp past it are
-//     exercised, and roughly one record in eight deliberately failing one of the four filters, another
+//     exercised, and roughly one record in eight deliberately failing one of the four filters: another
 //     Asset, uncurated, unbonded, or a Metered Delivery that is not strictly earlier. Those failures
-//     matter here rather than being decoration: a filtered
-//     record leaves its counterparty bonded but not contributing, so the bonded set becomes a strict
+//     matter here rather than being decoration: a filtered record leaves its counterparty bonded but
+//     not contributing, so the bonded set becomes a strict
 //     superset of the contributing set, which is the shape in which a cap computed over the wrong set
 //     would show up. A skew flag, drawn independently of the stake regime, decides whether one
 //     counterparty draws an order of magnitude above the others; skewed histories are what make the
 //     concentration term bind, and balanced ones over a wide counterparty set are what leave the growth
 //     term binding.
 //   - `genBondAmounts(0..2^96)` is {_genBondAmounts}: one entry per drawn counterparty, amounts over
-//     `[0, 2^96)`, under four regimes that decide the magnitude relative to the history, deep stake,
+//     `[0, 2^96)`, under four regimes that decide the magnitude relative to the history: deep stake,
 //     shallow stake, no stake at all, and unshaped over the full range. On part of the draws a second
 //     entry per counterparty is added in another Asset carrying a full-range amount, which must never
 //     raise the cap, because this system holds no price feed and converts nothing.
@@ -50,8 +50,8 @@ import {LimitLib} from "../../src/LimitLib.sol";
 // establishes almost nothing about the answer when the cap is slack. So each draw picks a regime, and
 // {test_theSweepReachesEveryBindingTermAndTheInvariantHoldsOnEveryDraw} walks 256 draws deterministically
 // and tallies which of the four terms the returned figure actually came out of. The sweep is
-// deterministic, so those tallies are figures rather than estimates: **bond cap 136 draws, concentration
-// cap 59, baseline 41, growth 20**, summing to 256. Every term is reached, and the sweep asserts that
+// deterministic, so those tallies are figures rather than estimates: **bond cap 134 draws, concentration
+// cap 61, baseline 38, growth 23**, summing to 256. Every term is reached, and the sweep asserts that
 // rather than merely printing it, so a later change that collapsed the campaign onto one branch fails
 // here instead of passing quietly. The growth term is the scarcest of the four and that is a fact about
 // the computation rather than about the generators: the concentration cap binds the moment any single
@@ -70,27 +70,24 @@ import {LimitLib} from "../../src/LimitLib.sol";
 // side of the crossing are what distinguish a cap applied in the right place from one applied a rounding
 // step early or late.
 //
-// **On non-vacuity, and which mutation was available.** The usual demonstration is to break the
-// constant in the library and watch the campaign fail. `LimitLib.BOND_CAP_BPS` is in `src/`, which this
-// task does not own and which four concurrent tasks are building against, so mutating it even briefly is
-// not available. What stands in its place is
+// **On non-vacuity.** `LimitLib.BOND_CAP_BPS` lives in a deployed library whose source must match the
+// chain byte for byte, so the demonstration here does not rest on editing it. It rests on
 // {test_theStrictMarginIsTheConstantRatherThanARoundingAccident}: a case where the cap binds at
 // 9_500_000 against a bond sum of 10_000_000, so the answer a 10_000-basis-point cap would return is
 // exactly the bond sum, and the strict comparison this campaign makes on every draw is the assertion
-// that rejects it. The sweep's bond-cap tally is the other half of the argument, 136 of 256 draws
+// that rejects it. The sweep's bond-cap tally is the other half of the argument: 134 of 256 draws
 // returned the cap itself, and on each of those the strict inequality is the only thing standing
 // between the returned figure and the stake behind it, since every other term was larger.
 //
-// The one mutation that was available was run and reverted: tightening this file's own expectation from
-// 9_500 to 9_000 basis points, which is a claim `LimitLib` does not satisfy. The fuzz campaign failed on
-// its first run with the counterexample `937_280_073_907 > 887_949_543_701`, and all three deterministic
-// cases failed, the boundary case at `16_999_999 > 16_105_262`, the margin case at
-// `9_500_000 > 9_000_000`, and the sweep at `510_299_713_643 > 483_441_833_978`. So the comparisons here
-// are reached on generated input and are sensitive to the cap constant in the last base unit rather than
-// merely to its order of magnitude. {testFuzz_zeroBondSumYieldsZeroCreditForAnyHistory} went on passing
-// under the mutation, which is correct and worth saying: a zero stake sum takes the equality branch and
-// never evaluates the inequality at all, so that case is deliberately insensitive to how tight the cap
-// is and sensitive only to whether it exists.
+// Tightening this file's own expectation from 9_500 to 9_000 basis points, a claim `LimitLib` does not
+// satisfy, fails the fuzz campaign on its first run and fails all three deterministic cases: the
+// boundary case at `16_999_999 > 16_105_262`, the margin case at `9_500_000 > 9_000_000`, and the sweep
+// at `474_050_938_373 > 449_100_888_985`. So the comparisons here are reached on generated input and are
+// sensitive to the cap constant in the last base unit rather than merely to its order of magnitude.
+// {testFuzz_zeroBondSumYieldsZeroCreditForAnyHistory} keeps passing under that change, which is correct
+// and worth saying: a zero stake sum takes the equality branch and never evaluates the inequality at
+// all, so that case is deliberately insensitive to how tight the cap is and sensitive only to whether
+// it exists.
 //
 // **What this establishes.** Over generated histories and bond sets, for every counterparty count from
 // 1 to 8, at every point of the age ramp, with contributing and bonded counterparty sets that agree and
@@ -102,23 +99,23 @@ import {LimitLib} from "../../src/LimitLib.sol";
 //
 // **What it does not establish.** Nothing about where the bond figures come from on chain. `LimitLib`
 // takes the bond set as an argument and does not check it against the history, so the invariant it can
-// state is over the set it was handed; the correspondence, no duplicate counterparty, every in-scope
+// state is over the set it was handed. The correspondence (no duplicate counterparty, every in-scope
 // entry a real counterparty of this Agent, and every amount read from the ledger rather than supplied
-// by the caller, is enforced by `TabBook._resolveBonds` and belongs to that contract's tests. Nothing
+// by the caller) is enforced by `TabBook._resolveBonds` and belongs to that contract's tests. Nothing
 // about the concentration cap or the three-counterparty threshold as claims in their own right, which
-// are Property 7 in `test/property/Concentration.t.sol`; the term classification here reports which of
+// are stated in `test/property/Concentration.t.sol`; the term classification here reports which of
 // them bound and never judges the answer. Nothing about the numeric value of the limit in general: this
 // campaign bounds it, and the worked example in `test/LimitLib.t.sol` pins it. And nothing about the
-// bond ledger itself, since no `Bond` contract is involved, the library is pure, reads no storage, and
-// makes no external call, so this campaign needs no tree, no registry, and no precompile.
+// bond ledger itself: no `Bond` contract is involved, the library is pure, reads no storage, and
+// makes no external call, so this campaign needs no other contract.
 contract BondInvariantTest is Test {
     // ------------------------------------------------------------------ fixtures
 
     /// @notice The Asset every computation here is scoped to.
-    address internal constant USDC = address(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
+    address internal constant USDC = address(0x754704Bc059F8C67012fEd69BC8A327a5aafb603);
 
     /// @notice A second Asset, carried only to establish that stake outside the scope is not coverage.
-    address internal constant OTHER_ASSET = address(0xdAC17F958D2ee523a2206206994597C13D831ec7);
+    address internal constant OTHER_ASSET = address(0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a);
 
     /// @notice Evaluation timestamp. High enough that a 60-day age stays positive.
     uint64 internal constant EVALUATED_AT = 1_800_000_000;
@@ -129,10 +126,10 @@ contract BondInvariantTest is Test {
     /// @notice Baseline the hand-built cases use, in Asset base units.
     uint256 internal constant BASELINE = 5_000_000;
 
-    /// @notice Largest counterparty set the generators draw, per task 8.4.
+    /// @notice Largest counterparty set the generators draw.
     uint256 internal constant MAX_PARTIES = 8;
 
-    /// @notice Largest generated amount, exclusive. `2^96`, per task 8.4.
+    /// @notice Largest generated amount, exclusive. `2^96`.
     uint256 internal constant AMOUNT_CEILING = 2 ** 96;
 
     /// @notice Draws in the deterministic sweep, matched to `[profile.default.fuzz] runs`.
@@ -162,7 +159,7 @@ contract BondInvariantTest is Test {
     /// @dev The four regimes, crossed with the independent skew flag of {_genHistory}, are what make
     /// each of the four terms reachable. `DeepBonds` lifts the cap clear of any growth term a 64-record
     /// history can reach, so whichever of growth or concentration is larger is what binds; `ShallowBonds`
-    /// puts the cap far below the growth term; `NoBonds` is the all-zero case task 8.4 names; `Unshaped`
+    /// puts the cap far below the growth term; `NoBonds` is the all-zero case; `Unshaped`
     /// draws both sides over the full range and takes whatever relation falls out.
     enum Regime {
         DeepBonds,
@@ -173,7 +170,7 @@ contract BondInvariantTest is Test {
 
     // ------------------------------------------------------------------ the property
 
-    /// @notice Property 6: the returned Credit Limit is strictly under the counterparty bond sum, and
+    /// @notice The returned Credit Limit is strictly under the counterparty bond sum, and
     /// exactly zero when that sum is zero.
     /// @dev The whole statement in one campaign. Every draw picks a counterparty set, a history over
     /// it, a bond set keyed on the same counterparties, a regime deciding their relative magnitude, and
@@ -210,9 +207,9 @@ contract BondInvariantTest is Test {
         _assertBondInvariant(history, bonds, p, stake);
     }
 
-    /// @notice Property 6, the zero case: no stake in the Asset means a Credit Limit of exactly zero,
+    /// @notice The zero case: no stake in the Asset means a Credit Limit of exactly zero,
     /// for any history.
-    /// @dev The case task 8.4 names explicitly, and the one that makes the bond sum a cap rather than a
+    /// @dev The case that makes the bond sum a cap rather than a
     /// discount. Three shapes of zero are drawn, because they fail differently if the cap is computed
     /// carelessly: no bond entries at all, entries in the Asset carrying zero, and entries in another
     /// Asset carrying full-range amounts, the last being the one where a system with a conversion
@@ -297,8 +294,8 @@ contract BondInvariantTest is Test {
     /// @notice The gap between the Credit Limit and the stake behind it is the 9_500-basis-point
     /// constant, not a rounding accident.
     /// @dev This is the case a cap set at 10_000 basis points would fail, and it is here because
-    /// mutating `LimitLib.BOND_CAP_BPS` to demonstrate the same thing is not available to this task:
-    /// `src/` is owned elsewhere and is being built against concurrently. The growth term is 17.00 USDC
+    /// `LimitLib.BOND_CAP_BPS` belongs to a deployed library that is not edited to demonstrate the same
+    /// thing. The growth term is 17.00 USDC
     /// against a stake sum of 10.00 USDC, so the cap binds hard; at 9_500 basis points the answer is
     /// 9_500_000 and clears the stake sum by 500_000, and at 10_000 it would be exactly 10_000_000,
     /// which satisfies "not more than the stake" and violates the strict inequality the bond cap
@@ -333,7 +330,7 @@ contract BondInvariantTest is Test {
         uint256[4] memory tally;
 
         for (uint256 i = 0; i < SWEEP_DRAWS; ++i) {
-            uint256 seed = uint256(keccak256(abi.encode("Property 6 sweep", i)));
+            uint256 seed = uint256(keccak256(abi.encode("bond cap sweep", i)));
             Regime regime = Regime(i % 4);
             uint256 parties = 1 + ((i / 4) % MAX_PARTIES);
             bool skew = (i / 32) % 2 == 0;
@@ -353,7 +350,7 @@ contract BondInvariantTest is Test {
             tally[uint256(term)] += 1;
         }
 
-        console.log("Property 6 sweep: which term bound, over", SWEEP_DRAWS, "draws");
+        console.log("Bond cap sweep: which term bound, over", SWEEP_DRAWS, "draws");
         console.log("  bond cap         ", tally[uint256(Term.BondCap)]);
         console.log("  baseline         ", tally[uint256(Term.Baseline)]);
         console.log("  growth           ", tally[uint256(Term.Growth)]);
@@ -368,7 +365,7 @@ contract BondInvariantTest is Test {
 
     // ------------------------------------------------------------------ the assertion
 
-    /// @notice Assert Property 6 on one history and bond set, and report which term bound.
+    /// @notice Assert the bond cap invariant on one history and bond set, and report which term bound.
     /// @dev The three comparisons that are the property, and nothing else:
     ///
     ///  1. The library's cap agrees with `stake * 9500 / 10000` computed here from the generated
@@ -528,7 +525,7 @@ contract BondInvariantTest is Test {
     /// @dev One entry per counterparty in the scoped Asset, with the magnitude set by the regime:
     /// `DeepBonds` draws in the top sixteen bits of the range so the cap sits far above any growth term
     /// a 64-record history can reach; `ShallowBonds` draws in the bottom forty bits so the cap binds
-    /// hard; `NoBonds` is the all-zero case, which task 8.4 names and which
+    /// hard; `NoBonds` is the all-zero case, which
     /// {testFuzz_zeroBondSumYieldsZeroCreditForAnyHistory} then drives on its own; `Unshaped` draws over
     /// the full `[0, 2^96)` range and takes whatever relation falls out, including the zero sum that
     /// arrives when every draw lands low.
@@ -601,7 +598,7 @@ contract BondInvariantTest is Test {
     /// @notice Which term the returned Credit Limit came out of.
     /// @dev Diagnostic, and scoped to stay diagnostic. It reproduces the filters, the weighting, and
     /// the growth factor, {_growthTerms}, but deliberately not the concentration cap's closed form,
-    /// which is the subtle part and the part Property 7 owns. So the concentration term is identified by
+    /// which is the subtle part and the part `Concentration.t.sol` owns. So the concentration term is identified by
     /// elimination: below three counterparties the answer is `min(baseline, cap)` and the two cases are
     /// told apart by which is smaller; at or above three, an answer equal to the uncapped value means
     /// neither cap bound, an answer equal to the cap means the cap bound, and anything else is the
@@ -627,7 +624,7 @@ contract BondInvariantTest is Test {
     /// @notice The contributing counterparty count and the summed growth contributions.
     /// @dev The library's steps 1 and 4, reproduced for classification only. Nothing in this file
     /// asserts against the figures it returns, so a drift between this and `LimitLib` can lose a tally
-    /// but cannot let a violation through, the property is stated entirely against the stake sum and
+    /// but cannot let a violation through: the property is stated entirely against the stake sum and
     /// the returned limit.
     /// @param history The generated history.
     /// @param p Asset scope, baseline, growth factor, and evaluation timestamp.

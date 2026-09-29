@@ -29,7 +29,7 @@ contract LimitLibHarness {
 /// @notice Unit and fuzz coverage for the pure credit computation.
 /// @dev What this suite establishes, in the order the tests appear:
 ///
-///  1. The worked example from the design reproduces exactly, in all three of its stated shapes:
+///  1. The worked example reproduces exactly, in all three of its shapes:
 ///     concentration-bound, bond-bound, and below the three-counterparty threshold.
 ///  2. All four concentration candidates `k = 0, 1, 2, 3` are reachable, and each returned value is
 ///     verified against the fixed point it claims to solve rather than only against a literal.
@@ -41,28 +41,28 @@ contract LimitLibHarness {
 ///  7. Appending a Settlement never lowers the returned Credit Limit, across the append that
 ///     crosses the three-counterparty threshold, the append that newly makes the concentration cap
 ///     bind, the appends that fail a filter, and the whole chain under a binding bond cap.
-///     (Property 5)
 ///  8. The age ramp reproduces through the whole computation at the six named day counts, and the
 ///     same total settled value compressed inside 24 hours returns a strictly lower Credit Limit than
-///     when it is spread across 30 days, with both caps held demonstrably non-binding. (Property 10)
+///     when it is spread across 30 days, with both caps held demonstrably non-binding.
 ///  9. A Settlement counts only where its Metered Delivery timestamp is strictly earlier, asserted
-///     over a table of offsets either side of the Settlement timestamp. (Property 11)
+///     over a table of offsets either side of the Settlement timestamp.
 /// 10. Over generated histories and bond sets, the returned limit never exceeds the bond cap.
 ///
-/// Items 7 through 9 are the three property statements the design demotes from property-based tests
-/// to targeted unit tests: Property 5, Property 10, and Property 11. Each is universally quantified
-/// in the design, so each case below is chosen to be one that would catch a real implementation
-/// error, and every one says at its declaration why those inputs and not others. The record-filter
+/// Items 7 through 9 are universally quantified statements checked here as targeted unit tests
+/// rather than fuzz campaigns: monotonicity on append, the burst penalty, and delivery precedence.
+/// So each case below is chosen to be one that would catch a real implementation error, and every
+/// one says at its declaration why those inputs and not others. The record-filter
 /// precedence case in the filters section is the plain unit assertion on one record; item 9 is the
 /// property.
+
 contract LimitLibTest is Test {
     // ------------------------------------------------------------------ fixtures
 
     /// @notice The Asset every computation here is scoped to.
-    address internal constant USDC = address(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
+    address internal constant USDC = address(0x754704Bc059F8C67012fEd69BC8A327a5aafb603);
 
     /// @notice A second Asset, used only to prove exclusion. No conversion exists between the two.
-    address internal constant OTHER_ASSET = address(0xdAC17F958D2ee523a2206206994597C13D831ec7);
+    address internal constant OTHER_ASSET = address(0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a);
 
     /// @notice Counterparty Service identifiers.
     bytes32 internal constant S1 = bytes32(uint256(1));
@@ -73,10 +73,10 @@ contract LimitLibTest is Test {
     /// @notice Evaluation timestamp. Far enough above the ramp that a 60-day age stays positive.
     uint64 internal constant EVALUATED_AT = 1_800_000_000;
 
-    /// @notice Baseline from the design's worked example, in USDC base units.
+    /// @notice Baseline of the worked example, in USDC base units.
     uint256 internal constant BASELINE = 5_000_000;
 
-    /// @notice Growth factor from the design's worked example, in basis points.
+    /// @notice Growth factor of the worked example, in basis points.
     uint256 internal constant GROWTH_BPS = 5_000;
 
     /// @notice External wrapper, for the two bound checks.
@@ -89,7 +89,7 @@ contract LimitLibTest is Test {
 
     // ------------------------------------------------------------------ worked example
 
-    /// @notice The design's worked example returns 15.00 USDC, and it is the concentration cap that
+    /// @notice The worked example returns 15.00 USDC, and it is the concentration cap that
     /// binds.
     /// @dev Buckets `S1 = 85_000_000`, `S2 = 50_000_000`, `S3 = 5_000_000`; contributions
     /// `42_500_000 / 25_000_000 / 2_500_000`; uncapped `75_000_000`; concentration `15_000_000`; bond
@@ -106,7 +106,7 @@ contract LimitLibTest is Test {
     }
 
     /// @notice With counterparty bonds summing to 10.00 USDC the bond cap binds instead, strictly.
-    /// @dev The design's bond-bound variant.
+    /// @dev The bond-bound variant of the worked example.
     function test_workedExampleWithSmallBondsIsBondBound() public view {
         LimitLib.BondEntry[] memory bonds = new LimitLib.BondEntry[](3);
         bonds[0] = LimitLib.BondEntry({serviceId: S1, asset: USDC, amount: 4_000_000});
@@ -184,8 +184,8 @@ contract LimitLibTest is Test {
     // ------------------------------------------------------------------ age ramp
 
     /// @notice The age ramp at the six named day counts, and outside both ends of the ramp.
-    /// @dev `2500 + 7500 * min(ageDays, 30) / 30`, floored. Task 8.3 asserts the same ramp through
-    /// `creditLimit`; this case pins the weighting function itself.
+    /// @dev `2500 + 7500 * min(ageDays, 30) / 30`, floored. The burst-penalty section asserts the same
+    /// ramp through `creditLimit`; this case pins the weighting function itself.
     function test_ageWeightBpsRamp() public pure {
         uint64[6] memory ageDays = [uint64(0), 1, 15, 29, 30, 31];
         uint256[6] memory expected = [uint256(2_500), 2_750, 6_250, 9_750, 10_000, 10_000];
@@ -323,9 +323,9 @@ contract LimitLibTest is Test {
         harness.creditLimit(tooMany, bonds, p);
     }
 
-    // ------------------------------------------------- Property 5: monotonicity on append
+    // ------------------------------------------------------------ monotonicity on append
 
-    /// @notice Property 5: appending a Settlement never lowers the returned Credit Limit,
+    /// @notice Appending a Settlement never lowers the returned Credit Limit,
     /// holding bonds, baseline, growth factor, and evaluation timestamp constant.
     /// @dev The property is universally quantified over histories and over the appended record, and
     /// this is a unit test, so the chain below is built to walk every regime the computation has and
@@ -334,7 +334,7 @@ contract LimitLibTest is Test {
     /// same shape of number, and the two places it could actually break are the crossings.
     ///
     /// The chain is nine appends and the limit is read over every prefix, so the assertion is nine
-    /// pairwise comparisons rather than one. The two crossings the design calls out both appear:
+    /// pairwise comparisons rather than one. Both crossings where it could break appear:
     ///
     ///  - **Prefix 3 crosses the three-counterparty threshold.** Prefixes 1 and 2 return the baseline
     ///    from step 3; prefix 3 leaves that branch for the growth branch. The branch change is where a
@@ -347,8 +347,8 @@ contract LimitLibTest is Test {
     ///    limit moves from 17.000000 to 17.333333, which is the case where a cap applied in the wrong
     ///    direction would show up as a decrease.
     ///
-    /// Three appends fail a filter, another Asset, zero weight, and a Metered Delivery that is not
-    /// strictly earlier, and each must leave the answer bit-identical, which is the equality half of
+    /// Three appends fail a filter (another Asset, zero weight, and a Metered Delivery that is not
+    /// strictly earlier), and each must leave the answer bit-identical, which is the equality half of
     /// a non-strict relation and the half an implementation that recomputed something on every append
     /// could get wrong. The last append is partially aged rather than fully aged, so the chain also
     /// covers an append that adds weight at less than parity.
@@ -399,7 +399,7 @@ contract LimitLibTest is Test {
         assertGt(limits[9], limits[8], "a partially aged append raised the limit");
     }
 
-    /// @notice Property 5: the same append chain stays monotone while the bond cap is the binding
+    /// @notice The same append chain stays monotone while the bond cap is the binding
     /// term.
     /// @dev Worth a second case because the bond cap is the one term appending cannot move: bonds are
     /// held constant, so the cap is constant, and the answer is `min(growth, cap)` over a rising
@@ -429,9 +429,9 @@ contract LimitLibTest is Test {
         }
     }
 
-    // ------------------------------------------- Property 10: time weighting penalises bursts
+    // ------------------------------------------------------ time weighting penalises bursts
 
-    /// @notice Property 10: the age ramp read through the whole computation, at the six named day
+    /// @notice The age ramp read through the whole computation, at the six named day
     /// counts.
     /// @dev `test_ageWeightBpsRamp` pins the weighting function; this pins the ramp as it reaches the
     /// returned Credit Limit, which is the number a caller sees. The six day counts are the ones that
@@ -480,18 +480,18 @@ contract LimitLibTest is Test {
         }
     }
 
-    /// @notice Property 10: the same total settled value compressed inside 24 hours returns a strictly
+    /// @notice The same total settled value compressed inside 24 hours returns a strictly
     /// lower Credit Limit than when it is spread across 30 days.
     /// @dev The wash-settlement statement of the ramp. Both histories carry twelve Settlements of 2.00
     /// USDC over the same three counterparties, 24.00 USDC in total either way; the spread one sits at
     /// 30, 20, 10, and 0 days, and the compressed one puts all twelve inside one day at 0, 1, 12, and
     /// 23 hours, which all floor to age 0.
     ///
-    /// The trap this case is shaped around is the one the design's worked example runs into: move that
+    /// The trap this case is shaped around is the one the worked example runs into: move that
     /// example's four Settlements to age 0 and the returned limit does not change at all, because the
     /// concentration cap binds in both shapes and hands back the same capped number. So the
     /// counterparties are balanced and the bonds are deep, and the test asserts both facts rather than
-    /// assuming them, each limit is checked equal to its own uncapped value and strictly under the
+    /// assuming them: each limit is checked equal to its own uncapped value and strictly under the
     /// bond cap, so the strict inequality that follows can only be about the age ramp.
     function test_burstReturnsAStrictlyLowerLimitThanSpread() public pure {
         LimitLib.BondEntry[] memory bonds = _deepBonds();
@@ -522,9 +522,9 @@ contract LimitLibTest is Test {
         assertLt(burstLimit, spreadLimit, "compressing the same value must lower the Credit Limit");
     }
 
-    // ------------------------------------------ Property 11: metered-delivery precedence
+    // ---------------------------------------------------------- metered-delivery precedence
 
-    /// @notice Property 11: a Settlement counts toward the Credit Limit only where its Metered
+    /// @notice A Settlement counts toward the Credit Limit only where its Metered
     /// Delivery record carries a strictly earlier block timestamp.
     /// @dev The property quantifies the delivery timestamp arbitrarily before, at, or after the
     /// Settlement timestamp, so the table walks ten offsets on both sides of the boundary and asserts
@@ -588,7 +588,7 @@ contract LimitLibTest is Test {
     /// @notice Over generated histories and bond sets, the Credit Limit never exceeds the bond cap.
     /// @dev The cheapest statement of the invariant that matters most: whatever the history, the
     /// growth factor, or the baseline, the returned limit is at most
-    /// `sum(counterparty bonds in the Asset) * 9500 / 10000`. Property 6 in `test/property` states the
+    /// `sum(counterparty bonds in the Asset) * 9500 / 10000`. `test/property/BondInvariant.t.sol` states the
     /// strict form of this against generated counterparty sets; this case is the direct arithmetic
     /// bound, run on every build rather than only in the property job.
     ///
@@ -674,7 +674,7 @@ contract LimitLibTest is Test {
         });
     }
 
-    /// @notice The four-record history from the design's worked example.
+    /// @notice The four-record history of the worked example.
     /// @return h The history.
     function _workedHistory() private pure returns (LimitLib.SettlementRecord[] memory h) {
         h = new LimitLib.SettlementRecord[](4);
@@ -684,7 +684,7 @@ contract LimitLibTest is Test {
         h[3] = _record(S3, 20_000_000, 0);
     }
 
-    /// @notice The three bond entries from the design's worked example, summing to 1000.00 USDC.
+    /// @notice The three bond entries of the worked example, summing to 1000.00 USDC.
     /// @return b The bond entries.
     function _workedBonds() private pure returns (LimitLib.BondEntry[] memory b) {
         b = new LimitLib.BondEntry[](3);
@@ -749,7 +749,7 @@ contract LimitLibTest is Test {
     }
 
     /// @notice One Settlement that passes every filter, aged a whole number of seconds.
-    /// @dev The seconds-resolution sibling of {_record}. The compressed history of Property 10 needs
+    /// @dev The seconds-resolution sibling of {_record}. The compressed history of the burst case needs
     /// several distinct settlement instants inside one day, which whole days cannot express.
     /// @param serviceId Counterparty Service.
     /// @param amount Settled amount in Asset base units.
@@ -772,7 +772,7 @@ contract LimitLibTest is Test {
         });
     }
 
-    /// @notice The nine-record append chain Property 5 walks, in append order.
+    /// @notice The nine-record append chain the monotonicity cases walk, in append order.
     /// @dev Each entry is chosen for the regime crossing it causes, documented at the test.
     /// @return h The chain.
     function _appendChain() private pure returns (LimitLib.SettlementRecord[] memory h) {
@@ -808,7 +808,7 @@ contract LimitLibTest is Test {
     /// @notice Three counterparties settling `amount` at each of four ages, twelve records in all.
     /// @dev Balanced by construction: every counterparty carries the same amounts at the same ages, so
     /// the buckets are equal and the concentration term is inert as long as one contribution stays at
-    /// or below the baseline. That is what lets Property 10 vary only the span.
+    /// or below the baseline. That is what lets the burst case vary only the span.
     /// @param secondsAgo The four settlement offsets from the evaluation timestamp.
     /// @param amount Amount settled per record, in Asset base units.
     /// @return h The history.
