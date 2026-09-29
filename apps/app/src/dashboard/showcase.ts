@@ -59,6 +59,20 @@ const PROVIDER_LOGO: Record<string, string> = {
   firtoz: "/logos/providers/firtoz.svg",
 };
 
+/**
+ * The mark for an API Hub provider a Service fronts, by the Hub's provider id.
+ *
+ * A fronted endpoint is sold through a Tab Service, so a provider with no mark
+ * of its own here is drawn with Tab's, never left as an empty circle.
+ */
+const HUB_PROVIDER_LOGO: Record<string, string> = {
+  defillama: "/logos/providers/defillama.png",
+};
+
+export function hubProviderLogo(provider: string): string {
+  return HUB_PROVIDER_LOGO[provider.toLowerCase()] ?? "/logo.png";
+}
+
 export function providerLogo(toolName: string): string | undefined {
   const prefix = toolName.split("/")[0];
   return prefix === undefined ? undefined : PROVIDER_LOGO[prefix];

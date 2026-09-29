@@ -42,7 +42,7 @@ import { AssetAmount } from "../../components/custom-ui/asset-amount";
 import { cn } from "../../components/ui/cn";
 import { FOCUS_RING } from "../../components/ui/focus-ring";
 import { Reveal } from "../../components/motion/reveal";
-import { CATEGORY_TINT, providerLogo, type ShowcaseEntry } from "../../src/dashboard/showcase";
+import { CATEGORY_TINT, hubProviderLogo, providerLogo, type ShowcaseEntry } from "../../src/dashboard/showcase";
 import type { CatalogueEntry } from "../../src/dashboard/catalogue";
 import type { HubEntry, HubNote } from "../../src/dashboard/hub";
 
@@ -490,7 +490,7 @@ function HubCard({
   if (dense) {
     return (
       <div className="flex flex-col gap-3 rounded-lg border border-border/60 bg-[var(--panel)] p-4 transition-colors hover:border-border sm:flex-row sm:items-center">
-        <span aria-hidden="true" className="size-[22px] shrink-0 rounded-full border border-border/60 bg-background" />
+        <img src={hubProviderLogo(entry.provider)} alt="" width={22} height={22} className="size-[22px] shrink-0 rounded-full bg-white/90 object-contain p-0.5" />
         <span className="min-w-0 flex-1 truncate font-mono text-sm text-foreground">{entry.name}</span>
         <span className={cn("rounded px-2 py-0.5 font-mono text-[10px] tracking-wider uppercase", frontedTint)}>
           Fronted
@@ -523,7 +523,7 @@ function HubCard({
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-lg border border-border/60 bg-[var(--panel)] transition-colors duration-200 hover:border-border">
       <div className="flex items-center gap-3 px-5 pt-5 pb-4">
-        <span aria-hidden="true" className="size-7 shrink-0 rounded-full border border-border/60 bg-background" />
+        <Mark src={hubProviderLogo(entry.provider)} />
         <h3 className="min-w-0 flex-1 truncate text-sm font-medium text-foreground" title={entry.path}>
           {entry.name}
         </h3>
