@@ -10,8 +10,8 @@
  * `@metamask/agent-sdk`, which the CLI bundles at build time and does not
  * publish, so in a consumer's type check every one of them collapses to `any`.
  * The interfaces below are the structural subset this plugin relies on, written
- * from the plugin reference (the context table, "Raw EVM reads", "Signing and
- * submission") and the CLI's own declaration files, and the bridge casts the
+ * from MetaMask's plugin documentation (the context table, "Raw EVM reads",
+ * "Signing and submission") and the CLI's own declaration files, and the bridge casts the
  * untyped context onto them exactly once, in {@link createHost}. Everything
  * past that point is typed, and everything past that point is what the tests
  * exercise with a fake.

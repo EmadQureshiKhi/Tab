@@ -37,7 +37,15 @@ function instantiate(Command, ctx) {
   return command;
 }
 
-const ENV_KEYS = ["TAB_BOOK_ADDRESS", "TAB_SETTLEMENT_ADDRESS", "NEXT_PUBLIC_REGISTRY_API_URL", "MONAD_CHAIN_ID", "MONAD_RPC_URL", "MONAD_EXPLORER_URL"];
+const ENV_KEYS = [
+  "TAB_BOOK_ADDRESS",
+  "TAB_SETTLEMENT_ADDRESS",
+  "NEXT_PUBLIC_REGISTRY_API_URL",
+  "MONAD_CHAIN_ID",
+  "MONAD_RPC_URL",
+  "MONAD_EXPLORER_URL",
+  "MOCK_USDC_ADDRESS",
+];
 function withEnv(values, fn) {
   const saved = Object.fromEntries(ENV_KEYS.map((key) => [key, process.env[key]]));
   for (const key of ENV_KEYS) delete process.env[key];

@@ -2,7 +2,7 @@
 /**
  * Writes `oclif.manifest.json`, which an `mm` plugin must ship.
  *
- * The template's build step is `oclif manifest`. The `oclif` CLI that provides
+ * MetaMask's plugin template builds this with `oclif manifest`. The `oclif` CLI that provides
  * it pins Node 22 and pulls the AWS SDK in for its release commands, none of
  * which a manifest needs, so this does what that command does for a plugin with
  * no JIT plugins: load the package through `@oclif/core`'s `Plugin`, which reads

@@ -4,6 +4,7 @@ import { Interface } from "ethers";
 
 import { createHost } from "../dist/host-context.js";
 import { runSettle } from "../dist/tab/settle.js";
+import { TAB_HOSTED } from "@tabai/sdk";
 import { AGENT, ENV, fakeContext, fakeIo, OTHER_ASSET, SERVICE_ID, SETTINGS, stubRegistryFetch, TAB_SETTLEMENT, USDC } from "./fixtures.mjs";
 
 const deps = (context, over = {}) => ({
@@ -102,11 +103,26 @@ test("malformed inputs are refused by name and nothing is read", async () => {
   assert.equal(registryFetch.calls.length, 0);
 });
 
-test("without a registry URL the failure names the variable", async () => {
+test("with hosted defaults off and no registry URL, the failure names the variable", async () => {
   const context = fakeContext({ allowance: 0n });
-  const result = await runSettle(deps(context, { settings: { ...SETTINGS, registryUrl: undefined }, registryFetch: undefined }), { service: SERVICE_ID, asset: USDC, amount: "1", broadcast: false });
+  const result = await runSettle(
+    deps(context, { settings: { ...SETTINGS, registryUrl: undefined }, env: { ...ENV, TAB_HOSTED_DEFAULTS: "off" }, registryFetch: undefined }),
+    { service: SERVICE_ID, asset: USDC, amount: "1", broadcast: false },
+  );
   assert.equal(result.error.code, "REGISTRY_UNCONFIGURED");
   assert.match(result.error.message, /NEXT_PUBLIC_REGISTRY_API_URL/);
+});
+
+test("with no registry URL named, a fresh install settles against the hosted read API", async () => {
+  const context = fakeContext({ allowance: 0n });
+  const registryFetch = stubRegistryFetch();
+  const result = await runSettle(
+    deps(context, { settings: { ...SETTINGS, registryUrl: undefined }, registryFetch }),
+    { service: SERVICE_ID, asset: USDC, amount: "1", broadcast: false },
+  );
+  assert.ok(result.ok, result.ok ? "" : result.error.message);
+  assert.ok(registryFetch.calls.length > 0);
+  for (const url of registryFetch.calls) assert.ok(url.startsWith(TAB_HOSTED[10143].registryUrl), url);
 });
 
 test("with no wallet there is no Agent, and the failure says what to run", async () => {

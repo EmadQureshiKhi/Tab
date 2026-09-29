@@ -59,7 +59,7 @@ export function parseBaseUnits(raw: string, label: string): Result<bigint> {
   }
   const amount = BigInt(text);
   if (amount === 0n) {
-    return validationError("AMOUNT_ZERO", `${label} of zero base units moves nothing and proves nothing`, { details: { label } });
+    return validationError("AMOUNT_ZERO", `${label} of zero base units moves nothing and settles nothing`, { details: { label } });
   }
   if (amount > UINT128_MAX) {
     return validationError("AMOUNT_OUT_OF_RANGE", `${label} must fit a uint128`, { details: { label } });

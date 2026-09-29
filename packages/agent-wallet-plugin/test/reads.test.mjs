@@ -3,7 +3,7 @@ import { test } from "node:test";
 
 import { createHost } from "../dist/host-context.js";
 import { parseCallArguments, runCall, runDiscover, runStatus } from "../dist/tab/reads.js";
-import { AGENT, ENV, fakeContext, fakeIo, SERVICE_ID, SETTINGS, stubRegistryFetch, USDC } from "./fixtures.mjs";
+import { AGENT, ENV, fakeContext, fakeIo, OTHER_ASSET, SERVICE_ID, SERVICES_BODY, SETTINGS, stubRegistryFetch, USDC } from "./fixtures.mjs";
 
 // The project's hosted read API and demo Service are the SDK's last-resort defaults.
 // Tests switch them off so that nothing here can reach a real host by accident.
@@ -29,9 +29,11 @@ test("discover lists the Services the registry serves, and filters by Asset on t
 });
 
 test("discover names the Testnet test token from the settings, with nothing exported", async () => {
-  // A fresh install has no MOCK_USDC_ADDRESS in its environment; the settings carry the recorded one.
-  const registryFetch = stubRegistryFetch();
-  const named = await runDiscover({ settings: { ...SETTINGS, mockUsdc: USDC }, env: {}, cwd, registryFetch }, {});
+  // A deployment of one's own ships its own test token. With no MOCK_USDC_ADDRESS in the
+  // environment, the settings are what tell the SDK where that token is.
+  const ownToken = JSON.parse(JSON.stringify(SERVICES_BODY).replaceAll(USDC, OTHER_ASSET));
+  const registryFetch = stubRegistryFetch({ services: ownToken });
+  const named = await runDiscover({ settings: { ...SETTINGS, mockUsdc: OTHER_ASSET }, env: {}, cwd, registryFetch }, {});
   assert.ok(named.ok, named.ok ? "" : named.error.message);
   const asset = named.value.services[0].assets[0];
   assert.equal(asset.symbol, "mUSDC");

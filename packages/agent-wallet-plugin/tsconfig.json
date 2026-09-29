@@ -5,7 +5,7 @@
     "outDir": "dist",
     "tsBuildInfoFile": "dist/.tsbuildinfo",
     // The host's declaration files use extensionless relative imports, which
-    // resolve only under the bundler rules. This matches the plugin template.
+    // resolve only under the bundler rules. This matches MetaMask's plugin template.
     "module": "ESNext",
     "moduleResolution": "Bundler"
   },

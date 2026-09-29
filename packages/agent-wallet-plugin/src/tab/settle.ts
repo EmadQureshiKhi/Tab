@@ -35,6 +35,7 @@ import {
   parseAsset,
   path as jsonPath,
   stderrLogger,
+  TAB_HOSTED,
   upstreamError,
   validationError,
   type AssetRef,
@@ -116,10 +117,26 @@ export function parseAssetInput(raw: string, settings: PluginSettings, env: Node
   return ok(parsed.value);
 }
 
+/**
+ * The registry read API a Settlement is checked against.
+ *
+ * The same resolution `discover`, `status` and `call` get from the SDK: a named
+ * `NEXT_PUBLIC_REGISTRY_API_URL` wins, and otherwise the project's hosted read
+ * API for the chain, unless `TAB_HOSTED_DEFAULTS=off` asks for nothing unnamed.
+ * So a fresh install can settle as soon as it can discover.
+ */
+export function registryUrlFor(settings: PluginSettings, env: NodeJS.ProcessEnv): string | undefined {
+  if (settings.registryUrl !== undefined) return settings.registryUrl;
+  if (env["TAB_HOSTED_DEFAULTS"]?.trim() === "off") return undefined;
+  const hosted = (TAB_HOSTED as Readonly<Record<number, { readonly registryUrl: string } | undefined>>)[settings.chainId];
+  return hosted?.registryUrl;
+}
+
 /** The registry read client, or the one failure that stands in for it. */
 export function registryFor(deps: SettleDeps): Result<RegistryReadClient> {
   if (deps.registry !== undefined) return ok(deps.registry);
-  if (deps.settings.registryUrl === undefined) {
+  const baseUrl = registryUrlFor(deps.settings, deps.env ?? process.env);
+  if (baseUrl === undefined) {
     return upstreamError(
       "REGISTRY_UNCONFIGURED",
       "no Tab registry read API is configured, so the Service cannot be checked; set NEXT_PUBLIC_REGISTRY_API_URL",
@@ -127,7 +144,7 @@ export function registryFor(deps: SettleDeps): Result<RegistryReadClient> {
   }
   return ok(
     createRegistryReadClient({
-      baseUrl: deps.settings.registryUrl,
+      baseUrl,
       ...(deps.registryFetch === undefined ? {} : { fetchImpl: deps.registryFetch }),
       logger: stderrLogger,
     }),

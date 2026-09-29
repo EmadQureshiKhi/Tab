@@ -7,10 +7,10 @@ import { Interface } from "ethers";
 
 import { TESTNET_DEFAULTS } from "../dist/defaults.js";
 
-export const AGENT = "0x1f6f797edc2eecb02bd54009b805fb2e99f80542";
+export const AGENT = "0x00000000000000000000000000000000000a9e17";
 export const SERVICE_ID = "0x7461622e64656d6f000000000000000000000000000000000000000000000000";
-export const USDC = "0x5d519a1e8cf4edd7067fd631047e6869e9a7e4fe";
-export const OTHER_ASSET = "0x534b2f3a21130d7a60830c2df862319e593943a3";
+export const USDC = "0x480209747417f5c830fda188a9b9acfa70bc4083";
+export const OTHER_ASSET = "0x00000000000000000000000000000000000a55e7";
 export const COLLECTION = "0x00000000000000000000000000000000000000c0";
 /** The recorded Testnet deployment, so the command-class tests, which run on the defaults, agree with the runners' fixtures. */
 export const TAB_SETTLEMENT = TESTNET_DEFAULTS.tabSettlement;

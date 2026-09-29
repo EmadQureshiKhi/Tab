@@ -1,20 +1,20 @@
 /**
  * What the plugin assumes when the environment says nothing.
  *
- * The addresses are the Monad Testnet deployment recorded in the repository's
- * `deployments.json`, copied here because a published package cannot read a
- * file two directories above its own root. `test/defaults.test.mjs` compares
- * these constants against that file whenever it is present, so the copy cannot
- * drift inside the workspace without a test saying so.
+ * The addresses are the Monad Testnet and Mainnet deployments recorded in the
+ * repository's `deployments.json`, copied here because a published package
+ * cannot read a file two directories above its own root. `test/settings.test.mjs`
+ * compares these constants against that file whenever it is present, holding
+ * each network's copy to its own entry, so neither can drift inside the
+ * workspace without a test saying so.
  *
- * Both networks are recorded there, so both carry defaults, and the same test
- * holds each copy to its own entry. Testnet stays the default chain because it
- * is where nothing is real; Mainnet is one `MONAD_CHAIN_ID=143` away.
+ * Testnet stays the default chain because it is where nothing is real; Mainnet
+ * is one `MONAD_CHAIN_ID=143` away.
  */
 
 import type { Address } from "@tabai/sdk";
 
-/** Monad Testnet, the chain the recorded deployment is on. */
+/** Monad Testnet, the default chain. */
 export const DEFAULT_CHAIN_ID = 10143;
 
 /** Monad Mainnet, accepted when named, defaulted to nothing. */
