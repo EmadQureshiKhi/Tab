@@ -9,7 +9,7 @@
 # Tab: Post-Paid Billing and a Credit Facility for Autonomous Agents on Monad
 
 **Emad Qureshi**
-Version 2.0 · September 2026 · Monad Testnet, chain id 10143
+September 2026 · Monad Mainnet (chain id 143) and Monad Testnet (chain id 10143)
 
 ---
 
@@ -23,10 +23,10 @@ Wherever the payment and the ledger have lived in different places, that party h
 On Monad the payment and the ledger entry can be one state change: an EIP-20 transfer and a contract call compose in a single transaction that is final in under a second, so a contract can move an Asset and record that it moved with nobody in between.
 This paper describes **Tab**, a system built on that fact.
 A Service meters usage into an Open Tab held in `TabBook`.
-The Agent settles that Tab in USDC, with keys nobody else holds, by calling `TabSettlement.settle`, and the same transaction moves the Asset to the Service and applies the Settlement to the tab, or reverts as a whole.
+The Agent settles that Tab in USDC or AUSD, with keys nobody else holds, by calling `TabSettlement.settle`, and the same transaction moves the Asset to the Service and applies the Settlement to the tab, or reverts as a whole.
 The resulting Credit Limit is a pure function of the Settlements the chain itself applied, bounded above by capital the counterparties have escrowed.
 There is no price feed, no rate, and no oracle anywhere in the system, and there is no party permitted to say that money arrived.
-Tab is deployed on Monad Testnet, and every address, transaction hash, and figure in this paper is checkable from the repository with an RPC endpoint and no private key.
+Tab is deployed on Monad Mainnet and Monad Testnet and hosted end to end, and every address, transaction hash, and figure in this paper is checkable from the repository with an RPC endpoint and no private key.
 
 ---
 
@@ -39,7 +39,7 @@ Tab is deployed on Monad Testnet, and every address, transaction hash, and figur
 5. [Protocol mechanics](#5-protocol-mechanics)
 6. [The credit model](#6-the-credit-model)
 7. [Security analysis](#7-security-analysis)
-8. [What runs on Monad Testnet](#8-what-runs-on-monad-testnet)
+8. [What runs on Monad](#8-what-runs-on-monad)
 9. [Boundaries](#9-boundaries)
 10. [Related work](#10-related-work)
 11. [Roadmap](#11-roadmap)
@@ -154,11 +154,12 @@ Nothing in `TabBook`, `Bond` or `TabSettlement` is owned, pausable, or upgradeab
 | Component | Responsibility | What it cannot do |
 | --- | --- | --- |
 | Registry indexer and read API | Index every event and serve reads, including a Credit Limit only where its own recomputation agrees with `TabBook.creditLimit` at the same block | Change any figure it serves, or feed any figure into a contract |
-| Metering gateway | The Service side: rebuild the Agent's witness from `HistoryExtended` logs, check the fold against `TabBook.historyCommitment`, simulate `recordDelivery`, then broadcast | Charge outside the Agent's own authorisation, or lower a tab |
+| Metering gateway | The Service side: rebuild the Agent's witness from `HistoryExtended` logs, check the fold against `TabBook.historyCommitment`, simulate `recordDelivery`, then broadcast. It also offers x402 on a credit refusal, fronts the API Hub and Nansen on credit, and relays Permit2 Settlements | Charge outside the Agent's own authorisation, lower a tab, or move an Agent's funds |
+| Delinquency keeper | Find tabs past their Settlement Window, confirm each on chain, and submit the permissionless `markDelinquent`; a Chainlink CRE workflow is its scheduler | Anything `markDelinquent` does not already permit to anyone |
 | SDK | Strategies, the 402 client, server plugins, the MCP server and the CLI | Hold a key it was not handed, or persist one |
 | Dashboard | Keyless reads of every Service, Agent, Settlement and overdue tab; a wallet only to sign `authorise`, `registerService`, or the allowance and deposit that fund a Bond | Anything the connected wallet did not sign |
 
-The gateway is the component most systems would make trusted, and it is not: every metering request it accepts must carry the Service operator's own signature over the Agent, the tool and the unit count, so the gateway is the operator's key and no more.
+The gateway is the component most systems would make trusted, and it is not: every metering request it accepts must carry a signature over the Agent, the tool and the unit count, from the Service operator or from the Agent itself, so the gateway is the operator's key and no more.
 Its liveness affects whether a Service gets paid for a delivery, and the correctness of any tab or limit not at all.
 
 ### 4.3 Client surface
@@ -170,6 +171,29 @@ The four tools are the whole agent-facing interface: `tab_discover`, `tab_call`,
 Three of them are keyless reads, and only `tab_settle` signs, through the same strategy seam a library caller uses.
 **None of them throws.**
 A failure returns `ok: false` with a `category`, a `code` and a `message`, so a language model can decide what to do next rather than parse an exception.
+
+Two more strategies sit beside the direct one: `monad-relayed` signs a Permit2 Settlement and hands it to the gateway to submit, so an Agent needs the Asset and no MON, and a Kuru-funded strategy swaps in a shortfall from another token before settling.
+With nothing configured, the SDK reads the project's hosted registry and knows the hosted demo Service for the chosen network, so a fresh install can discover and call something at once.
+The same four operations are a MetaMask Agent Wallet plugin, `mm tab`, which builds each transaction and hands it to the wallet with a one-sentence intent, so the wallet's own policy decides what is signed.
+
+### 4.4 Around the core: the rest of Monad's agent stack
+
+Tab plugs into the services Monad already offers agents rather than rebuilding them.
+
+| Piece | What Tab does with it |
+| --- | --- |
+| x402 V2, through Monad's facilitator | A credit refusal carries an x402 offer for the same charge, so an Agent out of headroom can prepay that one call; a request that arrives prepaid is verified, settled and delivered without touching the Open Tab |
+| Monad API Hub and Nansen | Fronted on credit: the Service pays the upstream's x402 price with its own key and meters the Agent's Open Tab for that price plus a published margin, so pay-per-request data becomes buy now, pay later |
+| Permit2 | `settleWithPermit2` lets an Agent that holds no MON settle by signature (Section 5.2) |
+| ERC-8004 | Services and Agents hold identities on Monad's Identity Registry; the registry indexes them and serves each identity beside its tab |
+| Envio HyperSync | The indexer's log source for catch-up, so a cold start is not bound by the public RPC's 100-block log window |
+| Chainlink CRE | The scheduler for the delinquency keeper |
+| Mera passkeys | The Dashboard's account: a passkey-derived owner key that is never shown, and session keys an Agent runtime can hold |
+| Agora AUSD | A second Asset beside USDC on Mainnet, and so a second, independent credit line per Agent |
+| Kuru | The swap route for the Kuru-funded settlement strategy |
+
+None of these changes what a Settlement is.
+The Credit Limit is computed only from Settlements applied on chain, and an x402 or Hub payment is prepaid, per request, and outside the credit history.
 
 ---
 
@@ -206,6 +230,11 @@ Inside `_settle`, effects come before interaction.
 A transfer that reverts unwinds the ledger entry with it, and a ledger entry the book refuses stops the transfer from ever starting, so the two are atomic in both directions.
 
 `settleBatch` takes a list of instructions and runs the same path for each, so one transaction can settle several tabs in several Assets, each with its own `settlementId`.
+`settleWithPermit2` is the same Settlement for an Agent that holds no MON.
+The Agent signs a Permit2 `PermitWitnessTransferFrom` whose witness, `TabSettlement(bytes32 serviceId,address asset,uint128 amount,address surface,uint256 chainId)`, binds the Service, the Asset, the amount, this contract and this chain, so the signature can pay nothing else and nowhere else.
+Anyone may submit it; the gateway's `POST /relay/settle` does, paying the gas.
+The ledger entry is applied first and Permit2 then moves the Asset from the Agent to the Collection address, in the same transaction, and a signature that fails verification reverts both.
+
 Because the payment and the record are one transaction there is no second submission to guard against: a Settlement cannot be applied without moving the Asset again, and a plain token transfer to a Collection address is not a Settlement and does not lower a tab.
 
 ### 5.3 What `applySettlement` does
@@ -220,7 +249,7 @@ Given an Agent, a Service, an Asset and an amount, it:
 5. lifts the delinquency mark if the tab is now settled, emitting `TabDelinquencyCleared`;
 6. extends the Agent's history commitment.
 
-Step 2 is why `applySettlement` never fails for want of a debt: a Settlement against a tab with nothing open is the intended way for a new Agent to buy in.
+Step 2 is why `applySettlement` never fails for want of a debt: a Settlement against a tab with nothing open banks prepaid credit, which later deliveries spend before the Open Tab rises.
 
 ### 5.4 The history commitment
 
@@ -391,6 +420,9 @@ The organising fact is that the trusted set contains parties who can admit a cou
 
 There is deliberately no component that can assert a Settlement.
 
+In the demonstration deployments one project address, `0x49472EF9ED99f30d4eaD45Ac9E1C16c31f70783A`, holds several of these roles at once: deployer, operator of `tab.demo` on both networks, the Testnet curation authority, and one of the three Mainnet multisig owners.
+The table bounds what each role can do, and that bound holds whoever holds the role.
+
 ### 7.2 What a malicious Service can do, and what a delinquent Agent costs
 
 A Service operator holds a key that can charge, so the question is how far that reaches.
@@ -438,59 +470,76 @@ Inside the SDK, `Tab-Agent` and `Tab-Authorisation` are treated as claims and ne
 
 ---
 
-## 8. What runs on Monad Testnet
+## 8. What runs on Monad
 
-### 8.1 The deployment
+### 8.1 The deployments
 
-Five contracts were deployed to Monad Testnet on 2026-09-21, starting at block 64486362, by `script/01_Deploy.s.sol`.
-The sequence is `ServiceRegistry` with the curation authority as its only constructor argument, `Bond`, `TabBook` over the two with the credit parameters, `TabSettlement` over the registry and the book, the one-shot `setSettlementSurface`, and `MockUsdc`, a mintable six-decimal test token shipped to Testnet only.
-The recorded parameters are a `BASELINE` of `5000000` base units, which is 5.00 of a six-decimal Asset, and a `GROWTH_FACTOR_BPS` of `5000`.
-On Testnet the curation authority is the deploying account, and the addresses are in Appendix A with every transaction hash in `deployments.json`.
+Tab is deployed on both Monad networks by the same scripts, with an address change and no code change; `deployments.json` records one entry per chain id and `MONAD_CHAIN_ID` selects which one a process serves.
+
+On **Monad Mainnet** (chain id 143) the sequence begins at block 107094526 with a 2-of-3 `CurationMultisig`, deployed first because `ServiceRegistry` takes its curation authority as a constructor argument with no setter.
+Then come `ServiceRegistry`, `Bond`, `TabBook` over the two with the credit parameters, `TabSettlement` over the registry and the book, and the one-shot `setSettlementSurface`.
+No token is shipped: the Assets are the canonical USDC and AUSD.
+The demonstration Service `tab.demo` is registered, bonded with 1 USDC, accepts both Assets, and prices `quote.generate` at 0.01 in each, with the two fronted tools priced at one base unit a unit after the registry's 48-hour hold.
+
+On **Monad Testnet** (chain id 10143) the same contracts begin at block 64554587, with the deploying account as curation authority and `MockUsdc`, a mintable six-decimal test token rendered as `mUSDC`, shipped beside Circle's Testnet USDC.
+The demonstration Service is bonded with 50 mUSDC and 20 USDC.
+
+Both deployments record a `BASELINE` of `5000000` base units, 5.00 of a six-decimal Asset, and a `GROWTH_FACTOR_BPS` of `5000`.
+The addresses are in Appendix A and every transaction hash is in `deployments.json`.
+
+The off-chain rail is hosted for both networks: a registry and a metering gateway per network, each registry indexing through HyperSync into its own database, and one Dashboard that serves either network, chosen by the reader.
 
 ### 8.2 The test suite
 
-`forge test` in `packages/contracts` runs 128 tests across 9 suites, all passing:
+`forge test` in `packages/contracts` runs 165 tests across 11 suites, all passing:
 
 | Suite | Tests | What it covers |
 | --- | --- | --- |
-| `TabBook.t.sol` | 44 | Authorisation, the ordered checks in `recordDelivery`, prepaid consumption, `applySettlement`, the history fold, witness refusal, delinquency and its exact boundary, batching |
+| `TabBook.t.sol` | 44 | Authorisation, the ordered checks in `recordDelivery`, prepaid consumption, `applySettlement`, the history fold, witness refusal, delinquency and its exact boundary |
 | `LimitLib.t.sol` | 21 | Worked examples on every bound, the filters, the age ramp, monotone append, burst versus spread, and the 512 and 32 limits |
 | `CurationMultisig.t.sol` | 16 | Proposal, confirmation, revocation, threshold, and execution |
+| `MockUsdc.t.sol` | 16 | The test token, including EIP-3009 under the same EIP-712 domain as Circle's USDC |
+| `TabSettlement.t.sol` | 15 | `settle`, `settleBatch` and `settleWithPermit2` against Permit2's canonical bytecode, and the unwinding of a failed transfer |
 | `ServiceRegistryTimelock.t.sol` | 14 | Queue, apply, cancel, the 48-hour hold, and refusal at queue time |
+| `DeploymentScripts.t.sol` | 11 | The deploy, verify and registration scripts against a local chain |
 | `ServiceRegistryRegistration.t.sol` | 9 | Permissionless registration, prices, Collections, Windows |
 | `Bond.t.sol` | 8 | Deposit, `depositFor`, withdrawal, and `freeOf` |
 | `property/Concentration.t.sol` | 6 | The concentration cap across every share and count |
-| `DeploymentScripts.t.sol` | 5 | The deploy and verify scripts against a local chain |
 | `property/BondInvariant.t.sol` | 5 | Credit strictly under the Bond sum, and zero Bond yielding zero credit |
 
-Six of those are property tests run at 256 fuzz runs each under the default profile, covering the claims the credit model rests on: the limit never exceeds the bond cap, the concentration and bond rules compose, a zero Bond sum yields zero credit for any history, and the escrow balance equals the sum of free stake.
+The property suites run at 256 fuzz runs each under the default profile, covering the claims the credit model rests on: the limit never exceeds the bond cap, the concentration and bond rules compose, a zero Bond sum yields zero credit for any history, and the escrow balance equals the sum of free stake.
+Beside them, 659 tests cover the TypeScript packages: the SDK, the gateway, the registry, the keepers, the plugin and the Dashboard.
 
 ### 8.3 Keyless verification
 
-`script/02_VerifyDeployment.s.sol` is a `view` run that reads every wired slot of the recorded deployment from both ends, so `TabBook` must name the deployed `ServiceRegistry` and `Bond`, `TabSettlement` must name `TabBook`, and `TabBook.settlementSurface` must be `TabSettlement`, and it reverts on the first disagreement.
-It needs no key and no funded account, which is what makes the address table in Appendix A checkable by anyone with an RPC endpoint rather than only by whoever deployed it.
+`script/02_VerifyDeployment.s.sol` is a `view` run that reads every wired slot of a recorded deployment from both ends, so `TabBook` must name the deployed `ServiceRegistry` and `Bond`, `TabSettlement` must name `TabBook`, and `TabBook.settlementSurface` must be `TabSettlement`, and it reverts on the first disagreement.
+It passes against both networks, needs no key and no funded account, and is what makes the address tables in Appendix A checkable by anyone with an RPC endpoint.
 
 ### 8.4 Gas, as measured
 
-The figures below come from `forge test --gas-report` under forge 1.7.1, over the suite in Section 8.2, and are gas units rather than a fee in MON.
-They are measured in the test harness rather than read from Testnet transactions, and because the suite exercises reverts the median, not the minimum, is the cost of a call that lands.
+The figures below come from `forge test --gas-report` under forge 1.8.1, over the suite in Section 8.2, and are gas units rather than a fee in MON.
+Because the suite exercises reverts, the median, not the minimum, is the cost of a call that lands.
 
 | Call | Median | Max | Calls in the suite |
 | --- | ---: | ---: | ---: |
-| `TabSettlement.settle` | 285,672 | 363,225 | 29 |
-| `TabSettlement.settleBatch`, two tabs in two Assets | 505,404 | 505,404 | 1 landing call |
-| `TabBook.recordDelivery` | 230,448 | 262,843 | 50 |
-| `TabBook.authorise` | 70,477 | 70,477 | 101 |
+| `TabSettlement.settle` | 285,825 | 363,378 | 29 |
+| `TabSettlement.settleWithPermit2` | 309,583 | 380,565 | 21 |
+| `TabSettlement.settleBatch`, two tabs in two Assets | 506,414 | 506,414 | 1 landing call |
+| `TabBook.recordDelivery` | 230,448 | 262,843 | 59 |
+| `TabBook.authorise` | 70,477 | 70,477 | 147 |
 | `TabBook.markDelinquent` | 71,338 | 71,338 | 13 |
-| `Bond.deposit` | 59,202 | 76,350 | 1,135 |
-| `Bond.withdraw` | 63,455 | 63,489 | 523 |
-| `ServiceRegistry.registerService` | 219,480 | 271,498 | 83 |
-| `ServiceRegistry.queueChange` | 145,466 | 211,410 | 77 |
-| `ServiceRegistry.applyChange` | 47,038 | 69,723 | 65 |
+| `Bond.deposit` | 59,237 | 76,373 | 1,165 |
+| `Bond.withdraw` | 63,498 | 63,534 | 523 |
+| `ServiceRegistry.registerService` | 219,480 | 271,498 | 114 |
+| `ServiceRegistry.queueChange` | 145,466 | 211,410 | 92 |
+| `ServiceRegistry.applyChange` | 47,038 | 69,723 | 80 |
 
-Two figures bound the witness.
-The largest history the library accepts, 512 records, evaluates in 1,157,452 gas in the `LimitLibHarness`, and 32 distinct counterparties evaluate in 172,627; both are external calls carrying the whole witness in calldata, so they are an upper bound on what a `view` read of `TabBook.creditLimit` costs for the same history.
-Deployment costs in the same report are 3,109,831 gas for `TabBook`, 1,878,826 for `ServiceRegistry`, 1,031,785 for `CurationMultisig`, 488,498 for `Bond` and 442,209 for `TabSettlement`.
+One figure bounds the witness.
+The largest history the library accepts, 512 records, evaluates in 1,157,452 gas in the `LimitLibHarness`, an external call carrying the whole witness in calldata, so it is an upper bound on what a `view` read of `TabBook.creditLimit` costs for the same history.
+
+On chain, one property of Monad shapes every write: a transaction is charged its stated gas limit rather than the gas it used.
+A fixed, generous limit is therefore paid in full on every call, so the gateway, the relay and the keeper each estimate a call's gas and add a margin, with a floor and a ceiling, before sending it.
+The Mainnet deployment was charged 1,438,463 gas for `CurationMultisig`, 2,470,092 for `ServiceRegistry`, 641,388 for `Bond`, 4,074,436 for `TabBook` and 1,080,583 for `TabSettlement`, figures that include the deployment tool's own margin over its estimate.
 
 ---
 
@@ -525,7 +574,8 @@ Entering that file is a change to this repository, which is a centralised step i
 
 **Prepaid pay-per-call over HTTP 402.**
 A growing family of schemes, x402 among them, returns `402 Payment Required` and releases the response once a payment or a signed payment intent arrives, typically through a facilitator that verifies and settles on the client's behalf.
-Tab uses the same status code with the opposite semantics: the response has already been delivered, `402` appears only when a future charge would exceed a Credit Limit, and there is no facilitator because the ledger and the payment are one transaction.
+Tab uses the same status code with the opposite semantics: the response has already been delivered, `402` appears only when a future charge would exceed a Credit Limit, and on the credit path there is no facilitator because the ledger and the payment are one transaction.
+Tab uses x402 where it fits, as the prepaid fallback on a refusal and to buy fronted data on the Agent's behalf, through Monad's facilitator; neither enters the credit history (Section 4.4).
 
 **Session keys and scoped spending permissions.**
 A session key delegates a bounded spending right from a wallet to an agent for a period, which solves the custody problem and not the credit problem, because the agent still spends a balance a human funded in advance.
@@ -543,29 +593,16 @@ Tab's substitute is a repayment history the chain itself applied, bounded by cou
 
 ## 11. Roadmap
 
-### 11.1 Monad Mainnet, with USDC and AUSD
-
-Nothing in the rail is pinned to a testnet, and this is now demonstrated rather than asserted.
-The same contracts and the same deployment sequence were run against Monad Mainnet, chain id 143, with an address change and no code change; `deployments.json` records both networks and `MONAD_CHAIN_ID` selects which one a process serves.
-On Mainnet the deploy script ships no token, the Assets are the canonical USDC and AUSD recorded in `deployments.json`, and because a Bond and the credit it unlocks are the same unit, AUSD is a second, independent credit line per Agent with no conversion.
-
-### 11.2 `CurationMultisig` as the authority
-
-On Testnet the curation authority is the deploying account.
-The Mainnet deployment names a `CurationMultisig` in the `ServiceRegistry` constructor instead, deployed first because the authority has no setter and construction is the only moment the choice can be made.
-Its owner set is immutable for the same reason, so the three owners of that deployment are its three owners for as long as it holds the role.
-That they are all held by one project today is a property of who deployed it and not of the contract, and it is recorded as such rather than implied away.
-
-### 11.3 Batch settlement at the tool surface
+### 11.1 Batch settlement at the tool surface
 
 `TabSettlement.settleBatch` and the strategy's `settleBatch` already settle several tabs in one transaction; what remains is to surface that through `tab_settle` and the CLI, so an Agent that owes three Services at the end of a task pays all three with one signature.
 
-### 11.4 Smart-account signers through the strategy seam
+### 11.2 Smart-account signers through the strategy seam
 
 `createMonadStrategy` takes a structural signer, anything that can report an address and send a transaction, rather than a wallet class.
 A smart account with a session-scoped key satisfies the same seam, which would let an Agent settle under a policy its operator set without holding an unrestricted key, and the seam exists so that this is a wiring task rather than a redesign.
 
-### 11.5 An indexer-backed 402 flow
+### 11.3 An indexer-backed 402 flow
 
 Today a `402` carries the required amount and the headroom in `Tab-Charge-*` headers, and the Agent reads its Open Tab and prepaid credit through `tab_status`.
 The registry indexer already holds everything an Agent needs to go from the refusal to the Settlement that lifts it, so the next step is a `402` body that carries it, and a client that settles from the refusal alone.
@@ -581,7 +618,7 @@ What has been missing is a ledger that can see the repayments for itself; every 
 On Monad the transfer and the ledger entry are one transaction, final in under a second, with gas cheap enough to meter every delivery on chain.
 Tab is what that makes buildable: a post-paid billing rail whose repayment history is the chain's own record, whose credit ceiling is bounded by capital at risk, and which contains no price feed, no oracle, and no party permitted to say that money arrived.
 
-It is deployed, its suite passes, and every claim in this paper is checkable without a key.
+It is deployed on Monad Mainnet and Monad Testnet, hosted end to end, its suites pass, and every claim in this paper is checkable without a key.
 
 ---
 
@@ -589,24 +626,34 @@ It is deployed, its suite passes, and every claim in this paper is checkable wit
 
 All addresses were read back off the chain by the keyless verification script and are recorded in `deployments.json`.
 
+### Monad Mainnet, chain id 143
+
+| Contract | Address |
+| --- | --- |
+| `CurationMultisig` (2-of-3) | `0x123c19F46C38d5b4E922D1297250a71A03DFFD17` |
+| `ServiceRegistry` | `0x4F791F13F94944fCB2F884f8C7991cAa583884A6` |
+| `Bond` | `0xbA86C0D053ba88afDECbED8aBa5b2eC3973fb230` |
+| `TabBook` | `0x0Dabf8E52280D0F128f546602a99b6DC4fbb80DC` |
+| `TabSettlement` | `0x32A96bfEABe766B4898b961B333B7B89f079a9a9` |
+
+Deployed from block 107094526.
+The Assets are the canonical USDC at `0x754704Bc059F8C67012fEd69BC8A327a5aafb603` and AUSD at `0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a`.
+RPC `rpc.monad.xyz`, explorer `monadvision.com`.
+
 ### Monad Testnet, chain id 10143
 
 | Contract | Address |
 | --- | --- |
-| `ServiceRegistry` | `0x123c19F46C38d5b4E922D1297250a71A03DFFD17` |
-| `Bond` | `0x4F791F13F94944fCB2F884f8C7991cAa583884A6` |
-| `TabBook` | `0xbA86C0D053ba88afDECbED8aBa5b2eC3973fb230` |
-| `TabSettlement` | `0x0Dabf8E52280D0F128f546602a99b6DC4fbb80DC` |
-| `MockUsdc` | `0x5d519A1E8cF4Edd7067FD631047E6869E9a7e4fE` |
+| `ServiceRegistry` | `0x3638DB35A76E5a22EA1E827636dA994be622c139` |
+| `Bond` | `0x29aDfD90Fc7c9026563Fc60651f696ab089080E7` |
+| `TabBook` | `0x87571030cCe27C84836bAfF85288eB1d85d908a4` |
+| `TabSettlement` | `0x654Fac48185e4B71779eEc2457B1F24aEdf46717` |
+| `MockUsdc` | `0x480209747417f5c830fDA188a9b9AcFa70Bc4083` |
 
-Deployed at block 64486362 on 2026-09-21; `LimitLib` is a pure library, linked at compile time, and holds no address of its own.
-The curation authority on Testnet is the deploying account, `0x49472EF9ED99f30d4eaD45Ac9E1C16c31f70783A`.
+Deployed from block 64554587.
+The curation authority on Testnet is the deploying account, `0x49472EF9ED99f30d4eaD45Ac9E1C16c31f70783A`, and Circle's Testnet USDC is `0x534b2f3A21130d7a60830c2Df862319e593943A3`.
+`LimitLib` is a pure library, linked at compile time, and holds no address of its own.
 RPC `testnet-rpc.monad.xyz`, explorer `testnet.monadvision.com`.
-
-### Monad Mainnet, chain id 143
-
-No Tab contract is deployed yet.
-The Assets a Mainnet deployment settles in are the canonical USDC at `0x754704Bc059F8C67012fEd69BC8A327a5aafb603` and AUSD at `0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a`.
 
 ---
 
@@ -617,14 +664,20 @@ No private key, no funded account, no write.
 
 ```bash
 pnpm install
-pnpm env:bootstrap        # writes .env from .env.example plus the recorded addresses
+pnpm env:bootstrap        # writes .env from .env.example plus the recorded Testnet addresses
 
-# the whole deployment, read back from both ends of every wired slot
+# the whole Testnet deployment, read back from both ends of every wired slot
 cd packages/contracts && set -a && source ../../.env && set +a
 forge script script/02_VerifyDeployment.s.sol:VerifyDeployment --rpc-url monad_testnet --sig "run()"
 cd ../..
 
-# 128 contract tests, including the property tests; add --gas-report for Section 8.4
+# the same for Mainnet: print its environment, load it, verify against --rpc-url monad
+node scripts/env-bootstrap.mjs --print --chain 143 > .env.verify-mainnet
+cd packages/contracts && set -a && source ../../.env.verify-mainnet && set +a
+forge script script/02_VerifyDeployment.s.sol:VerifyDeployment --rpc-url monad --sig "run()"
+cd ../..
+
+# 165 contract tests, including the property tests; add --gas-report for Section 8.4
 pnpm --filter @tabai/contracts test
 
 # the whole workspace
