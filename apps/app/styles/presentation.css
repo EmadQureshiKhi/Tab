@@ -95,6 +95,21 @@
   --color-slate-700: #334155;
   --color-blue-400: #60a5fa;
   --color-blue-600: #2563eb;
+  /*
+   * The example cards' output-kind chips on Browse: a tinted fill at 15% and a
+   * readable text step per theme. They name a kind of output and carry no meaning
+   * about money, so they may use hues the settlement tokens do not.
+   */
+  --color-purple-400: #c084fc;
+  --color-purple-500: #a855f7;
+  --color-purple-600: #9333ea;
+  --color-rose-400: #fb7185;
+  --color-rose-500: #f43f5e;
+  --color-rose-600: #e11d48;
+  --color-blue-500: #3b82f6;
+  --color-emerald-400: #34d399;
+  --color-emerald-500: #10b981;
+  --color-emerald-600: #059669;
   --color-white: #ffffff;
   --color-black: #000000;
   --color-transparent: transparent;

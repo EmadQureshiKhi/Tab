@@ -31,6 +31,7 @@
 import type { HubFetch } from "@tabai/sdk/hub";
 
 import { CatalogueView } from "./_catalogue";
+import { SHOWCASE } from "../../src/dashboard/showcase";
 import { EmptyChain } from "../../components/views/empty-chain";
 import { toCatalogue, type PublishedService } from "../../src/dashboard/catalogue";
 import { toHubEntries, type HubManifestOutcome } from "../../src/dashboard/hub";
@@ -128,6 +129,7 @@ export default async function BrowsePage() {
           }))}
           hub={hub.entries}
           hubNotes={hub.notes}
+          showcase={SHOWCASE}
           indexedBlock={services.value.index.lastBlock}
           networkName={context.network.name}
           networkKind={context.network.network}

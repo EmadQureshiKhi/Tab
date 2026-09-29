@@ -59,6 +59,7 @@ import {
 import { offersX402, parsePublishedDirectory, publishedOn, toCatalogue } from "../src/dashboard/catalogue";
 import { readCurationAuthority } from "../src/dashboard/curation";
 import { hubRecipeFor, toHubEntries, withMargin, type HubEndpointInput } from "../src/dashboard/hub";
+import { CATEGORY_TINT, SHOWCASE, providerLogo } from "../src/dashboard/showcase";
 import { parseLimit, serveSettlements } from "../src/dashboard/api-settlements";
 import { NetworkSwitchView } from "../components/shell/network-switch";
 import { LabelsStrip } from "../components/custom-ui/labels-strip";
@@ -952,4 +953,36 @@ test("the curation authority is read for what it is, and a refusal is not an ans
   assert.equal(short.kind, "unreadable");
 
   assert.equal((await readCurationAuthority(reader({}), "not-an-address", 1)).kind, "unreadable");
+});
+
+// ---------------------------------------------------------------- Browse examples
+
+test("every Browse example has a unique key, a provider mark on disk and a declared tint", () => {
+  const keys = new Set(SHOWCASE.map((entry) => entry.key));
+  assert.equal(keys.size, SHOWCASE.length, "example keys are unique");
+  const presentation = readFileSync(join(APP_ROOT, "styles", "presentation.css"), "utf8");
+  for (const entry of SHOWCASE) {
+    const mark = providerLogo(entry.tool);
+    assert.notEqual(mark, "/logo.png", `${entry.tool} has its provider's own mark`);
+    assert.ok(readFileSync(join(APP_ROOT, "public", mark)).length > 0, `${mark} exists`);
+    const tint = CATEGORY_TINT[entry.category];
+    assert.ok(tint !== undefined, `${entry.category} has a tint`);
+    // The theme clears Tailwind's palette, so a shade that is not declared compiles to nothing.
+    for (const [, hue, step] of tint.matchAll(/(?:bg|text)-([a-z]+)-(\d{3})/g)) {
+      assert.match(presentation, new RegExp(`--color-${hue}-${step}:`), `--color-${hue}-${step} is declared`);
+    }
+  }
+});
+
+test("a provider mark is drawn in a colour that shows on the light disc behind it", () => {
+  for (const mark of new Set(SHOWCASE.map((entry) => providerLogo(entry.tool)))) {
+    const svg = readFileSync(join(APP_ROOT, "public", mark), "utf8");
+    const fills = [...svg.matchAll(/fill="([^"]+)"/g)].map(([, fill]) => fill.toLowerCase());
+    const visible = fills.length === 0 || fills.some((fill) => !["white", "#fff", "#ffffff", "none"].includes(fill));
+    assert.ok(visible, `${mark} is not drawn only in white or nothing`);
+  }
+});
+
+test("an example from a provider with no mark of its own is drawn with Tab's", () => {
+  assert.equal(providerLogo("someone-new/model"), "/logo.png");
 });
