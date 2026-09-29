@@ -1,0 +1,15 @@
+# Nothing local reaches an image: no secrets, no build output, no dependencies.
+# Each image installs from the lockfile and builds from source.
+.env
+.env.*
+!.env.example
+.vocabulary-denylist
+**/node_modules
+**/dist
+**/.next
+**/.turbo
+**/*.tsbuildinfo
+packages/contracts/broadcast
+packages/contracts/cache
+packages/contracts/out
+.git
