@@ -91,7 +91,7 @@ Because the payment and the record are one transaction, there is no second submi
 ## Network-exposed services
 
 The registry read API and the Dashboard's read routes under `/api` are unauthenticated by decision, because every field they serve restates a public chain fact or the process's own liveness; a rate limit at the deployment's edge is what they owe.
-The Dashboard's `/api/try` is the one that spends: it signs a metered call for the site's demonstration Agent with the operator key, so it reaches only the endpoints this repository publishes, never a URL the request names, and on Mainnet it is rate-limited per address and per day.
+The Dashboard's `/api/try` is the one that spends: it signs a metered call for the site's demonstration Agent with the operator key, so it reaches only the endpoints this repository publishes, never a URL the request names, and on Mainnet it is rate-limited per IP address per minute and in total per day.
 The gateway's metering endpoint is different: it must authenticate the caller by signature, the Service operator's or the Agent's own, and identify the Agent by the `Tab-Agent` header, because an unauthenticated metering endpoint would let anyone charge any Agent up to its authorisation ceiling.
 The Agent's signature is recovered against the address it names, so a stranger who knows an Agent's address can put nothing on its tab; the operator's is the Service's own front vouching for a caller it authenticated.
 That authentication is load-bearing and is not deferrable.

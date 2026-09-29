@@ -192,7 +192,8 @@ The key is read at the moment a Settlement is built, and never from this file. `
 | `TAB_BOOK_ADDRESS`, `TAB_SETTLEMENT_ADDRESS`, `SERVICE_REGISTRY_ADDRESS`, `BOND_ADDRESS` | resolving credit, Services and Bond |
 | `NEXT_PUBLIC_REGISTRY_API_URL` | the Service directory and an agent's history. Defaults to the project's hosted registry for the chosen network |
 | `TAB_HOSTED_DEFAULTS` | `off` stops the hosted registry and demo Service from filling in what you did not configure |
-| `AGENT_PRIVATE_KEY` | broadcasting a Settlement, signing a Permit2 witness, or paying an x402 offer, and nothing else. Never written to a configuration file |
+| `AGENT_ADDRESS` | the Agent a metered call lands on, when `tab.config` names none. Public, so `connect` copies it into the MCP stanza |
+| `AGENT_PRIVATE_KEY` | broadcasting a Settlement, signing a Permit2 witness, paying an x402 offer, or signing a call to the hosted demo Service, and nothing else. Never written to a configuration file |
 
 ---
 
@@ -318,7 +319,7 @@ The price is known only after the upstream's `402`, so `pricing` is a book the f
 services: [{ serviceId, endpoint, hub: { provider: "defillama", prefix: "apihub" } }]
 ```
 
-The reference metering gateway mounts both: `GATEWAY_HUB_UPSTREAMS` names the upstreams, `X402_ENABLED` and `X402_FACILITATOR_URL` govern the offer on a `402`, and `GATEWAY_COLLECTION_ADDRESS` is the `payTo` fallback when `ServiceRegistry.collectionOf` cannot be read.
+The metering gateway in this repository mounts both: `GATEWAY_HUB_UPSTREAMS` names the upstreams, `X402_ENABLED` and `X402_FACILITATOR_URL` govern the offer on a `402`, and `GATEWAY_COLLECTION_ADDRESS` is the `payTo` fallback when `ServiceRegistry.collectionOf` cannot be read.
 
 **What is official and what is not.** The types, the three header codecs and the facilitator HTTP client are `@x402/core`, the reference implementation. The EIP-3009 signing is this package's own, over ethers rather than the reference client's viem, and it is checked two ways: every test recovers the signer with `verifyTypedData`, and the reference client was run over the same authorization while this was written, producing the same signature byte for byte. The request handling is this package's own because the reference server middleware gates every request on payment, which is the model Tab exists to replace.
 
@@ -402,7 +403,8 @@ Live on Monad Mainnet and Monad Testnet.
 | Registry read API | `https://registry-mainnet-production.up.railway.app` | `https://registry-testnet-production.up.railway.app` |
 | Demo Service `tab.demo` | `https://gateway-mainnet-production.up.railway.app` | `https://gateway-testnet-production-a657.up.railway.app` |
 
-**With nothing configured, this package uses them.** `tab_discover` and `tab_status` read the hosted registry for the chosen network, and `tab_call` can reach the demo Service, so a fresh `npx -y @tabai/sdk connect` works before you set anything.
+**With nothing configured, this package uses them.** `tab_discover` and `tab_status` read the hosted registry for the chosen network, so a fresh `npx -y @tabai/sdk connect` works before you set anything.
+The hosted gateways meter only a signed call, so `tab_call` to the demo Service needs `AGENT_ADDRESS` and `AGENT_PRIVATE_KEY` in the environment, and then signs each call with the Agent's own key.
 Anything you configure wins, and `TAB_HOSTED_DEFAULTS=off` switches the defaults off entirely.
 They are exported as `TAB_HOSTED`.
 

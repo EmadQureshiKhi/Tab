@@ -109,7 +109,7 @@ The other four ask the host for `wallet-read` or `wallet-submit`, and the host a
 **`tab call` needs a Service that accepts unsigned metered calls.**
 A metered request must be signed by the Service operator or by the Agent itself, and this CLI exposes no message signing to a plugin, so neither signature is available here: `wallet-read` is the address and `wallet-submit` is a transaction.
 A Service that requires one answers `METERING_SIGNATURE_ABSENT` and the command prints that refusal with the Service's own words.
-The reference gateway's `GATEWAY_REQUIRE_SIGNATURE=false` accepts unsigned calls, which is the setting for a gateway on a machine nobody else can reach.
+This repository's gateway, run with `GATEWAY_REQUIRE_SIGNATURE=false`, accepts unsigned calls, which is the setting for a gateway on a machine nobody else can reach.
 The other four commands are unaffected: they read the chain and the registry, and submit through the wallet.
 The hosted `tab.demo` gateways require a metering signature, so this example reaches a self-hosted gateway run with `GATEWAY_REQUIRE_SIGNATURE=false`.
 

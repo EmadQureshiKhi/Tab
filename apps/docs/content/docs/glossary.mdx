@@ -1,0 +1,71 @@
+---
+title: "Glossary"
+description: "Every term these pages use, with what it names."
+---
+
+These pages use one vocabulary, and the terms below have exact meanings.
+Capitalisation is part of a term: a capitalised noun here names a concept with an exact definition, and the same word in lower case is ordinary English.
+
+## The chain
+
+| Term | What it names |
+| --- | --- |
+| **Monad** | the chain Tab's contracts run on |
+| **Monad Testnet** | chain id 10143, where the Assets are Circle's Testnet USDC and `mUSDC`, and trying Tab costs nothing |
+| **Monad Mainnet** | chain id 143, where the Assets are the canonical USDC and AUSD |
+| **MON** | the gas token. Tab charges no fee in it and holds none |
+| **chain id** | the number a deployment is scoped to |
+| **base units** | the integer denomination every amount is written in. A price, a Bond, a tab and a Settlement are all counts of base units of one Asset, and nothing anywhere takes a decimal |
+| **mUSDC** | the mintable mock token deployed to Testnet. Its own `symbol()` says `USDC`; Tab shows it as `mUSDC` so it is never confused with Circle's |
+| **Permit2** | Uniswap's Permit2 at its canonical address, which a gasless Settlement is signed against |
+| **x402** | the prepaid pay-per-request protocol. An x402 payment is never a Settlement |
+| **the Hub** | the Monad API Hub, whose paid endpoints a Service can front on credit |
+| **ERC-8004** | the agent identity standard. An **identity** is the registered agent, never a credential |
+
+## The product
+
+| Term | What it names |
+| --- | --- |
+| **Tab** | the product: contracts, settlement surface, services and client tooling together |
+| **tab** | one accounting record, per Agent, per Service, per Asset |
+| **Open Tab** | the unsettled balance of a tab, in a single Asset |
+| **prepaid credit** | the part of a tab settled ahead of any delivery, spent before the Open Tab is raised again |
+| **Agent** | an autonomous client holding its own Monad key |
+| **Service** | a metered provider registered with Collection addresses, prices, a Settlement Window and a Bond |
+| **Asset** | an ERC-20 token on the deployment's chain used for Settlement |
+| **Collection address** | the address, one per Service and Asset, that `TabSettlement` transfers Settlements to |
+| **delivery** | a `TabBook` record attributing a priced unit of work to an Agent |
+| **Settlement** | one payment through `TabSettlement`, by `settle`, `settleBatch` or `settleWithPermit2`, that moved an Asset to a Collection address and was applied to a tab in the same transaction |
+| **`settlementId`** | the identifier `TabBook` assigns to one Settlement |
+| **Settlement Window** | the time a tab may stay open, from its oldest unsettled delivery, before anyone may mark it delinquent |
+| **Credit Limit** | the maximum aggregate Open Tab, per Asset, that an Agent may hold |
+| **headroom** | the Credit Limit less the Open Tab, which is what the next delivery may raise the tab by |
+| **Bond** | Asset-denominated stake a Service escrows in the `Bond` contract |
+| **free Bond** | staked minus withdrawn, which is the figure the Credit Limit reads |
+| **witness** | the ordered Settlement history and the counterparty Bond entries a caller supplies so the limit can be computed without a storage read |
+| **authorisation** | the ceiling an Agent sets on what one Service may meter to one tab, and until when |
+| **delinquent tab** | an Open Tab that passed its Settlement Window unsettled and was marked |
+| **`markDelinquent`** | the permissionless call that marks one |
+| **Curated tier** | the Services whose Settlement history contributes to Credit Limit computation |
+| **Permissionless tier** | Services that may meter usage but contribute zero weight to credit |
+
+## The components
+
+| Term | What it names |
+| --- | --- |
+| **`ServiceRegistry`** | who may meter, prices, Collection addresses, Settlement Windows and tiers, every change behind a 48-hour timelock |
+| **`Bond`** | the escrow Services stake into and withdraw from |
+| **`TabBook`** | the ledger of tabs, authorisations, Settlements and the history commitment |
+| **`TabSettlement`** | the one way a tab is paid. Holds nothing |
+| **`LimitLib`** | the pure credit arithmetic |
+| **`CurationMultisig`** | the m-of-n contract that holds the curation role, 2-of-3 on Mainnet |
+| **registry read API** | the indexer that serves Services, Agents, Settlements and deliveries, and a Credit Limit only where its cross-check agrees |
+| **metering gateway** | the Service-side process that meters through the SDK's plugin, offers x402 on a refusal, fronts upstreams and relays gasless Settlements |
+| **relay** | `POST /relay/settle` on the gateway, which submits a Permit2 Settlement the Agent signed and pays its gas |
+| **keeper** | the process that marks overdue tabs delinquent; the **CRE workflow** is its schedule |
+| **passkey account** | one passkey and the owner and session keys derived from it on the Dashboard's `/keys` |
+| **Agent Wallet plugin** | `mm tab`, the MetaMask Agent Wallet commands |
+| **Dashboard** | the web application presenting credit, registry, settlement and analytics views |
+| **SDK** | the published TypeScript package, `@tabai/sdk` |
+| **CLI** | the SDK's command-line entry point, `tab` |
+| **MCP Server** | the Model Context Protocol server exposing Tab to MCP clients |

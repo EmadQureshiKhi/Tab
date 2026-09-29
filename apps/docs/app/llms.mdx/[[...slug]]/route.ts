@@ -23,7 +23,8 @@ export async function GET(
   const page = source.getPage(slug);
   if (page === undefined) notFound();
 
-  const content = await page.data.getText("raw");
+  // The raw source opens with its YAML frontmatter, which the title line replaces.
+  const content = (await page.data.getText("raw")).replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n+/, "");
   return new Response(`# ${page.data.title}\n\n${content}`, {
     headers: { "Content-Type": "text/markdown; charset=utf-8" },
   });

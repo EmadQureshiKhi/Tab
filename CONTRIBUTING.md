@@ -24,7 +24,6 @@ Pinned dependencies, asserted exactly in CI:
 ```bash
 pnpm install
 pnpm env:bootstrap        # .env from .env.example, with the recorded addresses filled in
-pnpm hooks:install        # git config core.hooksPath .githooks
 ```
 
 **Nothing loads `.env` for you.**

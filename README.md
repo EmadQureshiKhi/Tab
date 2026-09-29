@@ -42,7 +42,7 @@ Built by **Emad Qureshi**.
 | Registry read API | Mainnet `https://registry-mainnet-production.up.railway.app`, Testnet `https://registry-testnet-production.up.railway.app` |
 | Metering gateway (demo Service `tab.demo`) | Mainnet `https://gateway-mainnet-production.up.railway.app`, Testnet `https://gateway-testnet-production-a657.up.railway.app` |
 
-Testnet is the free playground: its demo Service prices in a mintable test token.
+Testnet is the free playground: its demo Service prices in a mintable test token and in Circle's Testnet USDC.
 On Mainnet the Assets are real USDC and AUSD, so the Dashboard rate-limits Mainnet trial calls, each of which spends real gas.
 
 ---
@@ -79,7 +79,7 @@ The registry read API and the Dashboard describe what the chain did; they cannot
 ## Credit, and what bounds it
 
 A Credit Limit is a pure function of the Settlements the chain already applied.
-`LimitLib` reads no external state at all: it is fuzzed as a pure function, and every bound below is a named constant in the library.
+`LimitLib` reads no external state at all: it is fuzzed as a pure function, and every other bound below is a named constant in the library.
 
 | Bound | Value | What it stops |
 | --- | --- | --- |
@@ -124,7 +124,7 @@ The curation role is held by a 2-of-3 `CurationMultisig` (see [the one privilege
 The demo Service is registered with a 1 USDC Bond and holds ERC-8004 identity `10254`; the demo Agent holds `10255`.
 It accepts USDC and AUSD and prices `quote.generate` at 0.01 in each, plus the two fronted tools `apihub.run` and `nansen.query` at one base unit a unit, all applied on 2026-09-25 after the registry's 48-hour hold.
 The ERC-8004 Identity and Reputation registries on Mainnet are `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` and `0x8004BAa17C55a88189AE136b182e5fdA19dE9b63`.
-Deployment block `107094526`, every transaction hash and the applied change ids are in [`deployments.json`](./deployments.json), under `networks.143`.
+Deployment block `107094526` (the `CurationMultisig` at `107094289`), every transaction hash and the applied change ids are in [`deployments.json`](./deployments.json), under `networks.143`.
 RPC `https://rpc.monad.xyz`, explorer `https://monadvision.com`.
 
 ### Monad Testnet, chain id `10143`
@@ -151,7 +151,7 @@ RPC `https://testnet-rpc.monad.xyz`, explorer `https://testnet.monadvision.com`,
 
 ## On Monad, end to end
 
-Every piece below is in the tree and exercised by tests, and the ones that run as services are live in the hosted deployment.
+Every piece below is in the tree and exercised by tests; the registry, the gateway and the Dashboard are live in the hosted deployment, and the keeper runs locally with its CRE workflow under the CRE simulator.
 
 | Piece | What Tab does with it | Where |
 | --- | --- | --- |
@@ -337,7 +337,7 @@ Contributor detail lives in [`CONTRIBUTING.md`](./CONTRIBUTING.md): the coverage
 | Hosted rail | A registry and a metering gateway per network on Railway, each registry with its own Postgres and Envio HyperSync; the Dashboard and the docs on Vercel |
 | Dashboard | One deployment serving both networks, chosen in the header, with passkey accounts and a rate-limited Try it on Mainnet |
 | Client tooling | `@tabai/sdk` (SDK, CLI, MCP server with four tools) and `@tabai/agent-wallet-plugin` on npm |
-| Tests | 165 contract tests, including property tests, and 659 across the eight TypeScript packages |
+| Tests | 165 contract tests, including property tests, and 679 across the eight TypeScript packages |
 
 Nothing in the rail is pinned to one network: `deployments.json` holds one entry per chain id, `MONAD_CHAIN_ID` selects it, and the same contracts, scripts and services run on both.
 

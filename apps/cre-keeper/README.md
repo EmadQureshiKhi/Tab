@@ -1,7 +1,7 @@
 # @tabai/cre-keeper
 
 **A Chainlink CRE workflow that keeps Tab's delinquency marks flowing.**
-Every ten minutes a cron trigger fires on a Decentralized Oracle Network, the workflow fetches the keeper's `GET /overdue`, decides which tabs to mark, and `POST`s `/tick` with the shared secret so the keeper sends the marks.
+Every ten minutes a cron trigger fires, under the CRE simulator today and on a Decentralized Oracle Network once deployed, and the workflow fetches the keeper's `GET /overdue`, decides which tabs to mark, and `POST`s `/tick` with the shared secret so the keeper sends the marks.
 Every verdict is logged, one line per tab.
 
 This is a standard CRE TypeScript project: `project.yaml` at the root, one workflow in `delinquency/` with its `workflow.yaml`, `main.ts` and `config.json`, and `secrets.yaml` naming the one secret.
@@ -49,7 +49,7 @@ A failed HTTP call, a rejected secret or a malformed answer fails the tick with 
 
 ## Simulate
 
-Install the CRE CLI and Bun, log in once (`cre login`, or set `CRE_API_KEY`), then from this directory:
+Install the CRE CLI and Bun, log in once (`cre login`, or set `CRE_API_KEY`), then:
 
 ```bash
 pnpm install && pnpm --filter @tabai/shared build   # from the repository root, once

@@ -19,7 +19,7 @@ An x402 payment, an identity, a label, a passkey, a swap: each is stated on the 
 | Nansen | Address labels beside an Agent's identity |
 | Mera passkeys | A Dashboard account with no extension and no seed phrase |
 | MetaMask Agent Wallet | `mm tab`, the rail as wallet plugin commands |
-| Chainlink CRE | The schedule the delinquency keeper runs on |
+| Chainlink CRE | The delinquency keeper's schedule, as a CRE workflow that runs under the simulator and is not yet deployed to a DON |
 | Kuru | Settling from a token the tab is not denominated in |
 | Agora AUSD | A first-class Asset on Mainnet |
 
@@ -66,7 +66,7 @@ The SDK's `monad-relayed` strategy signs and posts; `tab_settle` takes it as `st
 ## ERC-8004: who the parties are
 
 Monad's Identity and Reputation registries are at `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` and `0x8004BAa17C55a88189AE136b182e5fdA19dE9b63` on Mainnet, and at `0x8004A818BFB912233c491871b3d84c89A494BD9e` and `0x8004B663056A597Dffe9eCcC1965A193B7388713` on Testnet.
-The demo Service is agent `10254` on Mainnet and `1913` on Testnet, and the demo Agent is `10255` and `1914`, each registered by the third script in the contracts package with a registration file that says what the party does and how it settles.
+The demo Service is agent `10254` on Mainnet and `1913` on Testnet, and the demo Agent is `10255` and `1914`, each registered by the `03_RegisterIdentity` script in the contracts package with a registration file that says what the party does and how it settles.
 
 The registry indexes the Identity Registry's `Transfer`, `Registered`, `URIUpdated` and `MetadataSet` events into one row per agent, reads each agent's registration file and its reputation summary, and serves them: an Agent's page opens with every identity whose owner or wallet is that address, and a Service's row carries its operator's.
 Each section states the block it was read at and the registry it was read from.
@@ -94,6 +94,7 @@ The [Dashboard page](/dashboard#keys-from-a-passkey) walks through it.
 
 `@tabai/agent-wallet-plugin` registers `mm tab` with the MetaMask Agent Wallet CLI.
 It installs from npm with `mm plugins install @tabai/agent-wallet-plugin` and defaults to the recorded deployment on both networks.
+Its wallet-backed commands need `mm login`, and on Testnet only its reads and dry runs work, because the wallet's gas service does not know chain 10143.
 
 | Command | What it does |
 | --- | --- |

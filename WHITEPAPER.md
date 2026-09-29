@@ -173,7 +173,7 @@ Three of them are keyless reads, and only `tab_settle` signs, through the same s
 A failure returns `ok: false` with a `category`, a `code` and a `message`, so a language model can decide what to do next rather than parse an exception.
 
 Two more strategies sit beside the direct one: `monad-relayed` signs a Permit2 Settlement and hands it to the gateway to submit, so an Agent needs the Asset and no MON, and a Kuru-funded strategy swaps in a shortfall from another token before settling.
-With nothing configured, the SDK reads the project's hosted registry and knows the hosted demo Service for the chosen network, so a fresh install can discover and call something at once.
+With nothing configured, the SDK reads the project's hosted registry and knows the hosted demo Service for the chosen network, so a fresh install can discover at once, and with `AGENT_ADDRESS` and `AGENT_PRIVATE_KEY` set it can call as well, signing each metered call with the Agent's own key.
 The same four operations are a MetaMask Agent Wallet plugin, `mm tab`, which builds each transaction and hands it to the wallet with a one-sentence intent, so the wallet's own policy decides what is signed.
 
 ### 4.4 Around the core: the rest of Monad's agent stack
@@ -227,8 +227,8 @@ It is a credit decision, not a demand for payment, and the correct client respon
 The Agent grants `TabSettlement` an EIP-20 allowance for the Asset and calls `settle(serviceId, asset, amount)`.
 Nothing is escrowed, no facilitator is asked, and the Agent needs nobody's permission or cooperation.
 
-Inside `_settle`, effects come before interaction.
-`TabSettlement` reads the Service's Collection address for that Asset from the registry, calls `TabBook.applySettlement`, emits `Settled`, and then executes `transferFrom(agent, collection, amount)` on the Asset.
+Effects come before interaction.
+`_apply` reads the Service's Collection address for that Asset from the registry, calls `TabBook.applySettlement` and emits `Settled`, and only then does `settle` execute `safeTransferFrom(agent, collection, amount)` on the Asset.
 A transfer that reverts unwinds the ledger entry with it, and a ledger entry the book refuses stops the transfer from ever starting, so the two are atomic in both directions.
 
 `settleBatch` takes a list of instructions and runs the same path for each, so one transaction can settle several tabs in several Assets, each with its own `settlementId`.
@@ -467,7 +467,7 @@ The intended holder is `CurationMultisig`: an m-of-n owner set with an immutable
 ### 7.5 Network-exposed services
 
 The registry read API and the Dashboard's routes are unauthenticated by decision, because every field they serve restates a public chain fact.
-The gateway's metering endpoint is different: it must authenticate the Service operator by signature and identify the Agent by the `Tab-Agent` header, because an unauthenticated metering endpoint would let anyone charge any Agent up to its authorisation ceiling.
+The gateway's metering endpoint is different: it must authenticate every call by the Service operator's or the Agent's signature and identify the Agent by the `Tab-Agent` header, because an unauthenticated metering endpoint would let anyone charge any Agent up to its authorisation ceiling.
 Inside the SDK, `Tab-Agent` and `Tab-Authorisation` are treated as claims and never as authentication; `TabBook` derives the authorisation key itself, so a header cannot redirect a charge.
 
 ---
@@ -478,7 +478,7 @@ Inside the SDK, `Tab-Agent` and `Tab-Authorisation` are treated as claims and ne
 
 Tab is deployed on both Monad networks by the same scripts, with an address change and no code change; `deployments.json` records one entry per chain id and `MONAD_CHAIN_ID` selects which one a process serves.
 
-On **Monad Mainnet** (chain id 143) the sequence begins at block 107094526 with a 2-of-3 `CurationMultisig`, deployed first because `ServiceRegistry` takes its curation authority as a constructor argument with no setter.
+On **Monad Mainnet** (chain id 143) the sequence begins at block 107094289 with a 2-of-3 `CurationMultisig`, deployed first because `ServiceRegistry` takes its curation authority as a constructor argument with no setter, and the Tab contracts follow from block 107094526.
 Then come `ServiceRegistry`, `Bond`, `TabBook` over the two with the credit parameters, `TabSettlement` over the registry, the book and Permit2, and the one-shot `setSettlementSurface`.
 No token is shipped: the Assets are the canonical USDC and AUSD.
 The demonstration Service `tab.demo` is registered, bonded with 1 USDC, accepts both Assets, and prices `quote.generate` at 0.01 in each, with the two fronted tools priced at one base unit a unit after the registry's 48-hour hold.
@@ -510,7 +510,7 @@ The off-chain rail is hosted for both networks: a registry and a metering gatewa
 | `property/BondInvariant.t.sol` | 5 | Credit strictly under the Bond sum, and zero Bond yielding zero credit |
 
 The property suites run at 256 fuzz runs each under the default profile, covering the claims the credit model rests on: the limit never exceeds the bond cap, the concentration and bond rules compose, a zero Bond sum yields zero credit for any history, and the escrow balance equals the sum of free stake.
-Beside them, 659 tests cover the TypeScript packages: the SDK, the gateway, the registry, the keepers, the plugin and the Dashboard.
+Beside them, 679 tests cover the TypeScript packages: the SDK, the gateway, the registry, the keepers, the plugin and the Dashboard.
 
 ### 8.3 Keyless verification
 
@@ -536,8 +536,9 @@ Because the suite exercises reverts, the median, not the minimum, is the cost of
 | `ServiceRegistry.queueChange` | 145,466 | 211,410 | 92 |
 | `ServiceRegistry.applyChange` | 47,038 | 69,723 | 80 |
 
-One figure bounds the witness.
-The largest history the library accepts, 512 records, evaluates in 1,157,452 gas in the `LimitLibHarness`, an external call carrying the whole witness in calldata, so it is an upper bound on what a `view` read of `TabBook.creditLimit` costs for the same history.
+Two figures bound the witness.
+The largest history the library accepts, 512 records, evaluates in 1,157,452 gas in the `LimitLibHarness`, and the most counterparties it accepts, 32, evaluate in 172,627.
+Both are external calls carrying the whole witness in calldata, so they are an upper bound on what a `view` read of `TabBook.creditLimit` costs for the same history.
 
 On chain, one property of Monad shapes every write: a transaction is charged its stated gas limit rather than the gas it used.
 A fixed, generous limit is therefore paid in full on every call, so the gateway, the relay and the keeper each estimate a call's gas and add a margin, with a floor and a ceiling, before sending it.
@@ -638,7 +639,7 @@ All addresses were read back off the chain by the keyless verification script an
 | `TabBook` | `0x0Dabf8E52280D0F128f546602a99b6DC4fbb80DC` |
 | `TabSettlement` | `0x32A96bfEABe766B4898b961B333B7B89f079a9a9` |
 
-Deployed from block 107094526.
+Deployed from block 107094526, the `CurationMultisig` first at block 107094289.
 The Assets are the canonical USDC at `0x754704Bc059F8C67012fEd69BC8A327a5aafb603` and AUSD at `0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a`.
 RPC `rpc.monad.xyz`, explorer `monadvision.com`.
 
