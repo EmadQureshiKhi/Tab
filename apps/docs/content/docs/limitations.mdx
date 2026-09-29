@@ -11,7 +11,7 @@ This page is where Tab's are written down, each with the bound that says how far
 ### One chain per deployment
 
 A deployment of Tab lives on one chain, and a Settlement is a transfer on that chain.
-There is no cross-chain settlement: an Agent on Monad pays a Service on Monad, in an Asset on Monad, and nothing in the contracts can observe or accept a payment made anywhere else.
+An Agent on Monad pays a Service on Monad, in an Asset on Monad, and nothing in the contracts can observe or accept a payment made anywhere else.
 That is the bound and it is also the reason the design holds.
 `TabSettlement` can weld the transfer and the ledger entry into one transaction only because both happen on the same ledger, and the moment a payment lived elsewhere something would have to be trusted to report it.
 Mainnet and Testnet are separate deployments, with separate addresses, and a figure read from one says nothing about the other.
@@ -23,6 +23,7 @@ Nothing in Tab reads an Agent's balance, and nothing needs to.
 The Credit Limit is capped at 95 percent of the free Bond the Agent's counterparties have escrowed, so the party at risk when an Agent fails to settle is a Service that chose to carry that Agent, and it is at risk for at most what it staked.
 For a new Agent that means: with no counterparties its limit is zero, authorising a bonded Service lifts it to the bond-capped baseline, and anything above that is earned by settled history.
 An Agent that holds a fortune and has never settled has no credit, because a balance is not a repayment record.
+A Service may withdraw free Bond at any time; the cap falls with it at the next limit read, and open tabs are unaffected.
 
 ### A delinquent tab zeroes credit rather than slashing anyone
 
@@ -73,7 +74,7 @@ The hold guards changes to facts already applied, not the arrival of new ones.
 
 `applySettlement` never fails for want of a debt.
 An amount above the Open Tab, or against a tab that has nothing open, is banked as prepaid credit for that Agent, Service and Asset, and the next delivery spends it before borrowing anything.
-That is the intended way for a new Agent to buy in, and it is also a way to send money to the wrong Service by mistake, because the contract cannot tell the two apart.
+That is the intended way for an Agent to pay ahead, and it is also a way to send money to the wrong Service by mistake, because the contract cannot tell the two apart.
 The bound is that the credit is never lost: it sits on the tab, in the Agent's name, spendable against that Service's tools, and it is visible on the Agent's page.
 There is no refund path in the contracts, so a Settlement to a Service an Agent never intends to use is a prepayment it will not get back through Tab.
 
@@ -120,7 +121,7 @@ A Service that fronts an upstream is choosing to extend credit in that upstream'
 
 ### A gasless Settlement still needs the Asset
 
-`settleWithPermit2` removes the need for MON, not the need for USDC.
+`settleWithPermit2` removes the need for MON, not the need for the Asset.
 The Agent must hold the Asset and must have approved Permit2 on it once, in a transaction that does cost gas, or have had it approved by whoever funded it.
 A relayer pays the gas of the Settlement and can pay nothing else: the witness binds what is paid and to whom, and the relay refuses by name rather than submitting a permit that would revert.
 A relay that is down is an inconvenience and not a loss, because the same signature can be submitted by anyone, the Agent included.

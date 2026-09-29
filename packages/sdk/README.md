@@ -1,6 +1,6 @@
 # @tabai/sdk
 
-**Post-paid billing for autonomous agents on Monad.** Your agent calls a priced tool, gets the result immediately, and settles the bill later with its own keys. No prepayment, no held responses, no API key bought in advance.
+**Post-paid billing for autonomous agents on Monad.** Your agent calls a priced tool, gets the result in the block its charge is recorded in, and settles the bill later with its own keys. No prepayment, no held responses, no API key bought in advance.
 
 This package is three things in one: an **MCP server** exposing four tools to any MCP client, a **CLI**, and a **TypeScript library** for building on the rail directly.
 
@@ -14,7 +14,7 @@ That is the whole setup step. It finds your MCP client's configuration file, bac
 
 ## What is behind it
 
-A Service meters your agent's usage into an **Open Tab** held in `TabBook` on Monad. Your agent settles that tab in USDC on the same chain, whenever it likes, signing with keys nobody else holds.
+A Service meters your agent's usage into an **Open Tab** held in `TabBook` on Monad. Your agent settles that tab in USDC or AUSD on the same chain, whenever it likes, signing with keys nobody else holds.
 
 Settlement is one transaction. `TabSettlement.settle` moves the Asset to the Service's collection address and applies the Settlement to the Open Tab in the same block, atomically. There is no facilitator, no oracle, no bridge and no waiting: the transfer and the credit are the same state change, so nobody has to be trusted to say the money arrived.
 
@@ -56,7 +56,7 @@ Each tool declares a JSON Schema for its input and its output, and validates its
 | `tab_discover` | Lists Services, the assets each accepts, what each tool costs, and the Bond each has staked | nothing, and needs no key |
 | `tab_call` | Calls a metered tool. The charge lands on the Open Tab and is settled later. With an x402 signer configured, a refusal that carries an x402 offer is prepaid instead | nothing at call time, unless it prepays |
 | `tab_status` | Credit limit, Open Tab, prepaid credit and headroom, per asset, with recent Settlements | nothing, and needs no key |
-| `tab_settle` | Pays down an Open Tab by sending a Settlement with the agent's own key | real funds |
+| `tab_settle` | Pays down an Open Tab by sending a Settlement with the agent's own key, or a Permit2 signature through the relay | real funds |
 
 Start with `tab_discover`, because `tab_call` needs a `serviceId` from its list.
 
@@ -98,7 +98,7 @@ The same package is a CLI. Every command reads the chain; one of them writes to 
 | `mcp` | Serves the four tools over MCP. This is what a client launches | nothing |
 | `doctor` | Checks the installation against the live deployment | nothing, and needs no key |
 | `status` | What an agent owes, may still spend, and has settled | nothing, and needs no key |
-| `settle` | Pays down an Open Tab | real funds, and only with `--broadcast` |
+| `settle` | Pays down an Open Tab, with the agent's key or, with `--strategy monad-relayed`, by a Permit2 signature the gateway submits | real funds, and only with `--broadcast` |
 
 `settle` is a dry run unless you ask otherwise. It checks the Service accepts the Asset, quotes the amount, and stops:
 
@@ -192,7 +192,7 @@ The key is read at the moment a Settlement is built, and never from this file. `
 | `TAB_BOOK_ADDRESS`, `TAB_SETTLEMENT_ADDRESS`, `SERVICE_REGISTRY_ADDRESS`, `BOND_ADDRESS` | resolving credit, Services and Bond |
 | `NEXT_PUBLIC_REGISTRY_API_URL` | the Service directory and an agent's history. Defaults to the project's hosted registry for the chosen network |
 | `TAB_HOSTED_DEFAULTS` | `off` stops the hosted registry and demo Service from filling in what you did not configure |
-| `AGENT_PRIVATE_KEY` | broadcasting a Settlement, and nothing else. Never written to a configuration file |
+| `AGENT_PRIVATE_KEY` | broadcasting a Settlement, signing a Permit2 witness, or paying an x402 offer, and nothing else. Never written to a configuration file |
 
 ---
 
@@ -218,6 +218,7 @@ The main surfaces:
 | `createX402FrontedProxy`, `createX402UpstreamPricing` | Buy now, pay later: front an x402 upstream, pay it, and meter the Agent |
 | `fetchHubManifest` | Monad's API Hub manifest, as tools of the Service fronting a provider |
 | `createMonadStrategy`, `createStrategyRegistry` | The Monad payment strategy, and the registry that resolves strategies |
+| `createRelayedMonadStrategy`, `signSettlementPermit` | Gasless settlement: a Permit2 witness the Agent signs and a relay submits |
 | `createKuruFundedStrategy`, `createKuruOnchainRouter` | Settle in any asset: swap the shortfall in through Kuru before the Monad strategy settles |
 | `revertMappingFor` | The single table mapping a contract revert to a category, code, disposition and remedy |
 
@@ -237,7 +238,7 @@ A gateway anyone can reach requires a signature on every metered call, and the A
 
 ### Adding a strategy
 
-A strategy is how an agent pays. On Monad there is exactly one way, `TabSettlement.settle`, and the shipped strategy does that with an `ethers` signer. The seam still exists so that a different signer, a smart account, a session key, or a test double can stand behind the same call without the SDK caring which.
+A strategy is how an agent pays. On Monad a tab is paid through `TabSettlement`, by `settle` with the Agent's key or by `settleWithPermit2` with its signature, and the shipped strategies do one each. The seam exists so that a different signer, a smart account, a session key, or a test double can stand behind the same call without the SDK caring which.
 
 ```ts
 export interface PaymentStrategy {
@@ -388,7 +389,7 @@ Tab is deployed on both Monad networks, and `MONAD_CHAIN_ID` picks which one thi
 Mainnet USDC is `0x754704Bc059F8C67012fEd69BC8A327a5aafb603` and AUSD is `0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a`.
 Testnet USDC is `0x534b2f3A21130d7a60830c2Df862319e593943A3`, from Circle's faucet; MON for gas comes from `https://faucet.monad.xyz`.
 
-A Settlement is final when its block is. **Nothing in an agent's request path waits for anything**: a metered call completes immediately, and headroom is restored in the block the Settlement lands.
+A Settlement is final when its block is. **Nothing in an agent's request path waits for anything**: a metered call returns in the block its charge is recorded in, and headroom is restored in the block the Settlement lands.
 
 ---
 

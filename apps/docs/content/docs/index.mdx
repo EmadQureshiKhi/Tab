@@ -52,8 +52,8 @@ The last sentence is the whole product.
 ## Nobody asserts that money arrived
 
 Every system that bills after the fact has to answer one question: who says the payment happened.
-The usual answers are a payment facilitator, an oracle, a bridge, a relayer, or a signed webhook.
-All five are the same answer wearing different clothes, which is that some party is trusted to make the claim, and that party can lie or be compromised.
+The usual answers are a payment facilitator, an oracle, a bridge, or a signed webhook.
+All four are the same answer wearing different clothes, which is that some party is trusted to make the claim, and that party can lie or be compromised.
 
 Tab does not answer the question, because it does not ask it.
 
@@ -105,7 +105,8 @@ Its inputs are the Agent's ordered Settlement history in one Asset, rebuilt from
 Three consequences shape the design rather than being papered over.
 
 Credit is backed by Service Bonds and never by Agent balances, so no balance of the Agent's is ever read and no balance needs to be.
-An Agent with no counterparties has no Credit Limit; its first Settlement banks prepaid credit and creates the history a limit grows from.
+An Agent with no counterparties has no Credit Limit.
+Authorising a bonded Service starts it at `min(baseline, 95% of that Service's free Bond)`, and settled history with Curated, bonded Services grows it from there.
 A tab that outlives its Settlement Window can be marked delinquent by anyone, and a mark zeroes the Agent's credit in that Asset rather than seizing anything from anyone.
 
 The [boundaries page](/limitations) carries the rest, each with the bound that says how far it reaches.
@@ -114,6 +115,7 @@ The [boundaries page](/limitations) carries the rest, each with the bound that s
 
 Tab is live on Monad Mainnet and on Monad Testnet, as two deployments of the same contracts.
 Each deployment lives on one chain, gas is paid in MON, and every amount anywhere in the system is an integer count of base units.
+Tab is built by Emad Qureshi.
 
 | Surface | Where |
 | --- | --- |

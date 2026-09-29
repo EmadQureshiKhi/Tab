@@ -6,9 +6,11 @@ It lives in its own file so the README stays something a reader can finish.
 ## Prerequisites
 
 - Node `>= 20.10.0`
-- pnpm `9.15.3`, pinned through the root `packageManager` field. Never npm.
+- pnpm `9.15.3`, pinned through the root `packageManager` field.
+  Never npm.
 - Foundry (`forge`, `cast`, `anvil`) for the Solidity work
-- A Monad Testnet RPC endpoint. The public one in `.env.example` is the default, and it caps `eth_getLogs` at 100 blocks per request.
+- A Monad RPC endpoint, Testnet by default.
+  The public one in `.env.example` caps `eth_getLogs` at 100 blocks per request.
 
 Pinned dependencies, asserted exactly in CI:
 
@@ -66,7 +68,7 @@ The contracts carry per-contract line-coverage floors, enforced in CI inside the
 | Money-handling | `TabSettlement`, `TabBook`, `LimitLib`, `Bond` | 90 % of lines |
 | Setters and bookkeeping | `ServiceRegistry`, `CurationMultisig` | 75 % of lines |
 
-The lower tier is a stated trade rather than an oversight: those two are predominantly setters and timelock bookkeeping, so the marginal safety of the last fifteen points does not justify the time.
+The lower tier is a stated trade rather than an oversight: those two are predominantly setters and timelock bookkeeping, so their risk sits in the timelock logic, which the timelock suite exercises directly.
 The reason is recorded in the script itself, so a threshold never travels without it.
 
 ```bash
@@ -109,15 +111,31 @@ Without a server they skip and say so.
 
 ## Traps worth knowing before you spend gas
 
-- **Monad charges the gas limit, not the gas used, and it reports the limit as `gasUsed`.** A delivery sent with a flat 2,000,000 comes back with `gasUsed` of exactly 2,000,000; the same contract's Settlements, sent with an estimate, come back with 319,695. A generous limit is spent rather than reserved, so every write states an estimate plus a margin, floored against the cold-write undercount a warm simulation misses and capped against an estimate gone wrong. The one place this costs is that `gasUsed == gasLimit` no longer distinguishes an exhausted limit from a refusal on a failed transaction, so a failure is read as the cheaper-to-fix of the two.
-- **Monad's public RPC caps `eth_getLogs` at 100 blocks per request.** Chunk every log scan, and narrow on a refusal rather than stepping past the chunk; a skipped chunk is a dropped `HistoryExtended` record and a witness that cannot fold.
-- **`TabBook.setSettlementSurface` is one-shot.** It can be called once, by the deployer, and the deploy script reads the broadcaster with `vm.readCallers()` rather than `msg.sender`.
-- **The witness must fold to `historyCommitment` exactly.** The fold is `keccak256(abi.encode(previousRoot, serviceId, asset, amount, settledAt, firstDeliveryAt, curated, bonded))`. One field out of order compiles, runs, and reverts `HistoryCommitmentMismatch` after the gas is spent.
-- **Bond amounts in a witness are ignored.** `TabBook` replaces every entry with `Bond.freeOf` for the Service's bond account, so a witness only has to name the right `(serviceId, asset)` pairs, each once, and each a genuine counterparty. An authorised Service is a counterparty before any Settlement.
-- **A cold-start Agent has no Credit Limit at all, and that is the rule rather than a fault.** With no history and no authorisation it has no counterparties and a bond cap of zero. Authorising a bonded Service lifts the cap to that Service's free Bond, and the first Settlement creates the history the limit grows from.
-- A registry change id from an `eth_call` preflight is **not** the one the broadcast produces. Take it from the `RegistryChangeQueued` event.
-- **One Service has one operator key, fixed at registration.** There is no operator setter and no `Operator` change kind, so every process of the same Service must hold the same key. A keyless simulation passes with the operator as `from` and the broadcast reverts only after spending gas, so neither cheap check catches a wrong key; `checkOperatorKey` in `apps/gateway/src/witness.ts` refuses at startup and names both addresses.
-- `IServiceRegistry.Service` has no leading `serviceId`. An off-by-one struct read is silent.
+- **Monad charges the gas limit, not the gas used, and it reports the limit as `gasUsed`.**
+  A delivery sent with a flat 2,000,000 comes back with `gasUsed` of exactly 2,000,000; the same contract's Settlements, sent with an estimate, come back with 319,695.
+  A generous limit is spent rather than reserved, so every write states an estimate plus a margin, floored against the cold-write undercount a warm simulation misses and capped against an estimate gone wrong.
+  The one place this costs is that `gasUsed == gasLimit` no longer distinguishes an exhausted limit from a refusal on a failed transaction, so a failure is read as the cheaper-to-fix of the two.
+- **Monad's public RPC caps `eth_getLogs` at 100 blocks per request.**
+  Chunk every log scan, and narrow on a refusal rather than stepping past the chunk; a skipped chunk is a dropped `HistoryExtended` record and a witness that cannot fold.
+- **`TabBook.setSettlementSurface` is one-shot.**
+  It can be called once, by the deployer, and the deploy script reads the broadcaster with `vm.readCallers()` rather than `msg.sender`.
+- **The witness must fold to `historyCommitment` exactly.**
+  The fold is `keccak256(abi.encode(previousRoot, serviceId, asset, amount, settledAt, firstDeliveryAt, curated, bonded))`.
+  One field out of order compiles, runs, and reverts `HistoryCommitmentMismatch` after the gas is spent.
+- **Bond amounts in a witness are ignored.**
+  `TabBook` replaces every entry with `Bond.freeOf` for the Service's bond account, so a witness only has to name the right `(serviceId, asset)` pairs, each once, and each a genuine counterparty.
+  An authorised Service is a counterparty before any Settlement.
+- **A cold-start Agent has no Credit Limit at all, and that is the rule rather than a fault.**
+  With no history and no authorisation it has no counterparties and a bond cap of zero.
+  Authorising a bonded Service makes it a counterparty, so the limit becomes `min(baseline, 95% of that Service's free Bond)`.
+  Growth above the baseline comes from settled history with at least three Curated, bonded Services.
+- A registry change id from an `eth_call` preflight is **not** the one the broadcast produces.
+  Take it from the `RegistryChangeQueued` event.
+- **One Service has one operator key, fixed at registration.**
+  There is no operator setter and no `Operator` change kind, so every process of the same Service must hold the same key.
+  A keyless simulation passes with the operator as `from` and the broadcast reverts only after spending gas, so neither cheap check catches a wrong key; `checkOperatorKey` in `apps/gateway/src/witness.ts` refuses at startup and names both addresses.
+- `IServiceRegistry.Service` has no leading `serviceId`.
+  An off-by-one struct read is silent.
 - A Metered Delivery spends `tab.prepaid` **before** it raises the Open Tab, and the Credit Limit is tested against the shortfall only, because prepaid credit is already paid for and borrows nothing.
 - **A refusal that omits `details.disposition` is delivered anyway.**
   The post-paid plugin reads that field to decide whether a refusal replaces the delivered response.
@@ -130,7 +148,7 @@ Without a server they skip and say so.
 
 ## Commit conventions
 
-A commit message says what changed and why, in prose, and never carries a machine-generated trailer.
+A commit message says what changed and why, in prose.
 
 ## License
 

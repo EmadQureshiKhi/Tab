@@ -61,7 +61,7 @@ Nothing is taken from the Agent beyond that, because nothing of the Agent's was 
 ## Wash-settlement bounding
 
 An Agent and a Service under common control can settle back and forth to manufacture history.
-The Bond invariant makes that unprofitable by construction: the credit unlocked by a history is at most `floor(sum(counterpartyBonds) * 9500 / 10000)`, which is strictly less than the Bonds the counterparties posted.
+The Bond invariant bounds what that buys: the credit unlocked by a history is at most `floor(sum(counterpartyBonds) * 9500 / 10000)`, which is strictly less than the Bonds the counterparties posted.
 To unlock `X` of credit a ring must lock strictly more than `X` in Bonds, in the same Asset, on Services holding the Curated tier.
 Four further terms compound the cost.
 

@@ -6,6 +6,7 @@ Every verdict is logged, one line per tab.
 
 This is a standard CRE TypeScript project: `project.yaml` at the root, one workflow in `delinquency/` with its `workflow.yaml`, `main.ts` and `config.json`, and `secrets.yaml` naming the one secret.
 It runs against `apps/keeper`, which must be reachable from wherever the workflow executes.
+Today it runs under the CRE simulator; `config.production.json` needs a public keeper URL before it can be deployed to a DON.
 
 ## Layout
 
@@ -60,7 +61,8 @@ cre workflow simulate delinquency --target staging-settings --env ../../.env
 The workflow imports `Result` from `@tabai/shared`, which has no dependencies and no Node API and so runs inside the WASM sandbox; Bun resolves it from the workspace's own `node_modules` one level up, which is why the root install comes first.
 
 The simulator compiles `main.ts` to WebAssembly and, since the workflow has one trigger, runs it at once.
-`--env ../../.env` points it at the repository's `.env`, which carries `CRE_KEEPER_SHARED_SECRET` for the simulation and `KEEPER_SHARED_SECRET` for the keeper process. They hold the same value under two names on purpose: the simulator warns when a secret's id and the variable carrying it are spelled the same, because a change to one then looks like a change to the other.
+`--env ../../.env` points it at the repository's `.env`, which carries `CRE_KEEPER_SHARED_SECRET` for the simulation and `KEEPER_SHARED_SECRET` for the keeper process.
+They hold the same value under two names on purpose: the simulator warns when a secret's id and the variable carrying it are spelled the same, because a change to one then looks like a change to the other.
 The simulator also wants `CRE_ETH_PRIVATE_KEY` in that file, a 64-hex key without the `0x` prefix, even for a workflow that writes nothing on chain; any funded-or-not key satisfies it.
 Non-interactively: `cre workflow simulate delinquency --non-interactive --trigger-index 0 --target staging-settings --env ../../.env`.
 
@@ -83,21 +85,25 @@ The simulator needs an account: `cre workflow simulate` refuses with `authentica
 
 Each of these failed the simulation before the workflow ran, and each is worth knowing before writing another one.
 
-**The workflow needs its own `tsconfig.json`, not the workspace's.** The compiler type-checks with the TypeScript that Bun bundles, which is older than the one this repository pins, and it refuses `target: ES2023` and `erasableSyntaxOnly` outright. `delinquency/tsconfig.json` therefore stands alone with the same strictness written out. Both it and `../tsconfig.json` must pass: one is what ships to the DON, the other is what the repository guarantees.
+**The workflow needs its own `tsconfig.json`, not the workspace's.**
+The compiler type-checks with the TypeScript that Bun bundles, which is older than the one this repository pins, and it refuses `target: ES2023` and `erasableSyntaxOnly` outright.
+`delinquency/tsconfig.json` therefore stands alone with the same strictness written out.
+Both it and `../tsconfig.json` must pass: one is what ships to the DON, the other is what the repository guarantees.
 
 **There is no `URL` in the sandbox.**
 A config field validated with `new URL(value)` fails for every value, because the global is simply absent.
 Validation that has to survive the WASM boundary is a pattern, not a parser.
 
-**`z.string().url()` is not the same check in the bundle as it is here.** The bundle resolves its own Zod, and a later major's `url()` rejects a host with no dot, which rejects `http://localhost:8791`, which is the entire staging configuration. `keeperUrl` is matched against a regex for that reason, and the reason is written where the field is.
+**`z.string().url()` is not the same check in the bundle as it is here.**
+The bundle resolves its own Zod, and a later major's `url()` rejects a host with no dot, which rejects `http://localhost:8791`, which is the entire staging configuration.
+`keeperUrl` is matched against a regex for that reason, and the reason is written where the field is.
 
 Beside the simulation: `pnpm --filter @tabai/cre-keeper typecheck` against `@chainlink/cre-sdk@1.22.0`, and `pnpm --filter @tabai/cre-keeper test`, which exercises `overdue.ts`, `keeper-client.ts` and `tick.ts` under Node with fake requesters and fake ports.
 `workflow.ts` and `main.ts` import the SDK's runtime surface, which loads only inside the WASM build, so they are type-checked and simulated rather than unit-tested.
 
 ## Why the chain write goes through the keeper
 
-When this workflow was specified, Monad was not on CRE's chain list.
-It is now: CRE supports Monad Mainnet from CLI v1.29.0 and TypeScript SDK v1.18.0, and Monad Testnet from CLI v1.30.0 and SDK v1.19.0, with `monad-mainnet` and `monad-testnet` as the chain names and `MonadTestnet` among the SDK's chain constants.
+CRE supports Monad Mainnet from CLI v1.29.0 and TypeScript SDK v1.18.0, and Monad Testnet from CLI v1.30.0 and SDK v1.19.0, with `monad-mainnet` and `monad-testnet` as the chain names and `MonadTestnet` among the SDK's chain constants.
 Reads through the EVM client are therefore possible today, and `project.yaml` already lists the Monad RPCs.
 
 The write still goes through the keeper for a different reason.

@@ -99,7 +99,7 @@ It installs from npm with `mm plugins install @tabai/agent-wallet-plugin` and de
 | --- | --- |
 | `mm tab discover` | Services, Assets, prices and Bonds, from the read API |
 | `mm tab status` | An Agent's Open Tab, headroom and Settlements per Asset |
-| `mm tab call` | One metered call, on credit |
+| `mm tab call` | One metered call, on credit, against a Service that accepts unsigned metered calls |
 | `mm tab authorise` | Builds `TabBook.authorise` and hands it to the wallet |
 | `mm tab settle` | Builds the approval where the allowance falls short and `TabSettlement.settle`, and hands each to the wallet in turn |
 
@@ -111,6 +111,7 @@ Every write is handed over with a one-sentence intent, so the wallet's own polic
 A tab whose Settlement Window has closed with the tab still open may be marked delinquent by anyone.
 `apps/keeper` is the process that does it: it takes candidates from the registry's delivery feed, confirms each on chain, and submits `markDelinquent` when asked to broadcast.
 `apps/cre-keeper` is the schedule, a Chainlink CRE workflow with a cron trigger every ten minutes and an HTTP call to the keeper behind a shared secret.
+It compiles to WASM and runs under the CRE simulator; deploying it to a DON needs a public keeper URL.
 The mark is permissionless and the keeper holds no privilege: anyone running the same two processes marks the same tabs.
 
 ## Kuru: settle in any asset

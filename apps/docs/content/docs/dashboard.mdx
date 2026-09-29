@@ -11,7 +11,7 @@ Signing takes a wallet extension or a passkey; the passkey needs nothing install
 
 | Route | What it shows |
 | --- | --- |
-| `/browse` | Every priced tool, what it costs, and a call you can make. After the tools priced on chain, the API Hub endpoints a Service fronts on credit, with the Hub's price and the Tab price side by side |
+| `/browse` | The Services registered on chain: every priced tool, what it costs, and a call you can make. After them, the API Hub endpoints those Services front on credit, each with its provider's mark and the Hub's price and the Tab price side by side |
 | `/explorer` | Every Settlement by its `settlementId`, and the overdue tabs anyone may mark |
 | `/explorer/[settlementId]` | One Settlement: Agent, Service, Asset, amount, what applied to the tab and what banked as prepaid credit, and the Collection address it went to |
 | `/agents` | Every Agent the index has seen, with Open Tab per Asset |
@@ -121,7 +121,7 @@ You sign one transaction that records who operates the Service, which Assets it 
     The sender becomes the operator, and there is no setter afterwards. Whichever account signs is the only one that will ever be able to queue a change, so connect the one you mean to keep.
   </Step>
   <Step n="02" title="Name it and set the window">
-    The name is stored as 31 bytes of ascii, which is why it is short and why this site can show it as a word. The Settlement Window is how long a tab may run before it is delinquent, at most 24 hours and 6 by default.
+    The name is stored as 31 bytes of ASCII, which is why it is short and why this site can show it as a word. The Settlement Window is how long a tab may run before it is delinquent, at most 24 hours and 6 by default.
   </Step>
   <Step n="03" title="Add Assets and tools">
     An Asset is a token on this chain plus the Collection address that receives it. That address is yours: Tab never holds a payment, and `TabSettlement` transfers straight to it. Prices are base units, never decimals.

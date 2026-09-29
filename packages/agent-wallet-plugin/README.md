@@ -68,21 +68,25 @@ Intent: Authorise Service 0x7461622e…0000 to meter up to 5000000 mUSDC base un
 Error: Gas fee/price estimation failed … data: { error: 'Invalid chainId' }
 ```
 
-The same command on chain 143 estimates, builds and submits:
+The same command on chain 143 gets as far as submission:
 
 ```
 Error [SUBMISSION_FAILED]: … Insufficient native balance on 0xc8e3…a3dd:
 have 0 wei, need 4444977000000000 wei (value=0, gas=42495 * feePerGas=104600000000)
 ```
 
-That is the wallet working: it priced the transaction and stopped only because the account holds no MON there. So the wallet-signing half of these commands is demonstrable on Monad Mainnet, and the gap on Testnet is a chain MetaMask's services do not cover yet.
+That is the wallet estimating, building and submitting on chain 143; it stopped only at the account's MON balance.
+So the wallet-signing half of these commands is demonstrable on Monad Mainnet, and the gap on Testnet is a chain MetaMask's services do not cover yet.
 There is nothing to configure around it: the CLI has no add-network command and no RPC override, and the endpoints it uses are resolved from the chain id inside the binary.
 Everything up to the signature is exercised on either chain, and the dry runs print the exact two transactions a broadcast would submit.
 
 ### Why `tab call` cannot sign, in one line of the host's own code
 
-The host hands a plugin a restricted context: `walletExecutor` behind `wallet-submit`, and a set of read services behind `wallet-read`. `walletExecutor` submits **transactions**. Message signing lives on the agent SDK's wallet client, which the CLI reaches for its own `mm wallet sign-message` and which no plugin can reach, so there is no seam through which a plugin signs an arbitrary string.
-That the wallet *can* sign on Monad Testnet is not the question, and it can: `mm wallet sign-message --message … --chain-id 10143 --wait` returns `SIGNED`. A plugin simply is not given the door.
+The host hands a plugin a restricted context: `walletExecutor` behind `wallet-submit`, and a set of read services behind `wallet-read`.
+`walletExecutor` submits **transactions**.
+Message signing lives on the agent SDK's wallet client, which the CLI reaches for its own `mm wallet sign-message` and which no plugin can reach, so there is no seam through which a plugin signs an arbitrary string.
+That the wallet *can* sign on Monad Testnet is not the question, and it can: `mm wallet sign-message --message … --chain-id 10143 --wait` returns `SIGNED`.
+A plugin simply is not given the door.
 
 ## The five commands
 
@@ -99,7 +103,7 @@ That is why the arguments flag on `tab call` is `--args`: `--json` is the host's
 
 Start with `tab discover`, because every other command takes a Service's 32-byte identifier from its list.
 
-`tab discover` needs no wallet and runs as soon as the plugin is linked.
+`tab discover` needs no wallet and runs as soon as the plugin is installed.
 The other four ask the host for `wallet-read` or `wallet-submit`, and the host answers those only for a signed-in account: without one they refuse with `AUTH_FAILED: run mm login to sign in`, which is the CLI's gate and not this plugin's.
 
 **`tab call` needs a Service that accepts unsigned metered calls.**
@@ -107,6 +111,7 @@ A metered request must be signed by the Service operator or by the Agent itself,
 A Service that requires one answers `METERING_SIGNATURE_ABSENT` and the command prints that refusal with the Service's own words.
 The reference gateway's `GATEWAY_REQUIRE_SIGNATURE=false` accepts unsigned calls, which is the setting for a gateway on a machine nobody else can reach.
 The other four commands are unaffected: they read the chain and the registry, and submit through the wallet.
+The hosted `tab.demo` gateways require a metering signature, so this example reaches a self-hosted gateway run with `GATEWAY_REQUIRE_SIGNATURE=false`.
 
 ```bash
 mm tab discover --tier curated
@@ -138,8 +143,8 @@ Without `--broadcast` that plan is the whole result, calldata included, so an ag
     "asset": "10143:0x4802…4083",
     "amountBaseUnits": "47000",
     "allowanceBaseUnits": "0",
-    "approval": { "to": "0x4802…4083", "data": "0x095ea7b3…", "summary": "Approve TabSettlement to move 47000 USDC base units for one Settlement" },
-    "settlement": { "to": "0x654f…6717", "data": "0x…", "summary": "Settle 47000 USDC base units of the Open Tab with Service 0x7461622e…0000" }
+    "approval": { "to": "0x4802…4083", "data": "0x095ea7b3…", "summary": "Approve TabSettlement to move 47000 mUSDC base units for one Settlement" },
+    "settlement": { "to": "0x654f…6717", "data": "0x…", "summary": "Settle 47000 mUSDC base units of the Open Tab with Service 0x7461622e…0000" }
   },
   "note": "Dry run. Nothing was submitted. Add --broadcast to hand these two transactions to the wallet; that spends real funds."
 }

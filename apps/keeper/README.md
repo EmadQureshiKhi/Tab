@@ -71,7 +71,8 @@ A feed that runs past the page bound, a malformed row, or an unreachable node is
 ## Who calls `/tick`
 
 Anything with the secret and a clock.
-`apps/cre-keeper` is a Chainlink CRE workflow that reads `/overdue` every ten minutes, decides which tabs to mark, and posts `/tick` for exactly those, so the decision runs under a DON's consensus and the gas-spending call stays here.
+`apps/cre-keeper` is a Chainlink CRE workflow that reads `/overdue` every ten minutes, decides which tabs to mark, and posts `/tick` for exactly those, so once deployed the decision runs under a DON's consensus and the gas-spending call stays here.
+It runs under the CRE simulator today; deploying it to a DON needs this keeper at a public URL.
 
 ```bash
 pnpm --filter @tabai/keeper test

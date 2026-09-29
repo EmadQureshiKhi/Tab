@@ -155,7 +155,7 @@ Nothing in `TabBook`, `Bond` or `TabSettlement` is owned, pausable, or upgradeab
 | --- | --- | --- |
 | Registry indexer and read API | Index every event and serve reads, including a Credit Limit only where its own recomputation agrees with `TabBook.creditLimit` at the same block | Change any figure it serves, or feed any figure into a contract |
 | Metering gateway | The Service side: rebuild the Agent's witness from `HistoryExtended` logs, check the fold against `TabBook.historyCommitment`, simulate `recordDelivery`, then broadcast. It also offers x402 on a credit refusal, fronts the API Hub and Nansen on credit, and relays Permit2 Settlements | Charge outside the Agent's own authorisation, lower a tab, or move an Agent's funds |
-| Delinquency keeper | Find tabs past their Settlement Window, confirm each on chain, and submit the permissionless `markDelinquent`; a Chainlink CRE workflow is its scheduler | Anything `markDelinquent` does not already permit to anyone |
+| Delinquency keeper | Find tabs past their Settlement Window, confirm each on chain, and submit the permissionless `markDelinquent`; a Chainlink CRE workflow, compiled and run under the CRE simulator, is its scheduler | Anything `markDelinquent` does not already permit to anyone |
 | SDK | Strategies, the 402 client, server plugins, the MCP server and the CLI | Hold a key it was not handed, or persist one |
 | Dashboard | Keyless reads of every Service, Agent, Settlement and overdue tab; a wallet only to sign `authorise`, `registerService`, or the allowance and deposit that fund a Bond | Anything the connected wallet did not sign |
 
@@ -210,9 +210,11 @@ The call runs a fixed sequence, and the order is load-bearing:
 
 1. **Operator check.** The caller must be the operator `ServiceRegistry` recorded for `serviceId`, or the call reverts `NotServiceOperator`.
 2. **Delinquency check.** A tab that has been marked delinquent takes no further deliveries and reverts `TabIsDelinquent`.
-3. **Price check.** The unit price the Agent was quoted travels with the call as `expectedUnitPrice`, and it must equal `ServiceRegistry.priceOf` at that moment, or the call reverts `PriceListChangedMidCall`. A Service cannot quote one number and meter another inside the same call.
+3. **Price check.** The unit price the Agent was quoted travels with the call as `expectedUnitPrice`, and it must equal `ServiceRegistry.priceOf` at that moment, or the call reverts `PriceListChangedMidCall`.
+   A Service cannot quote one number and meter another inside the same call.
 4. **Authorisation consumption.** The charge is added to the authorisation's `spent`, reverting `AuthorisationMissing`, `AuthorisationExpired` or `AuthorisationExceeded` as the case may be.
-5. **Headroom check.** Prepaid credit on the tab is spent before the Open Tab rises, and only the shortfall is tested against the Credit Limit. If the Agent's Open Tab across all Services in that Asset plus the shortfall would exceed the limit, the call reverts `LimitExceeded` carrying the requested amount and the headroom that remains.
+5. **Headroom check.** Prepaid credit on the tab is spent before the Open Tab rises, and only the shortfall is tested against the Credit Limit.
+   If the Agent's Open Tab across all Services in that Asset plus the shortfall would exceed the limit, the call reverts `LimitExceeded` carrying the requested amount and the headroom that remains.
 6. **The tab write.** The tab's `open`, `oldestUnsettledAt`, `lastDeliveryAt` and `deliveryCount` are updated, the first delivery timestamp for the tab is recorded if it was unset, and `DeliveryRecorded` is emitted.
 
 Two rules follow: the response is never withheld, because withholding it would make this a prepayment with extra steps, and prepaid credit borrows nothing, because it is already paid for, which is why it is spent before the limit is consulted.
@@ -477,7 +479,7 @@ Inside the SDK, `Tab-Agent` and `Tab-Authorisation` are treated as claims and ne
 Tab is deployed on both Monad networks by the same scripts, with an address change and no code change; `deployments.json` records one entry per chain id and `MONAD_CHAIN_ID` selects which one a process serves.
 
 On **Monad Mainnet** (chain id 143) the sequence begins at block 107094526 with a 2-of-3 `CurationMultisig`, deployed first because `ServiceRegistry` takes its curation authority as a constructor argument with no setter.
-Then come `ServiceRegistry`, `Bond`, `TabBook` over the two with the credit parameters, `TabSettlement` over the registry and the book, and the one-shot `setSettlementSurface`.
+Then come `ServiceRegistry`, `Bond`, `TabBook` over the two with the credit parameters, `TabSettlement` over the registry, the book and Permit2, and the one-shot `setSettlementSurface`.
 No token is shipped: the Assets are the canonical USDC and AUSD.
 The demonstration Service `tab.demo` is registered, bonded with 1 USDC, accepts both Assets, and prices `quote.generate` at 0.01 in each, with the two fronted tools priced at one base unit a unit after the registry's 48-hour hold.
 
@@ -558,7 +560,7 @@ Every system has edges, and naming each one with the bound that says how far it 
 | Timelocked changes take 48 hours | The guarantee an Agent gets when it reads a price, and the wait a Service pays to rotate a compromised Collection address, during which `TabSettlement` pays the address on chain |
 | A Settlement of a tab that is not open banks as prepaid credit | The intended way to buy in, and also what happens to money sent to the wrong Service. It is never lost, it is visible on the Agent's page, and there is no refund path in the contracts |
 | The registry serves a Credit Limit only where the cross-check agrees | A Dashboard page can show no Credit Limit for a moment; it cannot show a wrong one |
-| Asset scope | `MockUsdc` on Testnet; USDC and AUSD on Mainnet. Multi-asset by construction, with no conversion anywhere, so credit in one Asset says nothing about credit in another |
+| Asset scope | Circle's USDC and `MockUsdc` on Testnet; USDC and AUSD on Mainnet. Multi-asset by construction, with no conversion anywhere, so credit in one Asset says nothing about credit in another |
 
 ### 9.1 Where a Service is, and who gets to say
 
@@ -695,7 +697,12 @@ The verification is a `view` run and reverts on the first wired slot that disagr
 3. HTTP 402 Payment Required, as defined by the HTTP semantics specification.
 4. Model Context Protocol, the interface `tab_discover`, `tab_call`, `tab_status` and `tab_settle` are served over.
 5. Web Content Accessibility Guidelines (WCAG) 2.1, the contrast floor every interface colour pair is linted against.
-6. Tab source, documentation and deployment record. This repository, source-available under its LICENSE.
+6. ERC-8004: Trustless Agents, the identity registry the demonstration Service and Agent are registered on.
+7. EIP-3009: Transfer With Authorization, the transfer an x402 `exact` payment signs.
+8. EIP-712: Typed structured data hashing and signing, the format of the Permit2 and EIP-3009 signatures.
+9. Uniswap Permit2, the `PermitWitnessTransferFrom` that `settleWithPermit2` consumes.
+10. The x402 protocol, V2, the offer a credit refusal carries and the prepaid path a Service accepts.
+11. Tab source, documentation and deployment record. This repository, source-available under its LICENSE.
 
 ---
 

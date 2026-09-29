@@ -20,7 +20,7 @@
 **Agents buy first and pay later, and nobody is trusted to say the money arrived.**
 
 A Service meters usage into an Open Tab held on Monad.
-The Agent settles that Tab in USDC, with its own keys, whenever it likes.
+The Agent settles that Tab in USDC or AUSD, with its own keys, whenever it likes.
 The transfer and the ledger entry are one Monad transaction: `TabSettlement` moves the Asset to the Service and applies the Settlement to the tab in the same block, atomically.
 
 No facilitator, no oracle, no bridge, and no API key sits between the payment and the ledger entry.
@@ -151,7 +151,7 @@ RPC `https://testnet-rpc.monad.xyz`, explorer `https://testnet.monadvision.com`,
 
 ## On Monad, end to end
 
-Every piece below is in the tree, exercised by tests, and running in the hosted deployment.
+Every piece below is in the tree and exercised by tests, and the ones that run as services are live in the hosted deployment.
 
 | Piece | What Tab does with it | Where |
 | --- | --- | --- |
@@ -163,7 +163,7 @@ Every piece below is in the tree, exercised by tests, and running in the hosted 
 | **Nansen** | Address labels served beside an Agent's identity, stated as an offchain signal that changes nothing in the Credit Limit | `apps/registry/src/nansen.ts` |
 | **Mera passkeys** | `/keys` on the Dashboard is a passkey account: a seed from the WebAuthn PRF extension, an owner key that is never shown, and session keys revealed once each for the runtime they will be the Agent for | `apps/app/components/passkey` |
 | **MetaMask Agent Wallet** | `mm tab discover`, `status`, `call`, `settle` and `authorise` as a plugin: each builds the transaction and hands it to the wallet with a one-sentence intent, so the wallet's policy decides what is signed | `packages/agent-wallet-plugin` |
-| **Chainlink CRE** | A cron workflow that calls the delinquency keeper every ten minutes; the keeper confirms each overdue tab on chain and submits the permissionless `markDelinquent` | `apps/cre-keeper`, `apps/keeper` |
+| **Chainlink CRE** | A cron workflow, compiled to WASM and run under the CRE simulator, that calls the delinquency keeper every ten minutes; the keeper confirms each overdue tab on chain and submits the permissionless `markDelinquent` | `apps/cre-keeper`, `apps/keeper` |
 | **Kuru** | A settlement strategy that reads the Agent's balance of the Asset and, when it is short, swaps the shortfall in from another token through Kuru's router before settling | `packages/sdk/src/payments/kuru.ts` |
 | **Agora AUSD** | A first-class Asset beside USDC on Mainnet: in the shared table, so every page and tool that prints an Asset names it | `packages/shared/src/chains.ts` |
 
@@ -294,13 +294,15 @@ It has no power over metering, over any tab, over any Settlement, or over any Bo
 
 Two things bound it.
 Every change it makes is queued and held for **48 hours** behind a public `RegistryChangeQueued` event before it can apply, so a promotion is contestable before it takes effect and you can watch the countdown on the Service directory.
-And the role cannot move: `ServiceRegistry` takes its authority as a constructor argument and exposes no setter, so it can only change at a deployment, by this project or by anyone.
+And the role cannot move: `ServiceRegistry` takes its authority as a constructor argument and exposes no setter, so nobody, this project included, can reassign it without a new deployment.
 
 On Testnet the role is held by the deploying account.
 On Mainnet it is held by a 2-of-3 [`CurationMultisig`](./packages/contracts/src/CurationMultisig.sol) at `0x123c19F46C38d5b4E922D1297250a71A03DFFD17`, deployed before the registry because the authority is fixed at construction.
 It has an immutable owner set, a permissionless `execute`, and no `receive` and no `payable` function anywhere in it, so it can hold no value.
-All three of its owners are held by this project today. A one-person deployment cannot honestly present that as three parties, and [`deployments.json`](./deployments.json) says so beside the address: what the contract enforces is 2-of-3, and who holds the three is a separate question.
-The Service directory does not take any of this on trust either. It asks the address the registry actually checks for its threshold and its owners, and draws whichever answer it gets, so a reader sees what is there rather than what this page claims.
+All three of its owners are held by this project today.
+A one-person deployment cannot honestly present that as three parties, and [`deployments.json`](./deployments.json) says so beside the address: what the contract enforces is 2-of-3, and who holds the three is a separate question.
+The Service directory does not take any of this on trust either.
+It asks the address the registry actually checks for its threshold and its owners, and draws whichever answer it gets, so a reader sees what is there rather than what this page claims.
 
 ---
 
@@ -316,7 +318,7 @@ Eight gates guard this repository, and CI runs every one of them.
 | Dependency direction | `pnpm lint:deps` | an import that points the wrong way through the workspace |
 | Environment contract | `pnpm env:check` | a `process.env` read that `.env.example` does not declare |
 | Deployment record | `pnpm deployments:check` | `deployments.json` and `.env.example` describing two different deployments, or a `MONAD_CHAIN_ID` with nothing deployed under it |
-| Vocabulary | `pnpm vocab:check` | prohibited terminology anywhere git tracks, in contents, filenames or paths |
+| Vocabulary | `pnpm vocab:check` | a term outside the project's vocabulary, in contents, filenames or paths |
 | Contrast | `pnpm --filter @tabai/app lint` | any interface colour pair under WCAG AA |
 
 And keylessly, against the live chain, the verification script above.

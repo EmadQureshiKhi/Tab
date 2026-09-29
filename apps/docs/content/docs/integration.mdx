@@ -3,7 +3,7 @@ title: "Integration surfaces"
 description: "The four MCP tools, the CLI, the server plugins, and the payment-strategy seam, each with something you can run."
 ---
 
-Three ways to put an Agent on the rail, and two to put a Service on it, in the order most people should try them.
+Three ways to put an Agent on the rail, and three to put a Service on it, in the order most people should try them.
 
 The MCP server is the shortest path and needs one line of configuration.
 The CLI is what writes that line.
@@ -48,7 +48,7 @@ Every command reads the chain; one of them writes to it, and it says so before i
 | `status` | What an Agent owes, may still spend, and has settled | nothing, and needs no key |
 | `settle` | Pays down an Open Tab, with the Agent's key or, with `--strategy monad-relayed`, by a Permit2 signature the gateway submits | real funds, and only with `--broadcast` |
 
-`settle` is a dry run unless you ask for otherwise.
+`settle` is a dry run unless you ask otherwise.
 It checks that the Service accepts the Asset, quotes the amount, and stops:
 
 ```bash
@@ -232,11 +232,12 @@ When the Service's `402` carries an x402 `PAYMENT-REQUIRED` offer and `tab.confi
 Nothing lands on the Open Tab, because nothing is owed, and the payment is not a Settlement: it does not enter the credit history and does not raise the limit.
 The [On Monad](/on-monad) page has the whole exchange.
 
-### A new Agent has no credit, and that is the rule
+### A new Agent starts at the baseline once it authorises a bonded Service
 
 A Credit Limit is capped by the Bonds of the counterparties the Agent has authorised or settled with.
-An Agent with neither has no counterparties, so it has no limit and must settle before it can buy on credit.
-Its first Settlement banks prepaid credit and creates the history a limit is computed from.
+An Agent that authorises a bonded Service starts at `min(baseline, 95% of that Service's free Bond)`.
+Anything above the baseline is earned by settled history with at least three Curated, bonded Services.
+An Agent that has authorised nobody has no counterparties and no limit.
 
 ## Running a metered Service
 
@@ -292,7 +293,7 @@ The history behind that witness is held between calls and read from the registry
 import { createTab402Client } from "@tabai/sdk";
 
 const client = createTab402Client({ baseUrl: "https://gateway-testnet-production-a657.up.railway.app", agent });
-const result = await client.fetch("/meter/echo");
+const result = await client.fetch("/meter/quote.generate");
 ```
 
 The client sends `Tab-Agent`, parses the same six headers on a success and on a `402` with the same parser, and keeps a running snapshot per Asset of what it has accrued, what was declined, and the headroom the Service last reported.
@@ -350,7 +351,7 @@ On Monad a tab is paid through `TabSettlement`, by `settle` with the Agent's key
 The seam exists so that a different signer, a smart account, a session key, or a test double can stand behind the same call without the SDK caring which.
 `createKuruFundedStrategy` shows the seam used the other way: it wraps a strategy and tops the Agent's balance of the Asset up through Kuru before delegating.
 
-A strategy is five members:
+A strategy is five members and an optional sixth:
 
 ```ts
 export interface PaymentStrategy {

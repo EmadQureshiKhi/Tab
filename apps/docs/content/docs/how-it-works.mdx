@@ -36,7 +36,7 @@ A Service that meters past it reverts `AuthorisationExceeded`; one that meters a
 A priced unit of work is attributed to the Agent with `TabBook.recordDelivery`.
 The call names the tool and the unit count, carries the unit price the Agent was quoted, and carries a `LimitWitness`: the Agent's ordered Settlement history in that Asset plus one Bond entry per counterparty.
 
-The charge is checked four ways.
+Beyond the operator check, the charge is checked four ways.
 The quoted price must equal the applied price now, or the call reverts `PriceListChangedMidCall`, so a Service cannot quote one figure and meter another.
 The charge must fit inside the authorisation.
 The tab must not be delinquent.
@@ -110,7 +110,7 @@ Excess Settlement does not vanish and it is not refunded.
 It becomes prepaid credit on the tab, which the next delivery spends before it borrows anything.
 
 A Settlement against a tab that is not open works the same way: the whole amount banks as prepaid credit and the Settlement still joins the Agent's history.
-That is how a new Agent buys its first credit, by settling before it has been charged.
+That is how an Agent pays ahead: prepaid credit is spent before any Credit Limit is used, and it is not the same thing as a Credit Limit.
 
 ## The witness, and why it cannot lie
 

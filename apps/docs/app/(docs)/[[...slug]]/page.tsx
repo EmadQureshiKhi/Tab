@@ -19,10 +19,8 @@ export default async function Page({
   return (
     <DocsPage toc={page.data.toc} full={page.data.full}>
       {/*
-        The title and the one action on the row share a line, the action pushed to
-        the far edge. It sat under the title before, on its own row above a rule,
-        which spent three bands of vertical space - subtitle, action, rule - between
-        the heading and the first thing on the page worth looking at.
+        The title and the one action share a line, the action pushed to the far
+        edge, so the first thing on the page is close to the heading.
 
         The frontmatter description is not drawn. It is the page's metadata
         description and its search result summary, and it restated the title on
