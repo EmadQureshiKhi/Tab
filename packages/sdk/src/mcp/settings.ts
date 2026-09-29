@@ -25,14 +25,22 @@
  * is signed, by the strategy that signs it, and never travels through a config
  * file or an MCP client's `mcpServers` stanza. That is what makes `tab connect`
  * safe to run against a file the client software rewrites.
+ *
+ * The hosted demo Service is the one place a key is used outside a Settlement:
+ * its gateway refuses an unsigned metered call, so the entry this module fills
+ * in signs each call with `AGENT_PRIVATE_KEY`, read at the moment the call is
+ * signed and only when that key is the Agent the call is metered against. The
+ * Agent itself is an address, from `AGENT_ADDRESS` when nothing else names one.
  */
 
 import type { Address } from "@tabai/shared";
 import { CHAINS, TAB_HOSTED, isAddress, isMonadChainId } from "@tabai/shared";
+import { Wallet } from "ethers";
 
 import type { TabServiceEntry } from "../payments/config.js";
 import { loadTabConfig, type TabConfig } from "../payments/config.js";
 import { defaultLogger, type Logger } from "../logger.js";
+import { agentSignedMetering } from "../http/metering-claim.js";
 import type { X402SignerFactory } from "../x402/client.js";
 
 /** The settings every tool reads. Each field is resolved or explicitly absent. */
@@ -183,7 +191,13 @@ export async function resolveTabMcpSettings(
     return undefined;
   };
 
-  const rawAgent = pick("agent", options.agent, config.agent, undefined);
+  const envAgent = trimmed(env["AGENT_ADDRESS"]);
+  const rawAgent = pick(
+    "agent",
+    options.agent,
+    config.agent,
+    envAgent === undefined ? undefined : { value: envAgent, source: "env AGENT_ADDRESS" },
+  );
   const agent = rawAgent !== undefined && isAddress(rawAgent) ? (rawAgent.toLowerCase() as Address) : undefined;
   if (rawAgent !== undefined && agent === undefined) {
     logger.warn("the configured agent is not a 20-byte address and was ignored", { agent: rawAgent });
@@ -241,7 +255,24 @@ export async function resolveTabMcpSettings(
 
   const configured = mergeServices(options.services ?? [], config.services ?? []);
   if (configured.length > 0) sources["services"] = options.services === undefined ? "tab.config" : "options";
-  const services = hosted === undefined ? configured : mergeServices(configured, [hosted.demoService]);
+  /*
+    The hosted gateway meters only a signed call, so the demo Service signs with
+    the Agent's own key when one is in the environment. The key is read per call
+    and never held here, and a key for any other address signs nothing.
+  */
+  const agentKey = () => {
+    const key = trimmed(env["AGENT_PRIVATE_KEY"]);
+    if (key === undefined) return undefined;
+    try {
+      return new Wallet(key);
+    } catch {
+      return undefined;
+    }
+  };
+  const services =
+    hosted === undefined
+      ? configured
+      : mergeServices(configured, [{ ...hosted.demoService, headers: agentSignedMetering(agentKey) }]);
   if (configured.length === 0 && services.length > 0) sources["services"] = "default (the project's hosted demo Service)";
 
   const strategyId = trimmed(options.strategyId);

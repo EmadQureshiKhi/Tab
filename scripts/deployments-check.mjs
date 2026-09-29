@@ -235,6 +235,15 @@ const CLASSIFICATION = new Map([
     },
   ],
   [
+    "AGENT_ADDRESS",
+    {
+      recorded: false,
+      why:
+        "the Agent a local SDK or MCP process meters against, which is whoever runs it; nothing about it is " +
+        "fixed by a deployment",
+    },
+  ],
+  [
     "GATEWAY_COLLECTION_ADDRESS",
     {
       recorded: false,

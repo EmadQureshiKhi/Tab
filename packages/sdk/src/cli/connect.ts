@@ -94,6 +94,9 @@ function stanzaEnv(settings: TabMcpSettings, env: NodeJS.ProcessEnv): StanzaEnv 
   values["MONAD_CHAIN_ID"] = String(settings.chainId);
   const registry = settings.registryUrl ?? env["NEXT_PUBLIC_REGISTRY_API_URL"];
   if (registry !== undefined && registry.trim() !== "") values["NEXT_PUBLIC_REGISTRY_API_URL"] = registry.trim();
+  // An address is public, and without it tab_call has no Agent to meter against.
+  const agent = env["AGENT_ADDRESS"];
+  if (agent !== undefined && agent.trim() !== "") values["AGENT_ADDRESS"] = agent.trim();
   return values;
 }
 

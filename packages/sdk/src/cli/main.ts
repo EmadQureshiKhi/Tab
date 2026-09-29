@@ -150,12 +150,15 @@ Environment
   MONAD_RPC_URL                   the Monad JSON-RPC endpoint
   MONAD_CHAIN_ID                  143 for Mainnet, 10143 for Testnet
   NEXT_PUBLIC_REGISTRY_API_URL    the Tab registry read API, which serves discovery and status
-  AGENT_PRIVATE_KEY               read only when a Settlement is signed, and never written anywhere
+  AGENT_ADDRESS                   the Agent tab_call meters against, when tab.config names none
+  AGENT_PRIVATE_KEY               read only when a Settlement or a call to the hosted demo Service
+                                  is signed, and never written anywhere
 
 Configuration
   tab.config.ts beside your project declares the Agent address, the registry URL,
   the Service endpoints, and the payment strategies. The chain records no Service
-  endpoint, so tab_call needs one from there.
+  endpoint, so tab_call needs one from there, except for the hosted demo Service,
+  which is known on both networks.
 `;
 
 // ---------------------------------------------------------------- commands
