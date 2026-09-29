@@ -26,10 +26,14 @@
  * between two.
  *
  * Nothing exported from this package throws. Every fallible call returns a
- * `Result` from `@tabai/shared`. The one exception is named and deliberate:
- * the Hono and Next.js adapters re-raise a handler's own thrown value, because a
+ * `Result` from `@tabai/shared`. Two exceptions are named and deliberate. The
+ * Hono and Next.js adapters re-raise a handler's own thrown value, because a
  * framework's contract for a failed handler is an exception and the adapter is the
- * boundary where a `Result` becomes whatever the host expects.
+ * boundary where a `Result` becomes whatever the host expects. And
+ * `createX402UpstreamPricing` refuses a non-positive `unitBaseUnits` at
+ * construction with a `RangeError`: a pricing object that cannot price is a
+ * programming error to surface at startup, and the gateway validates the same
+ * value from its configuration before it ever calls the factory.
  */
 
 import { WORKSPACE_ID } from "@tabai/shared";
