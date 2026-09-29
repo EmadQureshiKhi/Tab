@@ -28,7 +28,7 @@
       "chainId": 10143,
       "name": "tab.demo",
       "summary": "The demonstration Service this project runs on Monad Testnet: one priced tool, metered through the gateway and settled through TabSettlement. A 402 on LimitExceeded also carries an x402 offer for the same charge, and the /hub routes front pay-per-request x402 APIs on credit.",
-      "endpoint": "https://tab-gateway-testnet.example.com",
+      "endpoint": "https://gateway-testnet-production-a657.up.railway.app",
       "transport": "mcp",
       "operatedBy": "this project",
       "tools": {
@@ -56,7 +56,7 @@
       "chainId": 143,
       "name": "tab.demo",
       "summary": "The demonstration Service this project runs on Monad Mainnet, in real USDC and AUSD: one priced tool, metered through the gateway and settled through TabSettlement. A 402 on LimitExceeded also carries an x402 offer for the same charge, and the /hub routes front pay-per-request x402 APIs on credit.",
-      "endpoint": "https://tab-gateway-mainnet.example.com",
+      "endpoint": "https://gateway-mainnet-production.up.railway.app",
       "transport": "mcp",
       "operatedBy": "this project",
       "tools": {

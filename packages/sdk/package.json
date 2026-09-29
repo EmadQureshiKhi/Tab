@@ -27,6 +27,14 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./hub": {
+      "types": "./dist/x402/hub.d.ts",
+      "default": "./dist/x402/hub.js"
+    },
+    "./metering": {
+      "types": "./dist/http/metering-claim.d.ts",
+      "default": "./dist/http/metering-claim.js"
     }
   },
   "bin": {

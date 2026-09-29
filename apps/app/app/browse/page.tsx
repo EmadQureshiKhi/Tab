@@ -28,7 +28,7 @@
  * prices stand without it.
  */
 
-import type { HubFetch } from "@tabai/sdk";
+import type { HubFetch } from "@tabai/sdk/hub";
 
 import { CatalogueView } from "./_catalogue";
 import { SHOWCASE } from "../../src/dashboard/showcase";
@@ -57,13 +57,14 @@ async function hubManifests(
   const fronting = published.filter((entry) => entry.hub !== undefined);
   if (fronting.length === 0) return new Map();
   /*
-    Loaded at run time rather than bundled. The SDK's barrel also carries the
-    `tab.config` discovery, which walks the filesystem, and a bundler that
+    From the SDK's `hub` entry point, not its barrel. The barrel also carries
+    the `tab.config` discovery, which walks the filesystem, and a bundler that
     traces that walk pulls the whole repository into the server output. The
-    page needs one pure reader from the package, so the package is resolved
-    from `node_modules` when the page runs, the way the gateway resolves it.
+    entry point holds only the pure manifest reader, so it bundles and traces
+    like any other module; an import hidden from the bundler was hidden from
+    the deployment's file tracing too, and the page failed where it was hosted.
   */
-  const { fetchHubManifest } = await import(/* turbopackIgnore: true */ "@tabai/sdk");
+  const { fetchHubManifest } = await import("@tabai/sdk/hub");
   const timed: HubFetch = (url, init) => fetch(url, { ...init, signal: AbortSignal.timeout(HUB_MANIFEST_TIMEOUT_MS) });
   const outcomes = await Promise.all(
     fronting.map(async (entry): Promise<readonly [string, HubManifestOutcome]> => {

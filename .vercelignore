@@ -1,0 +1,15 @@
+# What a Vercel deployment uploads from this monorepo. Secrets and local build
+# output never leave the machine.
+.env
+.env.*
+!.env.example
+.vocabulary-denylist
+**/node_modules
+**/.next
+**/.turbo
+**/dist
+**/*.tsbuildinfo
+packages/contracts/broadcast
+packages/contracts/cache
+packages/contracts/out
+packages/contracts/lib

@@ -35,7 +35,7 @@
 
 import { Wallet } from "ethers";
 
-import { METERING_HEADER, meteringDigest, toolKeyOf } from "@tabai/sdk";
+import { METERING_HEADER, meteringDigest, toolKeyOf } from "@tabai/sdk/metering";
 import { MONAD_MAINNET, MONAD_TESTNET, type MonadChainId } from "@tabai/shared";
 
 import {
