@@ -1,9 +1,9 @@
 /**
  * The zero-throw result type.
  *
- * No exported SDK function throws. `wrap` is the single boundary at which a
- * thrown value from a dependency becomes a `TabError`, so a caller only ever
- * branches on `result.ok` and never writes a `try` block of its own.
+ * No exported SDK function throws. `wrap` and `wrapSync` are where a thrown
+ * value from a dependency becomes a `TabError`, so a caller only ever branches
+ * on `result.ok` and never writes a `try` block of its own.
  *
  * HTTP surfaces map `category` to a status code:
  * `VALIDATION` 400, `AUTHORISATION` 403, `NOT_FOUND` 404, `LIMIT` 402,
@@ -64,7 +64,8 @@ export const err = (error: TabError): Result<never> => ({ ok: false, error });
 
 /**
  * Runs `fn` and converts a thrown value into a `TabError` through `map`.
- * This is the only place in the workspace where a `catch` belongs.
+ * Reach for it at the edge of a dependency call, so the thrown value becomes a
+ * `Result` there rather than escaping to the caller.
  */
 export const wrap = async <T>(
   fn: () => Promise<T>,

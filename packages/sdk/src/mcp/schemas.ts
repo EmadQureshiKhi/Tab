@@ -4,7 +4,7 @@
  * This file is the contract. A model reads these schemas to decide what to send
  * and what it will get back, `tools/list` serves them verbatim, every tool
  * validates its input against the schema here before doing any work, and the
- * task 16.3 tests validate every output against it. There is one declaration of
+ * test suite validates every output against it. There is one declaration of
  * each shape and it lives here, so the published contract and the enforced
  * contract cannot drift apart.
  *
@@ -27,7 +27,7 @@
  * `tab_settle` additionally carry a required `ok` boolean, because those two
  * change state and "did it happen" is the first thing a caller must read.
  *
- * `LIMIT_EXCEEDED` is the case the design singles out: the Agent has no headroom
+ * `LIMIT_EXCEEDED` is the case that matters most: the Agent has no headroom
  * for the Asset, so the tool answers `ok: false` with both `requiredBaseUnits`
  * and `headroomBaseUnits` populated. That is the difference between a model that
  * decides to settle and a model that guesses.
@@ -72,7 +72,7 @@ const nullableString = (description: string): JsonSchema => ({ type: ["string", 
 /**
  * The failure block every tool can return.
  *
- * `category` is the same seven-value vocabulary `@tabai/shared` uses everywhere
+ * `category` is the same nine-value vocabulary `@tabai/shared` uses everywhere
  * else, so a code path that maps a category to an HTTP status on one surface
  * maps it the same way here. `requiredBaseUnits` and `headroomBaseUnits` are
  * present only on `LIMIT_EXCEEDED`.
@@ -492,7 +492,11 @@ export interface TabToolDeclaration {
   readonly description: string;
   readonly inputSchema: JsonObjectSchema;
   readonly outputSchema: JsonObjectSchema;
-  /** MCP behaviour hints. `tab_settle` is the only tool that is not read-only. */
+  /**
+   * MCP behaviour hints. `tab_discover` and `tab_status` are read-only;
+   * `tab_call` meters onto an Open Tab, and `tab_settle`, which spends funds,
+   * is the one destructive tool.
+   */
   readonly annotations: {
     readonly readOnlyHint: boolean;
     readonly destructiveHint: boolean;

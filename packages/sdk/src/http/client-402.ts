@@ -6,12 +6,12 @@
  * This is the one thing to understand about this file. A `402` from a Tab Service
  * does not mean "pay now and I will then serve you". Work is delivered first and
  * metered after; the charge lands on the Open Tab as an accrual, and the
- * Agent settles later, asynchronously, on Ethereum, with its own keys, through
+ * Agent settles later, asynchronously, on Monad, with its own keys, through
  * the payment-strategy seam. So:
  *
  * - the **normal** metered response is a `200` carrying the charge block, and
  *   this client records the accrual and hands the response straight back;
- * - a `402` is issued on `LimitExceeded` alone, the Agent has no headroom left
+ * - a `402` is issued on `LimitExceeded` alone: the Agent has no headroom left
  *   for that Asset. It is a credit decision, not an invoice;
  * - on a `402` the client records what the Service says the call requires, sends
  *   the original request **once** more carrying `Tab-Agent` and
@@ -25,8 +25,8 @@
  * ## Why a repeat at all, if the charge already landed
  *
  * Two cases, and the repeat serves both. On the ordinary path the first attempt
- * may have reached a Service that could not identify the Agent, a caller that
- * built its own headers or a proxy that dropped them, and the repeat carries the
+ * may have reached a Service that could not identify the Agent (a caller that
+ * built its own headers, or a proxy that dropped them), and the repeat carries the
  * identity headers explicitly. On the `LimitExceeded` path a Settlement may have
  * landed between the two attempts: `TabSettlement` restores headroom in the
  * same block it moves the Asset, so the second attempt is genuinely a
@@ -269,10 +269,10 @@ interface LedgerEntry {
  * Builds the client.
  *
  * Construction is total: it cannot fail and returns a client, not a `Result`.
- * Every fallible thing, an unusable `baseUrl`, an `agent` that is not an
- * address, a host with no `fetch`, is reported by the call that needs it, which
+ * Every fallible thing (an unusable `baseUrl`, an `agent` that is not an
+ * address, a host with no `fetch`) is reported by the call that needs it, which
  * is the only place a caller can act on it. This matches
- * `createEthereumUsdcStrategy` and keeps the SDK's two factories the same shape.
+ * `createMonadStrategy` and keeps the SDK's two factories the same shape.
  */
 export function createTab402Client<Res extends Tab402Response = Tab402Response>(
   options: Tab402ClientOptions<Res>,

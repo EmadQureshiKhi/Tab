@@ -8,7 +8,7 @@
  * ```ts
  * // tab.config.ts, at the consumer's project root
  * import { defineTabConfig } from "@tabai/sdk";
- * export default defineTabConfig({ strategies: ["@acme/tab-strategy-solana"] });
+ * export default defineTabConfig({ strategies: ["@acme/tab-strategy-session-key"] });
  * ```
  *
  * ## What an entry may be
@@ -20,7 +20,7 @@
  *
  * ## Where a specifier resolves from
  *
- * From the **config file**, not from this package. `@acme/tab-strategy-solana` is
+ * From the **config file**, not from this package. `@acme/tab-strategy-session-key` is
  * the consumer's dependency and under pnpm it is not visible from inside
  * `@tabai/sdk` at all, so resolving relative to this module would fail for the
  * exact layout the workspace uses. `createRequire(configFileUrl)` resolves the
@@ -30,8 +30,8 @@
  * ## The `.ts` config file and the host runtime
  *
  * This module imports the config file; it does not compile it. A `.ts` config
- * loads under a runtime that strips types, `tsx`, `node --experimental-strip-types`,
- * a bundler's dev server, and fails under one that does not. That failure comes
+ * loads under a runtime that strips types (`tsx`, `node --experimental-strip-types`,
+ * a bundler's dev server) and fails under one that does not. That failure comes
  * back as a `Result` naming the file and the requirement rather than as a stack
  * trace, and `tab.config.js` and `tab.config.mjs` are discovered too so a
  * consumer with a plain Node process has a first-class option.

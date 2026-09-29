@@ -20,8 +20,8 @@
  * the authorisation (`AuthorisationMissing`, `AuthorisationExpired`,
  * `AuthorisationExceeded`), and the headroom check (`LimitExceeded`, plus the
  * witness-validation errors the Credit Limit computation raises). Every name in
- * {@link RECORD_DELIVERY_REVERTS} is one of those; nothing in the table was
- * guessed from the design.
+ * {@link RECORD_DELIVERY_REVERTS} is one of those, read off the deployed
+ * contract's errors.
  *
  * ## Whose fault it is decides who sees it
  *

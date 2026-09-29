@@ -1,6 +1,5 @@
 /**
- * Task 16.3, first half: every tool input and output validates against the
- * schema the tool declares.
+ * Every tool input and output validates against the schema the tool declares.
  *
  * The schemas are not checked against a copy written for the test. They are
  * checked against the exact objects `tools/list` serves, imported from the same
@@ -36,14 +35,14 @@ const silent = { debug: () => {}, info: () => {}, warn: () => {}, error: () => {
 
 const SERVICE_ID = "0x7461622e64656d6f2d7365727669636500000000000000000000000000000000";
 const TOOL_KEY = "0x71756f74652e67656e6572617465000000000000000000000000000000000000";
-const AGENT = "0x1f6f797edc2eecb02bd54009b805fb2e99f80542";
-const TESTNET_USDC = "0x5d519a1e8cf4edd7067fd631047e6869e9a7e4fe";
+const AGENT = "0x00000000000000000000000000000000000a9e17";
+const TESTNET_MUSDC = "0x480209747417f5c830fda188a9b9acfa70bc4083";
 const MAINNET_USDC = "0x754704bc059f8c67012fed69bc8a327a5aafb603";
-const COLLECTION = "0x952acc70e6f54ce87dca963193a5957bcb27729e";
+const COLLECTION = "0x000000000000000000000000000000000000c011";
 const SETTLEMENT_ID = `0x${"ab".repeat(32)}`;
 
 /** Every environment the tests read. Never the ambient one, so a machine cannot change a result. */
-const ENV = { MOCK_USDC_ADDRESS: TESTNET_USDC };
+const ENV = { MOCK_USDC_ADDRESS: TESTNET_MUSDC };
 
 const settings = (overrides = {}) => ({
   agent: AGENT,
@@ -74,14 +73,14 @@ const SERVICES_BODY = {
       operator: "0x00000000000000000000000000000000000000a1",
       tier: { value: 0, name: "Permissionless", creditWeight: 1, source: { appliedBy: "registration", monad: provenance } },
       settlementWindowSeconds: { value: 21600, source: { appliedBy: "registration", monad: provenance } },
-      acceptedAssets: [{ asset: TESTNET_USDC, collection: COLLECTION }],
-      collections: [{ serviceId: SERVICE_ID, asset: TESTNET_USDC, collection: COLLECTION, monad: provenance }],
-      prices: [{ serviceId: SERVICE_ID, asset: TESTNET_USDC, tool: TOOL_KEY, baseUnits: "10000", monad: provenance }],
+      acceptedAssets: [{ asset: TESTNET_MUSDC, collection: COLLECTION }],
+      collections: [{ serviceId: SERVICE_ID, asset: TESTNET_MUSDC, collection: COLLECTION, monad: provenance }],
+      prices: [{ serviceId: SERVICE_ID, asset: TESTNET_MUSDC, tool: TOOL_KEY, baseUnits: "10000", monad: provenance }],
       bond: [
         {
           serviceId: SERVICE_ID,
           party: `0x${"00".repeat(12)}00000000000000000000000000000000000000a1`,
-          asset: TESTNET_USDC,
+          asset: TESTNET_MUSDC,
           staked: "1000000",
           withdrawn: "0",
           free: "1000000",
@@ -105,19 +104,19 @@ const AGENT_BODY = {
   agent: AGENT,
   assets: [
     {
-      asset: TESTNET_USDC,
+      asset: TESTNET_MUSDC,
       creditLimit: { value: "4750000", basis: "LimitLib", computedAt: { blockNumber: 5441800 }, witness: null, crossCheck: null, unavailable: null },
       headroom: { value: "4740000", basis: "limit less open", openTab: "10000", crossCheck: null, unavailable: null },
       openTab: {
         observed: "10000",
         basis: "sum of the last observed Open Tab per tab",
         liveRead: "TabBook.assetOpen(agent, asset)",
-        tabs: [{ tabId: `0x${"33".repeat(32)}`, agent: AGENT, serviceId: SERVICE_ID, asset: TESTNET_USDC, openAfter: "10000", monad: provenance }],
+        tabs: [{ tabId: `0x${"33".repeat(32)}`, agent: AGENT, serviceId: SERVICE_ID, asset: TESTNET_MUSDC, openAfter: "10000", monad: provenance }],
       },
       delinquency: { delinquent: false, openCount: 0, basis: "TabDelinquent", tabs: [] },
       settlements: {
         agent: AGENT,
-        asset: TESTNET_USDC,
+        asset: TESTNET_MUSDC,
         settlementCount: 4,
         settledTotal: "40000",
         appliedTotal: "30000",
@@ -137,7 +136,7 @@ const SETTLEMENTS_BODY = {
       settlementId: SETTLEMENT_ID,
       agent: AGENT,
       serviceId: SERVICE_ID,
-      asset: TESTNET_USDC,
+      asset: TESTNET_MUSDC,
       amount: "10000",
       applied: "10000",
       toPrepaid: "0",
@@ -211,12 +210,14 @@ test("every declared tool carries an input and an output schema this validator u
   }
 });
 
-test("tab_settle is the only tool not marked read-only, and it is marked destructive", () => {
+test("only tab_discover and tab_status are read-only, and tab_settle alone is destructive", () => {
   for (const tool of TAB_TOOLS) {
     const expectedReadOnly = tool.name !== "tab_call" && tool.name !== "tab_settle";
     assert.equal(tool.annotations.readOnlyHint, expectedReadOnly, `${tool.name} readOnlyHint`);
   }
-  assert.equal(tabToolByName("tab_settle").annotations.destructiveHint, true);
+  for (const tool of TAB_TOOLS) {
+    assert.equal(tool.annotations.destructiveHint, tool.name === "tab_settle", `${tool.name} destructiveHint`);
+  }
 });
 
 // ---------------------------------------------------------------- tab_discover
@@ -241,10 +242,10 @@ test("tab_discover maps the registry read API onto its declared output schema", 
   assert.equal(service.tier, "permissionless");
   assert.equal(service.settlementWindowSeconds, 21600);
   assert.deepEqual(service.tools, [
-    { tool: TOOL_KEY, toolName: "quote.generate", asset: `10143:${TESTNET_USDC}`, priceBaseUnits: "10000" },
+    { tool: TOOL_KEY, toolName: "quote.generate", asset: `10143:${TESTNET_MUSDC}`, priceBaseUnits: "10000" },
   ]);
   assert.deepEqual(service.bonds, [
-    { asset: `10143:${TESTNET_USDC}`, stakedBaseUnits: "1000000", freeBaseUnits: "1000000" },
+    { asset: `10143:${TESTNET_MUSDC}`, stakedBaseUnits: "1000000", freeBaseUnits: "1000000" },
   ]);
   assert.equal(service.assets[0].collectionAddress, COLLECTION);
 });
@@ -283,7 +284,7 @@ test("tab_discover filters on tier and on Asset, and applies the declared defaul
   assertMatchesOutputSchema("tab_discover", wrongAsset);
   assert.deepEqual(wrongAsset.services, []);
 
-  const rightAsset = await toolset.discover({ asset: `10143:${TESTNET_USDC}` });
+  const rightAsset = await toolset.discover({ asset: `10143:${TESTNET_MUSDC}` });
   assert.equal(rightAsset.services.length, 1);
 
   // An unfiltered call asks for exactly the declared default of 25.
@@ -334,7 +335,7 @@ test("tab_status maps the Agent read onto its declared output schema", async () 
       settlementId: SETTLEMENT_ID,
       txHash: provenance.txHash,
       serviceId: SERVICE_ID,
-      asset: `10143:${TESTNET_USDC}`,
+      asset: `10143:${TESTNET_MUSDC}`,
       amountBaseUnits: "10000",
       appliedBaseUnits: "10000",
       prepaidBaseUnits: "0",
@@ -393,7 +394,7 @@ function serviceFetch({ status = 200, amount = "10000", openTab = "10000", headr
     status,
     headers: {
       "tab-charge-amount": amount,
-      "tab-charge-asset": `10143:${TESTNET_USDC}`,
+      "tab-charge-asset": `10143:${TESTNET_MUSDC}`,
       "tab-charge-service": SERVICE_ID,
       "tab-charge-tool": TOOL_KEY,
       "tab-open-tab": openTab,
@@ -417,12 +418,12 @@ test("tab_call meters a served call and reports the charge and the tab", async (
   const output = await toolset.call({ serviceId: SERVICE_ID, tool: "quote.generate", arguments: { input: "0x01" } });
   assertMatchesOutputSchema("tab_call", output);
 
-  // The tool lives under `/meter/` off the Service's root, the shape the
-  // reference gateway serves; a trailing slash on the endpoint is not doubled.
+  // The tool lives under `/meter/` off the Service's root, the shape Tab's
+  // gateway serves; a trailing slash on the endpoint is not doubled.
   assert.equal(urls[0], "http://service.test/meter/quote.generate");
   assert.equal(output.ok, true);
   assert.deepEqual(output.result, { quote: "0xdeadbeef" });
-  assert.deepEqual(output.charge, { amountBaseUnits: "10000", asset: `10143:${TESTNET_USDC}`, tool: TOOL_KEY });
+  assert.deepEqual(output.charge, { amountBaseUnits: "10000", asset: `10143:${TESTNET_MUSDC}`, tool: TOOL_KEY });
   assert.equal(output.tab.openTabBaseUnits, "10000");
   assert.equal(output.tab.headroomBaseUnits, "4740000");
 });
@@ -638,7 +639,7 @@ test("tab_settle on a dry run checks the Service accepts the Asset and broadcast
 
   const output = await toolset.settle({
     serviceId: SERVICE_ID,
-    asset: `10143:${TESTNET_USDC}`,
+    asset: `10143:${TESTNET_MUSDC}`,
     amountBaseUnits: "10000",
     dryRun: true,
   });
@@ -663,7 +664,7 @@ test("tab_settle broadcasts through the strategy seam and reports what TabBook a
     logger: silent,
   });
 
-  const output = await toolset.settle({ serviceId: SERVICE_ID, asset: `10143:${TESTNET_USDC}`, amountBaseUnits: "10000" });
+  const output = await toolset.settle({ serviceId: SERVICE_ID, asset: `10143:${TESTNET_MUSDC}`, amountBaseUnits: "10000" });
   assertMatchesOutputSchema("tab_settle", output);
 
   assert.equal(output.ok, true);
@@ -715,13 +716,13 @@ test("tab_settle settles through the strategy it was asked for, not the first th
   registry.register(strategyOver("monad-relayed"));
   const toolset = createTabToolset({ settings: settings(), registryFetch: stubRegistryFetch(), strategies: registry, env: ENV, logger: silent });
 
-  const unnamed = await toolset.settle({ serviceId: SERVICE_ID, asset: `10143:${TESTNET_USDC}`, amountBaseUnits: "10000" });
+  const unnamed = await toolset.settle({ serviceId: SERVICE_ID, asset: `10143:${TESTNET_MUSDC}`, amountBaseUnits: "10000" });
   assert.equal(unnamed.ok, true);
-  const named = await toolset.settle({ serviceId: SERVICE_ID, asset: `10143:${TESTNET_USDC}`, amountBaseUnits: "10000", strategyId: "monad-relayed" });
+  const named = await toolset.settle({ serviceId: SERVICE_ID, asset: `10143:${TESTNET_MUSDC}`, amountBaseUnits: "10000", strategyId: "monad-relayed" });
   assert.equal(named.ok, true);
   assert.deepEqual(settledBy, ["monad", "monad-relayed"]);
 
-  const unknown = await toolset.settle({ serviceId: SERVICE_ID, asset: `10143:${TESTNET_USDC}`, amountBaseUnits: "10000", strategyId: "nope" });
+  const unknown = await toolset.settle({ serviceId: SERVICE_ID, asset: `10143:${TESTNET_MUSDC}`, amountBaseUnits: "10000", strategyId: "nope" });
   assert.equal(unknown.ok, false);
   assert.equal(unknown.error.code, "STRATEGY_NOT_FOUND");
 });
@@ -739,7 +740,7 @@ test("tab_settle refuses an Asset the Service does not accept before anything is
   });
   const output = await toolset.settle({
     serviceId: SERVICE_ID,
-    asset: `10143:${TESTNET_USDC}`,
+    asset: `10143:${TESTNET_MUSDC}`,
     amountBaseUnits: "10000",
   });
   assertMatchesOutputSchema("tab_settle", output);
@@ -782,7 +783,7 @@ test("tab_settle refuses an Asset no registered strategy supports", async () => 
 test("tab_settle refuses an amount that is not a decimal string of base units", async () => {
   const toolset = createTabToolset({ settings: settings(), registryFetch: stubRegistryFetch(), env: ENV, logger: silent });
   for (const amount of ["1.5", "-1", "0x10", "1e6"]) {
-    const output = await toolset.settle({ serviceId: SERVICE_ID, asset: `10143:${TESTNET_USDC}`, amountBaseUnits: amount });
+    const output = await toolset.settle({ serviceId: SERVICE_ID, asset: `10143:${TESTNET_MUSDC}`, amountBaseUnits: amount });
     assertMatchesOutputSchema("tab_settle", output);
     assert.equal(output.error.code, "INPUT_INVALID", `\`${amount}\` must be refused`);
   }
@@ -790,7 +791,7 @@ test("tab_settle refuses an amount that is not a decimal string of base units", 
 
 test("tab_settle refuses a chain id that is not a Monad network", async () => {
   const toolset = createTabToolset({ settings: settings(), registryFetch: stubRegistryFetch(), env: ENV, logger: silent });
-  const output = await toolset.settle({ serviceId: SERVICE_ID, asset: `7:${TESTNET_USDC}`, amountBaseUnits: "10000" });
+  const output = await toolset.settle({ serviceId: SERVICE_ID, asset: `7:${TESTNET_MUSDC}`, amountBaseUnits: "10000" });
   assertMatchesOutputSchema("tab_settle", output);
   assert.equal(output.error.code, "ASSET_CHAIN_UNSUPPORTED");
 });

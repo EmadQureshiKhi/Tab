@@ -47,8 +47,8 @@ const silent = { debug: () => {}, info: () => {}, warn: () => {}, error: () => {
 
 const SIGNER = new Wallet(`0x${"11".repeat(32)}`);
 const TESTNET_USDC = "0x534b2f3A21130d7a60830c2Df862319e593943A3";
-const COLLECTION = "0x9D3d9410Be95fa1d230734B961997427fc61D837";
-const AGENT = "0x1f6f797edc2eecb02bd54009b805fb2e99f80542";
+const COLLECTION = "0x000000000000000000000000000000000000c011";
+const AGENT = "0x00000000000000000000000000000000000a9e17";
 const SERVICE_ID = `0x${"11".repeat(32)}`;
 const TOOL = `0x${"22".repeat(32)}`;
 const NONCE = `0x${"ab".repeat(32)}`;
@@ -664,7 +664,7 @@ function x402Upstream({ amount = "10000", operator = SIGNER.address } = {}) {
   const fetchImpl = async (url, init) => {
     calls.push({ url, init });
     const signature = init.headers[X402_HEADER.paymentSignature];
-    const offer = required([requirement({ amount, payTo: "0x9D3d9410Be95fa1d230734B961997427fc61D837" })], { resource: { url } });
+    const offer = required([requirement({ amount, payTo: "0x000000000000000000000000000000000000c011" })], { resource: { url } });
     if (signature === undefined) {
       return new Response("{}", { status: 402, headers: { [X402_HEADER.paymentRequired]: encodePaymentRequired(offer).value } });
     }
@@ -799,7 +799,7 @@ test("an upstream that prices in another asset is not paid and the Agent is not 
   assert.equal(deliveries.length, 0);
 });
 
-test("an upstream paid on another chain is paid there, by the payer named for it, and metered here", async () => {
+test("an upstream paid on Monad Mainnet is paid there, by the payer named for it, and metered on the Service's own network", async () => {
   // The API Hub takes USDC on Monad Mainnet only. A Testnet Service fronting it
   // pays on 143 with a key funded there and meters the Agent in its own Testnet
   // Asset, base unit for base unit, which the Service states by fronting it.
@@ -811,8 +811,8 @@ test("an upstream paid on another chain is paid there, by the payer named for it
     const signature = init.headers[X402_HEADER.paymentSignature];
     const offer = required(
       [
-        requirement({ network: "eip155:8453", asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", amount: "1000", payTo: "0x9D3d9410Be95fa1d230734B961997427fc61D837", extra: { name: "USD Coin", version: "2" } }),
-        requirement({ network: "eip155:143", asset: MAINNET_USDC, amount: "1000", payTo: "0x9D3d9410Be95fa1d230734B961997427fc61D837" }),
+        requirement({ network: "eip155:8453", asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", amount: "1000", payTo: "0x000000000000000000000000000000000000c011", extra: { name: "USD Coin", version: "2" } }),
+        requirement({ network: "eip155:143", asset: MAINNET_USDC, amount: "1000", payTo: "0x000000000000000000000000000000000000c011" }),
       ],
       { resource: { url } },
     );

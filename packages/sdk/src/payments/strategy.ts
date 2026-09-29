@@ -1,11 +1,15 @@
 /**
  * The payment-strategy seam.
  *
- * A strategy is how an Agent pays down an Open Tab. On Monad there is exactly one
- * way: approve the Asset and call `TabSettlement.settle`, which moves the Asset to
- * the Service and applies the Settlement in the same transaction. The seam still
- * exists so that a different signer, a smart account, a session key, or a test
- * double can stand behind the same call without the SDK caring which.
+ * A strategy is how an Agent pays down an Open Tab. Every Settlement lands through
+ * `TabSettlement`, which moves the Asset to the Service and applies the Settlement
+ * in the same transaction, by one of two entry points: `settle`, sent by the Agent
+ * after an approval (`createMonadStrategy`), or `settleWithPermit2`, signed by the
+ * Agent and sent by a relayer (`createRelayedMonadStrategy`).
+ * `createKuruFundedStrategy` wraps either one and swaps the Asset in first when
+ * the Agent is short. The seam also lets a different signer, a smart account, a
+ * session key, or a test double stand behind the same call without the SDK
+ * caring which.
  *
  * ## What a strategy does not do
  *

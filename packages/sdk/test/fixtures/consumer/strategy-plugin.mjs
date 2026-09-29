@@ -6,13 +6,15 @@
  * build-time relationship with this package at all.
  */
 
-/** @returns a strategy for an imaginary chainId Tab ships no support for. */
+const MONAD_TESTNET = 10143n;
+const MOCK_USDC = "0x480209747417f5c830fda188a9b9acfa70bc4083";
+
+/** @returns a strategy for mUSDC on Monad Testnet that submits nothing. */
 export default function createPluginStrategy() {
-  const chainId = 7n;
   return {
     id: "plugin-strategy",
-    chainIds: [chainId],
-    supports: (asset) => asset.chainId === chainId,
+    chainIds: [MONAD_TESTNET],
+    supports: (asset) => asset.chainId === MONAD_TESTNET && asset.address.toLowerCase() === MOCK_USDC,
     quote: async (request) => ({
       ok: true,
       value: { amount: request.amount, asset: request.asset, feeNote: "no fee" },

@@ -28,7 +28,7 @@ import type { Result } from "@tabai/shared";
 import { ok } from "@tabai/shared";
 
 import { validationError } from "../errors.js";
-import { createTabMcpServer, stderrLogger } from "../mcp/server.js";
+import { TAB_MCP_SERVER_INFO, createTabMcpServer, stderrLogger } from "../mcp/server.js";
 import { resolveTabMcpSettings, type TabMcpSettings } from "../mcp/settings.js";
 import { detectMcpClients } from "./client-config.js";
 import { runConnect } from "./connect.js";
@@ -53,7 +53,7 @@ export interface CliOptions {
   readonly io?: CliIo;
   readonly env?: NodeJS.ProcessEnv;
   readonly cwd?: string;
-  /** Blocks the two commands that would spend, so a test can never broadcast. */
+  /** Blocks `settle --broadcast`, the one command that spends, so a test can never broadcast. */
   readonly allowBroadcast?: boolean;
 }
 
@@ -397,7 +397,7 @@ export async function runCli(argv: readonly string[], options: CliOptions = {}):
   const command = flags.positional[0];
 
   if (flags.booleans.has("version")) {
-    io.out("0.0.0");
+    io.out(TAB_MCP_SERVER_INFO.version);
     return 0;
   }
   if (command === undefined || flags.booleans.has("help") || command === "help") {

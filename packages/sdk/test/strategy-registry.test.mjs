@@ -13,11 +13,11 @@ import {
   validatePaymentStrategy,
 } from "../dist/index.js";
 
-const USDC_TESTNET = {
+const MUSDC_TESTNET = {
   chainId: 10143n,
-  address: "0x5d519A1E8cF4Edd7067FD631047E6869E9a7e4fE",
+  address: "0x480209747417f5c830fDA188a9b9AcFa70Bc4083",
   decimals: 6,
-  symbol: "USDC",
+  symbol: "mUSDC",
 };
 const USDC_MAINNET = {
   chainId: 143n,
@@ -96,13 +96,13 @@ test("resolution takes an explicit id first, then registration order", () => {
   registerPaymentStrategy(testnet);
   registerPaymentStrategy(alsoTestnet);
 
-  assert.equal(resolvePaymentStrategy({ asset: USDC_TESTNET }).value.id, "testnet");
+  assert.equal(resolvePaymentStrategy({ asset: MUSDC_TESTNET }).value.id, "testnet");
   assert.equal(
-    resolvePaymentStrategy({ asset: USDC_TESTNET, strategyId: "also-testnet" }).value.id,
+    resolvePaymentStrategy({ asset: MUSDC_TESTNET, strategyId: "also-testnet" }).value.id,
     "also-testnet",
   );
 
-  const unknown = resolvePaymentStrategy({ asset: USDC_TESTNET, strategyId: "nope" });
+  const unknown = resolvePaymentStrategy({ asset: MUSDC_TESTNET, strategyId: "nope" });
   assert.equal(unknown.ok, false);
   assert.equal(unknown.error.code, "STRATEGY_NOT_FOUND");
 
@@ -123,7 +123,7 @@ test("injected strategies resolve before module-level ones and an isolated regis
     injected.list().map((s) => s.id),
     ["injected", "module"],
   );
-  assert.equal(injected.resolve({ asset: USDC_TESTNET }).value.id, "injected");
+  assert.equal(injected.resolve({ asset: MUSDC_TESTNET }).value.id, "injected");
   assert.equal(injected.get("module").id, "module");
 
   const isolated = createStrategyRegistry({ strategies: [stubStrategy("only", 10143n)], inherit: false });
@@ -135,7 +135,7 @@ test("injected strategies resolve before module-level ones and an isolated regis
 
   // Removing an injected strategy never reaches into the module-level registry.
   injected.unregister("injected");
-  assert.equal(injected.resolve({ asset: USDC_TESTNET }).value.id, "module");
+  assert.equal(injected.resolve({ asset: MUSDC_TESTNET }).value.id, "module");
   assert.deepEqual(
     listPaymentStrategies().map((s) => s.id),
     ["module"],
@@ -155,7 +155,7 @@ test("a supports() that throws is read as unsupported rather than taking down th
     logger,
   });
 
-  assert.equal(registry.resolve({ asset: USDC_TESTNET }).value.id, "sound");
+  assert.equal(registry.resolve({ asset: MUSDC_TESTNET }).value.id, "sound");
   assert.equal(
     logger.lines.some((line) => line.level === "warn" && line.fields.strategyId === "hostile"),
     true,

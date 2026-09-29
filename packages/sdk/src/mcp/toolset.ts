@@ -4,7 +4,7 @@
  * The MCP protocol wiring lives next door in `server.ts`. This file is the
  * behaviour, and it is separate so the tools can be exercised without a
  * transport: every test in `test/mcp-tools.test.mjs` calls these directly, which
- * is what lets task 16.3 validate every output against its declared schema
+ * is what lets the suite validate every output against its declared schema
  * without standing a server up.
  *
  * ## Nothing here throws, including into the transport
@@ -18,11 +18,10 @@
  * the payload, and for `tab_call` and `tab_settle` it is `ok: false` beside it.
  *
  * `LIMIT_EXCEEDED` is the case that earns the discipline. An Agent out of
- * headroom is not an error in the Agent, the Service, or the call -- it is the
+ * headroom is not an error in the Agent, the Service, or the call: it is the
  * credit facility working. The tool answers `ok: false` with
  * `requiredBaseUnits` and `headroomBaseUnits` both filled in, so the model can
  * settle the difference and call again instead of retrying into the same wall.
- *
  *
  * ## Every input is validated against the schema that was published
  *

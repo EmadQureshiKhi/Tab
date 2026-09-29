@@ -1,5 +1,5 @@
 /**
- * A consumer's config file: mechanism three, with no application code.
+ * A consumer's config file: a strategy wired in with no application code.
  *
  * Written as `.mjs` rather than `.ts` so a plain Node process loads it, which is
  * the case the loader has to keep working for. The entry is a module specifier,

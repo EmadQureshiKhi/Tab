@@ -22,9 +22,9 @@ import {
 
 const silent = { debug: () => {}, info: () => {}, warn: () => {}, error: () => {} };
 
-const AGENT = "0x1f6f797edc2eecb02bd54009b805fb2e99f80542";
+const AGENT = "0x00000000000000000000000000000000000a9e17";
 const SERVICE_ID = `0x${"11".repeat(32)}`;
-const USDC = { chainId: 10143n, address: "0x5d519a1e8cf4edd7067fd631047e6869e9a7e4fe", decimals: 6, symbol: "USDC" };
+const USDC = { chainId: 10143n, address: "0x480209747417f5c830fda188a9b9acfa70bc4083", decimals: 6, symbol: "mUSDC" };
 const MON = { address: KURU_NATIVE_TOKEN, decimals: 18, symbol: "MON" };
 const ROUTER = "0x7EFbE105Ca7415dE98F96622173458ac1c054630";
 const MARKET = "0x065C9d28E428A0db40191a54d33d5b7c71a9C394";

@@ -31,8 +31,8 @@
  * ## 402 is the exception, not the path
  *
  * The normal path is 200, delivery recorded, charge headers attached. `402`
- * happens on `LimitExceeded` alone, the Agent's Open Tab for the Asset has no
- * headroom for this charge, which is a credit decision and not a prepayment
+ * happens on `LimitExceeded` alone (the Agent's Open Tab for the Asset has no
+ * headroom for this charge), which is a credit decision and not a prepayment
  * demand. When it happens the body carries the required amount and the current
  * headroom, and the same figures go out as headers, so the 402 client in
  * `http/client-402.ts` reads a refusal with the identical parser it uses on a success.

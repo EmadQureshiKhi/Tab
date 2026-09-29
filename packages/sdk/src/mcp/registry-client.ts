@@ -35,7 +35,7 @@
  */
 
 import type { Result, TabError } from "@tabai/shared";
-import { ok } from "@tabai/shared";
+import { HTTP_STATUS_BY_CATEGORY, ok } from "@tabai/shared";
 
 import { tabError, upstreamError, validationError } from "../errors.js";
 import { defaultLogger, type Logger } from "../logger.js";
@@ -105,7 +105,8 @@ const hostFetch = (): RegistryFetch | undefined => {
   return typeof candidate === "function" ? (candidate as RegistryFetch) : undefined;
 };
 
-const CATEGORIES = ["VALIDATION", "NOT_FOUND", "CONFLICT", "UPSTREAM", "CHAIN", "TIMEOUT", "INTERNAL"] as const;
+/** Every `ErrorCategory`, read off the shared status table so the two cannot disagree. */
+const CATEGORIES: readonly string[] = Object.keys(HTTP_STATUS_BY_CATEGORY);
 
 /**
  * Reads the read API's own error body back into a `TabError`.
@@ -120,7 +121,7 @@ function upstreamFailure(url: string, status: number, body: unknown): Result<nev
   const error = isRecord(body) ? body["error"] : undefined;
   if (isRecord(error)) {
     const category = asString(error["category"], "");
-    if ((CATEGORIES as readonly string[]).includes(category)) {
+    if (CATEGORIES.includes(category)) {
       return {
         ok: false,
         error: tabError(

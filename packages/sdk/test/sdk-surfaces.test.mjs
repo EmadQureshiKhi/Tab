@@ -1,7 +1,7 @@
 /**
- * Task 15.6: the six SDK surface assertions, in one place.
+ * The six SDK surface assertions, in one place.
  *
- * Four of the six are already asserted where the surface lives, and are named
+ * Five of the six are already asserted where the surface lives, and are named
  * here rather than duplicated, so a change to one of them fails exactly one
  * test file:
  *
@@ -31,9 +31,9 @@ import { tabPostPaid } from "../dist/server/index.js";
 import { createTabProxy } from "../dist/proxy/index.js";
 
 const AGENT = "0x00000000000000000000000000000000000000a1";
-const PAYER = "0xa302940db97345c5adaf8da23ff46ae63613d728";
-const COLLECTION = "0x952acc70e6f54ce87dca963193a5957bcb27729e";
-const TAB_SETTLEMENT = "0x0dabf8e52280d0f128f546602a99b6dc4fbb80dc";
+const PAYER = "0x00000000000000000000000000000000000000fa";
+const COLLECTION = "0x000000000000000000000000000000000000c011";
+const TAB_SETTLEMENT = "0x32a96bfeabe766b4898b961b333b7b89f079a9a9";
 const SERVICE_ID = `0x${"11".repeat(32)}`;
 const TOOL = `0x${"22".repeat(32)}`;
 const SETTLEMENT_ID = `0x${"33".repeat(32)}`;

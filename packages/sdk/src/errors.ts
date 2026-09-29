@@ -1,8 +1,8 @@
 /**
  * Error constructors for the SDK.
  *
- * Nothing exported from this package throws, so
- * every fallible call ends in one of these. The categories, codes, and the
+ * Nothing exported from this package throws, so every fallible call ends in one
+ * of these. The categories, codes, and the
  * status each category maps to all come from `@tabai/shared`; this module only
  * saves every call site from writing the same object literal.
  */

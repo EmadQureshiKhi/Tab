@@ -9,7 +9,7 @@
  * `limit` or emits an amount as a `number` has broken the schema its caller was
  * reasoning against, and nothing in the process notices. So the four tools in
  * this package validate every input against the schema they publish, and the
- * test suite validates every output against the schema they publish (task 16.3).
+ * test suite validates every output against the schema they publish.
  *
  * The validator is 200 lines rather than a dependency because the schemas here
  * use ten keywords between them, this package adds no dependency for the MCP

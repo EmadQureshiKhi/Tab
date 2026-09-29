@@ -5,7 +5,7 @@
  * `tabPostPaid` is the whole product claim in one function. A Service installs it,
  * keeps writing handlers the way it already does, and its Open Tab accrues behind
  * each delivered response. No caller prepays, no response waits on a payment, and
- * the one status this surface adds is a `402` on `LimitExceeded`, a credit
+ * the one status this surface adds is a `402` on `LimitExceeded`: a credit
  * decision, not a prepayment demand.
  *
  * The adapters are thin by design and carry no dependency on the framework they

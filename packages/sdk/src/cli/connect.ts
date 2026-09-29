@@ -18,7 +18,7 @@
  * ## Nothing here is a secret
  *
  * The stanza carries a command, its arguments, and at most two URLs. Every value
- * in it is publishable. {@link assertNoSecret} runs over the merged document
+ * in it is publishable. {@link assertNoSecret} runs over the `tab` stanza
  * before anything is written, so the property is enforced rather than asserted
  * in a comment.
  */

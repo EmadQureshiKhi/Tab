@@ -24,7 +24,7 @@ import {
 } from "../dist/http/index.js";
 
 const MAINNET_USDC = "0x754704Bc059F8C67012fEd69BC8A327a5aafb603";
-const AGENT = "0xE5eaB26CaE0855BcCaBBb9A64faFce28C8432b37";
+const AGENT = "0x00000000000000000000000000000000000a9e17";
 const SERVICE_ID = "0x7461622e64656d6f2d7365727669636500000000000000000000000000000000";
 /** `quote`, right-padded to a 32-byte word: the shape a `bytes32` tool key takes. */
 const TOOL = `0x71756f7465${"0".repeat(54)}`;

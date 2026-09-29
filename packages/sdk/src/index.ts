@@ -2,17 +2,16 @@
  * `@tabai/sdk` is the published client surface. It may draw on `@tabai/shared`
  * and on nothing else inside the workspace.
  *
- * Three surfaces, and the shape of the product is visible in how they relate:
+ * Five surfaces, and the shape of the product is visible in how they relate:
  *
  * - **`payments/`** - the strategy seam. The interface a Settlement goes through,
  *   the Monad strategy this package ships, and the three ways a consumer adds a
  *   strategy of their own without editing a file in here.
- * - **`http/`**, the wire contract and the Agent's side of it. `headers.ts` is the
+ * - **`http/`** - the wire contract and the Agent's side of it. `headers.ts` is the
  *   single definition of the `Tab-*` format, and `client-402.ts` is the post-paid
  *   402 client that reads it.
- * - **`server/`**, the Service's side. `tabPostPaid` accrues after a delivery and
- *   never withholds a response, with adapters for Hono, Express, and Next.js
- *  .
+ * - **`server/`** - the Service's side. `tabPostPaid` accrues after a delivery and
+ *   never withholds a response, with adapters for Hono, Express, and Next.js.
  * - **`proxy/`** - the Service's front door. `createTabProxy` forwards a request
  *   upstream under the metering plugin and runs hooks around it, and a
  *   hook can attach the Settlement that covers a proxied request.

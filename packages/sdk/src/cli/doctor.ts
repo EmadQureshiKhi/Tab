@@ -10,7 +10,7 @@
  * key configured" is the answer to why `tab_settle` will refuse, and printing the
  * key would be the worst possible way to say it.
  *
- * ## Three outcomes, not two
+ * ## Four outcomes, not two
  *
  * A check answers `pass`, `warn`, `fail` or `skip`, and the distinction carries
  * weight. A missing registry read API is a `warn`: discovery and status will not

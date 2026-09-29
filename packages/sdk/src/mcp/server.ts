@@ -58,10 +58,9 @@ import { createTabToolset, type TabToolset } from "./toolset.js";
  * The name and version this server reports to a client.
  *
  * The version is read from the package rather than written here. A second copy
- * of a version number is a copy that goes stale on the next release without
- * anything failing, and this one already had: the package shipped 0.1.3 while
- * every client was told 0.1.0, which is the wrong answer to give a client
- * deciding whether it is talking to a build with a fix in it.
+ * of a version number goes stale on the next release without anything failing,
+ * and a client deciding whether it is talking to a build with a fix in it needs
+ * the real one.
  */
 const PACKAGE_VERSION: string = (() => {
   try {
@@ -70,7 +69,7 @@ const PACKAGE_VERSION: string = (() => {
     ).version ?? "0.0.0";
   } catch {
     // A bundler that inlines this module without the manifest beside it. Better a
-    // known-unknown than a number that was true once.
+    // known-unknown than a number that may be stale.
     return "0.0.0";
   }
 })();

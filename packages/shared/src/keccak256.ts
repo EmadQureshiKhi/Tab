@@ -2,18 +2,18 @@
  * Keccak-256, written against native `bigint`.
  *
  * `@tabai/shared` carries zero runtime dependencies, and Keccak-256 is not
- * SHA3-256, the two differ in their padding byte, so the platform hash
+ * SHA3-256 (the two differ in their padding byte), so the platform hash
  * primitives cannot stand in for it. The permutation below is therefore
  * implemented here: 24 rounds of Keccak-f[1600] over 25 64-bit lanes, rate 136
  * bytes, capacity 64 bytes, `0x01` domain padding.
  *
  * Correctness is pinned by published digests in `test/keccak256.test.mjs`: the
  * empty-input digest, the `abc` digest, and the ERC-20 `Transfer` and `Approval`
- * event topics any chain explorer shows. The permutation was additionally
- * cross-checked against the platform SHA3-256, same permutation, same rate,
- * different padding byte, at input lengths spanning the 136-byte block
- * boundary. It is used only to derive a handful of event topic hashes at module
- * load, so the `bigint` lane representation costs nothing that matters.
+ * event topics any chain explorer shows, plus a multi-block vector whose SHA3-256
+ * sibling (same permutation and rate, different padding byte) matches the
+ * platform hash across the 136-byte block boundary. It is used only to derive a
+ * handful of event topics and typehashes at module load, so the `bigint` lane
+ * representation costs nothing that matters.
  */
 
 import type { Bytes32 } from "./hex.js";

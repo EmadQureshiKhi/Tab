@@ -13,7 +13,7 @@
  * consumer of this package will ever set.
  */
 export default {
-  agent: "0x1f6f797edc2eecb02bd54009b805fb2e99f80542",
+  agent: "0x00000000000000000000000000000000000a9e17",
   registryUrl: "http://registry.example",
   services: [
     {

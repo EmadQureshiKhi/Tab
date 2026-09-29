@@ -3,9 +3,12 @@
  * indexer, and the dashboard.
  *
  * Only what is fixed and independently checkable lives here: canonical event
- * signatures and the topic hashes derived from them. Full ABI arrays come from
- * the Foundry artefacts in `packages/contracts/out`, never from a hand
- * transcription, so there is one source of truth for every selector.
+ * signatures and the topic hashes derived from them, the Permit2 witness types,
+ * and short human-readable fragments for the few functions callers reach
+ * directly (the Permit2 settlement path on `TabSettlement`, the slice of
+ * Permit2 a signer touches, and the ERC-8004 registries). The fragments are
+ * transcribed by hand, so each carries only the members a caller uses; the
+ * `SettlementApplied` topic is pinned by a test against the compiled `TabBook`.
  */
 import { keccak256Ascii } from "./keccak256.js";
 import type { Bytes32 } from "./hex.js";

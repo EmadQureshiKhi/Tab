@@ -1,5 +1,5 @@
 /**
- * Task 16.3, second half: `connect` is idempotent and writes no key.
+ * `connect` is idempotent and writes no key.
  *
  * Both claims are load-bearing. Idempotent, because the file being edited is one
  * the MCP client also writes, and a command that rewrote it on every run would
@@ -14,7 +14,8 @@
 import assert from "node:assert/strict";
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 
 import {
@@ -33,7 +34,7 @@ import {
 const silent = { debug: () => {}, info: () => {}, warn: () => {}, error: () => {} };
 
 const settings = (overrides = {}) => ({
-  agent: "0x1f6f797edc2eecb02bd54009b805fb2e99f80542",
+  agent: "0x00000000000000000000000000000000000a9e17",
   registryUrl: undefined,
   rpcUrl: "https://testnet-rpc.monad.xyz",
   chainId: 10143,
@@ -362,7 +363,8 @@ test("the CLI answers help and an unknown command without throwing", async () =>
 
   lines.length = 0;
   assert.equal(await runCli(["--version"], { io }), 0);
-  assert.equal(lines[0], "0.0.0");
+  const manifest = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "package.json"), "utf8"));
+  assert.equal(lines[0], manifest.version);
 });
 
 test("the CLI connect command is idempotent end to end and prints the no-key guarantee", async (t) => {
@@ -391,7 +393,7 @@ test("the CLI settle command refuses to broadcast when the process forbids it", 
   const dir = sandbox(t);
   const lines = [];
   const code = await runCli(
-    ["settle", "--service", `0x${"11".repeat(32)}`, "--asset", "1:0x534b2f3a21130d7a60830c2df862319e593943a3", "--amount", "1", "--broadcast"],
+    ["settle", "--service", `0x${"11".repeat(32)}`, "--asset", "10143:0x534b2f3A21130d7a60830c2Df862319e593943A3", "--amount", "1", "--broadcast"],
     { io: { out: (l) => lines.push(l), err: (l) => lines.push(l) }, env: {}, cwd: dir, allowBroadcast: false },
   );
   assert.equal(code, 1);

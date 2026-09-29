@@ -55,9 +55,9 @@ test("loading a config registers every strategy it names, module-wide", async ()
     ["plugin-strategy"],
   );
 
-  // A strategy for a chainId this package ships no support for now resolves.
+  // The third-party strategy now resolves for the Asset it supports.
   const resolved = createStrategyRegistry({ logger: silent }).resolve({
-    asset: { chainId: 7n, address: `0x${"cd".repeat(20)}`, decimals: 8, symbol: "XYZ" },
+    asset: { chainId: 10143n, address: "0x480209747417f5c830fDA188a9b9AcFa70Bc4083", decimals: 6, symbol: "mUSDC" },
   });
   assert.equal(resolved.ok, true);
   assert.equal(resolved.value.id, "plugin-strategy");
@@ -120,10 +120,10 @@ test("a config naming a module that resolves to nothing reports the specifier", 
 test("a factory that declines leaves the rest of the config standing", async () => {
   // The documented keyless pattern: the strategy needs a signer, there is none,
   // so the factory returns undefined. Every read on this rail is keyless,
-  // so that is an ordinary environment and not a broken config. Before this was
-  // handled, `undefined` reached the strategy validator, the whole file was
-  // discarded, and `doctor` reported "no Agent address is configured" against a
-  // config file that configured one.
+  // so that is an ordinary environment and not a broken config. Were `undefined`
+  // to reach the strategy validator, the whole file would be discarded and
+  // `doctor` would report "no Agent address is configured" against a config file
+  // that configures one.
   delete globalThis.__tabKeylessFixtureSigner;
   const loaded = await loadTabConfig({
     cwd: join(HERE, "fixtures", "keyless"),
@@ -133,7 +133,7 @@ test("a factory that declines leaves the rest of the config standing", async () 
 
   assert.equal(loaded.ok, true);
   assert.deepEqual(loaded.value.strategies, []);
-  assert.equal(loaded.value.config.agent, "0x1f6f797edc2eecb02bd54009b805fb2e99f80542");
+  assert.equal(loaded.value.config.agent, "0x00000000000000000000000000000000000a9e17");
   assert.equal(loaded.value.config.registryUrl, "http://registry.example");
   assert.equal(loaded.value.config.services.length, 1);
 });

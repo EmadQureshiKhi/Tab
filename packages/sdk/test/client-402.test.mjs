@@ -14,7 +14,7 @@ import { TAB_HEADER, createTab402Client } from "../dist/http/index.js";
 
 const BASE_URL = "https://quotes.example/api/";
 const MAINNET_USDC = "0x754704Bc059F8C67012fEd69BC8A327a5aafb603";
-const AGENT = "0xE5eaB26CaE0855BcCaBBb9A64faFce28C8432b37";
+const AGENT = "0x00000000000000000000000000000000000a9e17";
 const SERVICE_ID = "0x7461622e64656d6f2d7365727669636500000000000000000000000000000000";
 const TOOL = `0x71756f7465${"0".repeat(54)}`;
 const AUTH_KEY = `0x${"ab".repeat(32)}`;
@@ -157,7 +157,7 @@ test("a 402 records the required amount, repeats exactly once, and settles nothi
 
   // The repeat carries identity and nothing else. No signer, no allowance, no
   // transaction: settlement is asynchronous and Agent-initiated, and a payment
-  // step here would be the prepay model this rail replaces.
+  // step here would turn a post-paid call into a prepaid one.
   assert.equal(calls[1].init.authorization, undefined);
   assert.equal(calls[1].init.headers["X-Payment"], undefined);
 
@@ -345,7 +345,7 @@ test("bad client input is reported by the call, not by the constructor, and send
 });
 
 test("the caller's own headers win, and every accepted header shape is merged", async () => {
-  const other = "0x621663045265405B65d2afD1c22bC7254f8E1dec";
+  const other = "0x00000000000000000000000000000000000a9e18";
 
   const explicit = clientOver([response()]);
   await explicit.client.fetch("quote", { headers: { [TAB_HEADER.agent]: other } });
@@ -394,12 +394,12 @@ test("the charge history is bounded while the totals stay exact", async () => {
 
 test("the strategy id is recorded for the later settlement path and used by nothing here", async () => {
   const { client, calls } = clientOver([response({ headers: chargeHeaders() })], {
-    strategyId: "ethereum-usdc",
+    strategyId: "monad",
   });
 
   const result = await client.fetch("quote");
   assert.equal(result.ok, true);
-  assert.equal(client.charges()[0].strategyId, "ethereum-usdc");
+  assert.equal(client.charges()[0].strategyId, "monad");
   // It travels on no header and changes no request.
   assert.equal(calls[0].init.headers["Tab-Strategy"], undefined);
 });

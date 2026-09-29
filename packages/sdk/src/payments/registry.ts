@@ -17,8 +17,8 @@
  * ## Why the module-level state hangs off `globalThis`
  *
  * A plugin package that self-registers on import may resolve a *different copy*
- * of `@tabai/sdk` than the application does, different versions, a nested
- * `node_modules`, a bundled duplicate. With module-scoped state each copy gets
+ * of `@tabai/sdk` than the application does (different versions, a nested
+ * `node_modules`, a bundled duplicate). With module-scoped state each copy gets
  * its own registry, the plugin registers into a registry the application never
  * reads, and the failure is silent: the strategy simply never resolves. So the
  * state lives under a versioned `Symbol.for` key on `globalThis` and every copy
@@ -143,7 +143,7 @@ export function createStrategyRegistry(options: StrategyRegistryOptions = {}): S
   return registry;
 }
 
-/** The process-wide registry mechanism two writes to. */
+/** The process-wide registry that {@link registerPaymentStrategy} writes to. */
 export function moduleStrategyRegistry(logger?: Logger): StrategyRegistry {
   return registryOver(moduleState().strategies, logger ?? defaultLogger, () => undefined);
 }
@@ -151,8 +151,8 @@ export function moduleStrategyRegistry(logger?: Logger): StrategyRegistry {
 /**
  * Registers a strategy process-wide. Idempotent by `strategy.id`.
  *
- * This is the whole of mechanism two: a plugin package calls it at import time,
- * and the consumer's only line is `import "@acme/tab-strategy-solana"`.
+ * A plugin package calls it at import time, and the consumer's only line is
+ * `import "@acme/tab-strategy-session-key"`.
  */
 export function registerPaymentStrategy(
   strategy: PaymentStrategy,

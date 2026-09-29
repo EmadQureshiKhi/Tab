@@ -1,10 +1,9 @@
 /**
  * Chain and Asset constants for Tab on Monad.
  *
- * Tab runs on one chain. The Agent's payment and the ledger entry happen in the
- * same Monad transaction, so nothing in the system refers to any other chain.
- * What this module carries is which Monad network a deployment targets and
- * which Assets it settles in.
+ * The Agent's payment and the ledger entry happen in the same Monad
+ * transaction. What this module carries is which Monad network a deployment
+ * targets and which Assets it settles in.
  *
  * Addresses of Tab's own contracts are deployment output and live in
  * `deployments.json`, never here.
@@ -171,9 +170,7 @@ export function erc8004RegistriesFor(chainId: number | bigint): Erc8004Registrie
   return isMonadChainId(narrowed) ? ERC8004_REGISTRIES[narrowed] : undefined;
 }
 
-export const PLACEHOLDER_ADDRESS = "0x0000000000000000000000000000000000000000" as const;
-
-/** Formats base units of a six-decimal Asset for display, without floating point. */
+/** Formats an amount in base units at the given decimals for display, without floating point. */
 export function formatBaseUnits(amount: bigint, decimals: number): string {
   const negative = amount < 0n;
   const abs = negative ? -amount : amount;

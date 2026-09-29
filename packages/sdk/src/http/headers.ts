@@ -21,11 +21,11 @@
  * | `Tab-Agent` | request | yes on a metered call | `0x` 20-byte address: the Agent's Monad address, its identity on the rail |
  * | `Tab-Authorisation` | request | optional | `0x` 32-byte word: the `authKey` the Service should meter against |
  *
- * ## Five decisions the table does not show, each of which 15.3 must match
+ * ## Five decisions the table does not show, which both halves hold to
  *
  * **1. The six response headers are one all-or-nothing block.** A response
  * carrying none of them is simply not a metered response, and
- * {@link parseChargeHeaders} returns `ok(undefined)` for it, an unmetered health
+ * {@link parseChargeHeaders} returns `ok(undefined)` for it: an unmetered health
  * endpoint behind the same client must not become an error. A response carrying
  * *some* of them is a malformed metered response and is an `err`, because the
  * alternative is a client that silently records a charge against the wrong Asset
@@ -37,7 +37,7 @@
  * decimals, so `10_000` is one cent, and an Open Tab routinely exceeds the range
  * a float represents exactly. `Number.parseInt` would round a large Open Tab into
  * something that still looks plausible, which is worse than failing. The grammar
- * is deliberately narrow, `/^[0-9]+$/`, so `1e6`, `1.0`, `1_000`, `+1`, `-1`,
+ * is deliberately narrow (`/^[0-9]+$/`), so `1e6`, `1.0`, `1_000`, `+1`, `-1`,
  * `0x10`, and `1,000` are all rejected rather than coerced.
  *
  * **3. `Tab-Charge-Asset` carries the chain id and the Asset address and nothing
@@ -59,10 +59,10 @@
  * client that reports two Open Tabs where there is one. A `bytes32` word has no
  * checksum convention to normalise, so it is carried through byte-for-byte.
  *
- * A `bytes32` tool key is usually a short name right-padded with zero bytes -
- * `0x7461622e64656d6f…` is `tab.demo`, but nothing
- * here decodes it. The key is what `ServiceRegistry.priceOf` is keyed on, and it
- * is carried as the word it is so it round-trips into a contract call unchanged.
+ * A `bytes32` tool key is usually a short name right-padded with zero bytes
+ * (`0x7461622e64656d6f…` is `tab.demo`), but nothing here decodes it. The key
+ * is what `ServiceRegistry.priceOf` is keyed on, and it is carried as the word it
+ * is so it round-trips into a contract call unchanged.
  */
 
 import {

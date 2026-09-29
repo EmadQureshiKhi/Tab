@@ -224,9 +224,10 @@ const SECRET_SHAPE = /^(0x)?[0-9a-fA-F]{64}$/;
  *
  * Both a name check and a shape check, because either alone is defeated by the
  * obvious mistake: a key under an innocuous name has the shape, and an empty
- * placeholder under `PRIVATE_KEY` has the name. This runs on the merged document
- * before it is written, so it also catches a secret that was already in the file
- * under the `tab` key from an earlier hand edit.
+ * placeholder under `PRIVATE_KEY` has the name. `connect` runs this on the `tab`
+ * stanza it is about to write, before anything touches the disk, and
+ * `tab doctor` runs it on the stanza already in the file, which is where a
+ * secret added by hand shows up.
  */
 export function assertNoSecret(stanza: unknown, where = "the tab stanza"): Result<void> {
   const problems: string[] = [];
