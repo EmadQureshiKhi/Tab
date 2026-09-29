@@ -17,8 +17,8 @@
  * Open Tab for the upstream's price plus a margin. The Agent buys on credit
  * from a pay-per-request API.
  *
- * What x402 never does here is replace credit. A request without a signature
- * is served on the Open Tab as before, and the `402` is still issued on
+ * What x402 never does here is replace credit. A request without a
+ * `PAYMENT-SIGNATURE` is served on the Open Tab, and the `402` is issued on
  * `LimitExceeded` alone.
  *
  * ## Every environment read is spelled out
@@ -258,7 +258,8 @@ const eip712 = new Interface([...EIP712_ABI]);
  * facilitator cannot verify. ERC-5267's `eip712Domain()` is asked first,
  * which every OpenZeppelin token answers; Circle's FiatToken predates it and
  * answers `name()` and `version()` instead. A token that answers neither is
- * `ok(undefined)`, and the caller falls back to what it knows by symbol.
+ * `undefined`, and the offer falls back to the domain the SDK knows for the
+ * Asset's symbol, if any.
  */
 export async function readEip712Domain(provider: CallProvider, asset: string): Promise<{ readonly name: string; readonly version: string } | undefined> {
   try {

@@ -15,7 +15,7 @@ import { METERING_HEADER, meteringDigest } from "../dist/authorisation.js";
 import { TAB_BOOK_INTERFACE } from "../dist/tab-book.js";
 
 const OPERATOR = new Wallet(`0x${"11".repeat(32)}`);
-const AGENT = "0x1f6f797edc2eecb02bd54009b805fb2e99f80542";
+const AGENT = "0x0a11ce0000000000000000000000000000000001";
 const ASSET = "0x534b2f3a21130d7a60830c2df862319e593943a3";
 const SERVICE = "0x7461622e64656d6f000000000000000000000000000000000000000000000000";
 const TOOL = `0x${"33".repeat(32)}`;

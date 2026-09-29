@@ -26,7 +26,7 @@ const NOW = 1_788_700_000_000;
 const CLAIM = {
   method: "POST",
   path: "/meter/quote",
-  agent: "0x1f6f797edc2eecb02bd54009b805fb2e99f80542",
+  agent: "0x0a11ce0000000000000000000000000000000001",
   tool: `0x${"33".repeat(32)}`,
   units: 1,
   issuedAt: NOW,

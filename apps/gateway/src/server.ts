@@ -33,7 +33,7 @@
  * settles, and the response carries `PAYMENT-RESPONSE`. Nothing lands on the
  * Open Tab, because nothing is owed. The decision between the two paths is the
  * presence of that one request header and nothing else: without it, a request
- * is served on credit exactly as before.
+ * is served on credit.
  *
  * `/hub/<prefix>/*` is the reverse. It fronts an x402 upstream: the gateway pays
  * the upstream with the operator's key and meters the Agent for the upstream's
@@ -45,8 +45,9 @@
  *
  * The gateway holds the Service operator key, so an unauthenticated metering route
  * would let any stranger charge any Agent up to its whole authorisation ceiling.
- * Every metered route requires an operator signature over a digest that binds the
- * Agent, the tool, and the unit count, checked by {@link verifyMeteringRequest}.
+ * Every metered route requires a signature over a digest that binds the Agent, the
+ * tool, and the unit count, given either by the operator or by the Agent being
+ * metered, and checked by {@link verifyMeteringRequest}; see `authorisation.ts`.
  * The hub routes require the same signature, because each one also spends the
  * operator's x402 funds.
  */
@@ -103,7 +104,7 @@ export interface GatewayX402Options {
   readonly payTo: `0x${string}`;
   /** How long an offered authorization stays valid. Defaults to 300 seconds. */
   readonly maxTimeoutSeconds?: number;
-  /** The requirement's `extra`: the token's EIP-712 domain. Defaults to USDC's. */
+  /** The requirement's `extra`: the token's EIP-712 domain. Defaults to the one the SDK knows for the symbol. */
   readonly extra?: Readonly<Record<string, unknown>>;
 }
 

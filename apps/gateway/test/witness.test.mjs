@@ -23,8 +23,8 @@ import {
   checkOperatorKey,
 } from "../dist/witness.js";
 
-/** The record the chain folded, exactly as `HistoryExtended` carried it. */
-const LIVE_RECORD = {
+/** The record the Foundry suite's Settlement appended, exactly as `HistoryExtended` carried it. */
+const FOUNDRY_RECORD = {
   serviceId: "0xd37ecab293111cde4d55ae55ef81698410a4d151e97e01bdf9c40dbe8775fbb1",
   asset: "0x5615deb798bb3e4dfa0139dfa1b3d433cc23b72f",
   amount: 101000n,
@@ -34,15 +34,15 @@ const LIVE_RECORD = {
   bonded: true,
 };
 
-/** What `TabBook.historyCommitment` answers for that Agent and Asset. */
-const LIVE_ROOT = "0xc4de3598ef056b787e5da52c97f17ad79c0c342c8c7c62e7d5b618a15ffa7a0b";
+/** What `TabBook.historyCommitment` answers for that Agent and Asset in the Foundry suite. */
+const FOUNDRY_ROOT = "0xc4de3598ef056b787e5da52c97f17ad79c0c342c8c7c62e7d5b618a15ffa7a0b";
 
 const AGENT = "0x000000000000000000000000000000000000a6e7";
 
-test("the fold reproduces the root the chain committed", () => {
-  assert.equal(foldRoot(ZERO_ROOT, LIVE_RECORD), LIVE_ROOT);
-  const commitment = commitmentOf([LIVE_RECORD]);
-  assert.equal(commitment.root, LIVE_ROOT);
+test("the fold reproduces the root the contract committed", () => {
+  assert.equal(foldRoot(ZERO_ROOT, FOUNDRY_RECORD), FOUNDRY_ROOT);
+  const commitment = commitmentOf([FOUNDRY_RECORD]);
+  assert.equal(commitment.root, FOUNDRY_ROOT);
   assert.equal(commitment.count, 1);
 });
 
@@ -53,38 +53,38 @@ test("an empty history commits to the zero root, which is not a missing answer",
 
 test("changing any single field changes the root", () => {
   const fields = [
-    ["amount", { ...LIVE_RECORD, amount: 101001n }],
-    ["settledAt", { ...LIVE_RECORD, settledAt: 1788680686n }],
-    ["firstDeliveryAt", { ...LIVE_RECORD, firstDeliveryAt: 1n }],
-    ["curated", { ...LIVE_RECORD, curated: false }],
-    ["bonded", { ...LIVE_RECORD, bonded: false }],
+    ["amount", { ...FOUNDRY_RECORD, amount: 101001n }],
+    ["settledAt", { ...FOUNDRY_RECORD, settledAt: 1788680686n }],
+    ["firstDeliveryAt", { ...FOUNDRY_RECORD, firstDeliveryAt: 1n }],
+    ["curated", { ...FOUNDRY_RECORD, curated: false }],
+    ["bonded", { ...FOUNDRY_RECORD, bonded: false }],
   ];
   for (const [name, mutated] of fields) {
-    assert.notEqual(foldRoot(ZERO_ROOT, mutated), LIVE_ROOT, `${name} is not bound by the commitment`);
+    assert.notEqual(foldRoot(ZERO_ROOT, mutated), FOUNDRY_ROOT, `${name} is not bound by the commitment`);
   }
 });
 
 test("a HistoryExtended log decodes to the record the chain folded", () => {
   const encoded = HISTORY_INTERFACE.encodeEventLog(HISTORY_INTERFACE.getEvent("HistoryExtended"), [
     AGENT,
-    LIVE_RECORD.asset,
-    LIVE_ROOT,
+    FOUNDRY_RECORD.asset,
+    FOUNDRY_ROOT,
     1,
     [
-      LIVE_RECORD.serviceId,
-      LIVE_RECORD.asset,
-      LIVE_RECORD.amount,
-      LIVE_RECORD.settledAt,
-      LIVE_RECORD.firstDeliveryAt,
-      LIVE_RECORD.curated,
-      LIVE_RECORD.bonded,
+      FOUNDRY_RECORD.serviceId,
+      FOUNDRY_RECORD.asset,
+      FOUNDRY_RECORD.amount,
+      FOUNDRY_RECORD.settledAt,
+      FOUNDRY_RECORD.firstDeliveryAt,
+      FOUNDRY_RECORD.curated,
+      FOUNDRY_RECORD.bonded,
     ],
   ]);
   const decoded = recordFromLog({ topics: encoded.topics, data: encoded.data, blockNumber: 1, logIndex: 0 });
   assert.equal(decoded.ok, true);
   assert.equal(decoded.value.count, 1);
-  assert.deepEqual(decoded.value.record, LIVE_RECORD);
-  assert.equal(foldRoot(ZERO_ROOT, decoded.value.record), LIVE_ROOT);
+  assert.deepEqual(decoded.value.record, FOUNDRY_RECORD);
+  assert.equal(foldRoot(ZERO_ROOT, decoded.value.record), FOUNDRY_ROOT);
 });
 
 test("a log that is not a HistoryExtended is refused rather than misread", () => {
@@ -97,29 +97,29 @@ test("counterparties are distinct, scoped to the Asset, and in first-appearance 
   const other = "0x" + "ab".repeat(32);
   const otherAsset = "0x" + "cd".repeat(20);
   const history = [
-    LIVE_RECORD,
-    { ...LIVE_RECORD, serviceId: other },
-    LIVE_RECORD,
-    { ...LIVE_RECORD, asset: otherAsset, serviceId: "0x" + "ef".repeat(32) },
+    FOUNDRY_RECORD,
+    { ...FOUNDRY_RECORD, serviceId: other },
+    FOUNDRY_RECORD,
+    { ...FOUNDRY_RECORD, asset: otherAsset, serviceId: "0x" + "ef".repeat(32) },
   ];
-  const found = counterpartiesOf(history, LIVE_RECORD.asset);
-  assert.deepEqual(found, [LIVE_RECORD.serviceId, other]);
+  const found = counterpartiesOf(history, FOUNDRY_RECORD.asset);
+  assert.deepEqual(found, [FOUNDRY_RECORD.serviceId, other]);
 });
 
 test("an authorised Service counts as a counterparty before any Settlement, and never twice", async () => {
   // TabBook._isCounterparty accepts a Service the Agent has authorised, which is
   // what gives a brand-new Agent a limit backed by that Service's Bond.
   const fresh = "0x" + "ab".repeat(32);
-  assert.deepEqual(counterpartiesOf([], LIVE_RECORD.asset, [fresh]), [fresh]);
-  assert.deepEqual(counterpartiesOf([LIVE_RECORD], LIVE_RECORD.asset, [LIVE_RECORD.serviceId.toUpperCase()]), [
-    LIVE_RECORD.serviceId,
+  assert.deepEqual(counterpartiesOf([], FOUNDRY_RECORD.asset, [fresh]), [fresh]);
+  assert.deepEqual(counterpartiesOf([FOUNDRY_RECORD], FOUNDRY_RECORD.asset, [FOUNDRY_RECORD.serviceId.toUpperCase()]), [
+    FOUNDRY_RECORD.serviceId,
   ]);
 
-  const built = await buildWitness(fakeReader({ logs: [], commitment: { root: ZERO_ROOT, count: 0 } }), AGENT, LIVE_RECORD.asset, {
+  const built = await buildWitness(fakeReader({ logs: [], commitment: { root: ZERO_ROOT, count: 0 } }), AGENT, FOUNDRY_RECORD.asset, {
     authorised: [fresh],
   });
   assert.equal(built.ok, true);
-  assert.deepEqual(built.value.witness.bonds, [{ serviceId: fresh, asset: LIVE_RECORD.asset, amount: 5_000_000n }]);
+  assert.deepEqual(built.value.witness.bonds, [{ serviceId: fresh, asset: FOUNDRY_RECORD.asset, amount: 5_000_000n }]);
 });
 
 /** A reader whose answers a test dictates, so every branch is reachable offline. */
@@ -131,20 +131,20 @@ function fakeReader({ logs = [], commitment, staked = 5_000_000n }) {
   };
 }
 
-function liveLog(count = 1) {
+function foundryLog(count = 1) {
   const encoded = HISTORY_INTERFACE.encodeEventLog(HISTORY_INTERFACE.getEvent("HistoryExtended"), [
     AGENT,
-    LIVE_RECORD.asset,
-    LIVE_ROOT,
+    FOUNDRY_RECORD.asset,
+    FOUNDRY_ROOT,
     count,
     [
-      LIVE_RECORD.serviceId,
-      LIVE_RECORD.asset,
-      LIVE_RECORD.amount,
-      LIVE_RECORD.settledAt,
-      LIVE_RECORD.firstDeliveryAt,
-      LIVE_RECORD.curated,
-      LIVE_RECORD.bonded,
+      FOUNDRY_RECORD.serviceId,
+      FOUNDRY_RECORD.asset,
+      FOUNDRY_RECORD.amount,
+      FOUNDRY_RECORD.settledAt,
+      FOUNDRY_RECORD.firstDeliveryAt,
+      FOUNDRY_RECORD.curated,
+      FOUNDRY_RECORD.bonded,
     ],
   ]);
   return { topics: encoded.topics, data: encoded.data, blockNumber: 100, logIndex: 0 };
@@ -152,16 +152,16 @@ function liveLog(count = 1) {
 
 test("a witness that folds to the chain's commitment is returned with its evidence", async () => {
   const built = await buildWitness(
-    fakeReader({ logs: [liveLog()], commitment: { root: LIVE_ROOT, count: 1 } }),
+    fakeReader({ logs: [foundryLog()], commitment: { root: FOUNDRY_ROOT, count: 1 } }),
     AGENT,
-    LIVE_RECORD.asset,
+    FOUNDRY_RECORD.asset,
   );
   assert.equal(built.ok, true);
-  assert.equal(built.value.rebuilt.root, LIVE_ROOT);
-  assert.equal(built.value.onChain.root, LIVE_ROOT);
+  assert.equal(built.value.rebuilt.root, FOUNDRY_ROOT);
+  assert.equal(built.value.onChain.root, FOUNDRY_ROOT);
   assert.equal(built.value.witness.history.length, 1);
   assert.deepEqual(built.value.witness.bonds, [
-    { serviceId: LIVE_RECORD.serviceId, asset: LIVE_RECORD.asset, amount: 5_000_000n },
+    { serviceId: FOUNDRY_RECORD.serviceId, asset: FOUNDRY_RECORD.asset, amount: 5_000_000n },
   ]);
 });
 
@@ -169,9 +169,9 @@ test("a witness that does not fold is refused here rather than by a paid-for rev
   const built = await buildWitness(
     // The chain reports a root over two records while only one log came back, which
     // is exactly what a missed log looks like.
-    fakeReader({ logs: [liveLog()], commitment: { root: `0x${"22".repeat(32)}`, count: 2 } }),
+    fakeReader({ logs: [foundryLog()], commitment: { root: `0x${"22".repeat(32)}`, count: 2 } }),
     AGENT,
-    LIVE_RECORD.asset,
+    FOUNDRY_RECORD.asset,
   );
   assert.equal(built.ok, false);
   assert.equal(built.error.code, "WITNESS_COMMITMENT_MISMATCH");
@@ -182,8 +182,8 @@ test("a witness that does not fold is refused here rather than by a paid-for rev
 test("logs are ordered by the count the contract assigned, not by arrival", async () => {
   // Two records, delivered in reverse. Only the contract's own ordering folds to a
   // root it would accept, so a builder that trusted arrival order would break here.
-  const second = { ...LIVE_RECORD, amount: 5n, settledAt: 1788680999n };
-  const expected = commitmentOf([LIVE_RECORD, second]);
+  const second = { ...FOUNDRY_RECORD, amount: 5n, settledAt: 1788680999n };
+  const expected = commitmentOf([FOUNDRY_RECORD, second]);
 
   const encodeAt = (record, count) => {
     const encoded = HISTORY_INTERFACE.encodeEventLog(HISTORY_INTERFACE.getEvent("HistoryExtended"), [
@@ -205,12 +205,12 @@ test("logs are ordered by the count the contract assigned, not by arrival", asyn
   };
 
   const built = await buildWitness(
-    fakeReader({ logs: [encodeAt(second, 2), encodeAt(LIVE_RECORD, 1)], commitment: expected }),
+    fakeReader({ logs: [encodeAt(second, 2), encodeAt(FOUNDRY_RECORD, 1)], commitment: expected }),
     AGENT,
-    LIVE_RECORD.asset,
+    FOUNDRY_RECORD.asset,
   );
   assert.equal(built.ok, true);
-  assert.equal(built.value.witness.history[0].amount, LIVE_RECORD.amount);
+  assert.equal(built.value.witness.history[0].amount, FOUNDRY_RECORD.amount);
   assert.equal(built.value.witness.history[1].amount, 5n);
 });
 
@@ -222,7 +222,7 @@ test("a failing chain read is reported, never treated as an empty history", asyn
       staked: async () => ({ ok: true, value: 0n }),
     },
     AGENT,
-    LIVE_RECORD.asset,
+    FOUNDRY_RECORD.asset,
   );
   assert.equal(built.ok, false);
   assert.equal(built.error.code, "CHAIN_READ_FAILED");
@@ -245,7 +245,7 @@ test("a failing chain read is reported, never treated as an empty history", asyn
  * configuration one.
  */
 const SERVICE_ID = `0x${"7461622e64656d6f".padEnd(64, "0")}`;
-const OPERATOR = "0xe5eab26cae0855bccabbb9a64fafce28c8432b37";
+const OPERATOR = "0x0bee000000000000000000000000000000000002";
 
 const operatorReader = (answer) => ({
   async historyLogs() { throw new Error("unused"); },
@@ -261,21 +261,21 @@ test("the operator check passes when the key signs as the registered operator", 
 });
 
 test("the operator check is case-insensitive on the configured address", async () => {
-  const checksummed = "0xE5eaB26CaE0855BcCaBBb9A64faFce28C8432b37";
+  const checksummed = "0x0BeE000000000000000000000000000000000002";
   const result = await checkOperatorKey(operatorReader({ ok: true, value: OPERATOR }), SERVICE_ID, checksummed);
   assert.equal(result.ok, true, "a checksummed address is the same address");
 });
 
 test("the operator check names both addresses when the key is wrong", async () => {
-  const wrong = "0x6db158320312778e3c4429472a4b7132d597ac38";
+  const wrong = "0x5e71ce0000000000000000000000000000000004";
   const result = await checkOperatorKey(operatorReader({ ok: true, value: OPERATOR }), SERVICE_ID, wrong);
 
   assert.equal(result.ok, false);
   assert.equal(result.error.code, "NOT_SERVICE_OPERATOR");
   assert.equal(result.error.category, "AUTHORISATION");
   assert.equal(result.error.retryable, false, "no amount of retrying makes a key the operator");
-  assert.match(result.error.message, /0x6db158320312778e3c4429472a4b7132d597ac38/, "the configured signer is named");
-  assert.match(result.error.message, /0xe5eab26cae0855bccabbb9a64fafce28c8432b37/, "the real operator is named");
+  assert.match(result.error.message, /0x5e71ce0000000000000000000000000000000004/, "the configured signer is named");
+  assert.match(result.error.message, /0x0bee000000000000000000000000000000000002/, "the real operator is named");
   assert.equal(result.error.details.configured, wrong);
   assert.equal(result.error.details.operator, OPERATOR);
 });

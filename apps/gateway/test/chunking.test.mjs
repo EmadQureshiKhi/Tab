@@ -26,7 +26,7 @@ import {
   GET_LOGS_TIMEOUT_SECONDS,
 } from "../dist/witness.js";
 
-const AGENT = "0x1f6f797edc2eecb02bd54009b805fb2e99f80542";
+const AGENT = "0x0a11ce0000000000000000000000000000000001";
 const ASSET = "0x534b2f3a21130d7a60830c2df862319e593943a3";
 const SERVICE = "0x7461622e64656d6f000000000000000000000000000000000000000000000000";
 const TAB_BOOK = `0x${"11".repeat(20)}`;
@@ -181,8 +181,8 @@ test("the upper bound is resolved once, so the head cannot move under the scan",
     0,
   );
   await reader.historyLogs(AGENT, ASSET);
-  // The measured failure was against a `latest` upper bound; every chunk here asks
-  // for a pinned number instead.
+  // A `latest` upper bound moves between chunks, so a scan against it can skip or
+  // repeat blocks; every chunk here asks for a pinned number instead.
   assert.ok(calls.every((c) => Number.isFinite(c.to)), "every chunk named a numeric toBlock");
   assert.equal(Math.max(...calls.map((c) => c.to)), 5_000);
 });

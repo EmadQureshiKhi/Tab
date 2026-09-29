@@ -33,7 +33,7 @@ const OPERATOR = new Wallet(`0x${"11".repeat(32)}`);
 const AGENT_KEY = new Wallet(`0x${"33".repeat(32)}`);
 const AGENT = AGENT_KEY.address.toLowerCase();
 const ASSET = "0x534b2f3a21130d7a60830c2df862319e593943a3";
-const COLLECTION = "0x9d3d9410be95fa1d230734b961997427fc61d837";
+const COLLECTION = "0xc011ec7000000000000000000000000000000003";
 const SERVICE = "0x7461622e64656d6f000000000000000000000000000000000000000000000000";
 const TOOL = `0x${"33".repeat(32)}`;
 const NOW = 1_788_700_000_000;
@@ -152,7 +152,7 @@ test("a LimitExceeded 402 keeps every Tab-Charge header and adds the x402 offer 
   assert.match(offer.value.resource.url, /\/meter\/quote$/);
 });
 
-test("without x402 configured the 402 carries no offer and a signature is served on credit as before", async () => {
+test("without x402 configured the 402 carries no offer, and an operator-signed request is decided on credit alone", async () => {
   const book = tabBook({ refuse: limitExceeded(10_000, 500) });
   const app = createApp(baseOptions({ tabBook: book }));
   const response = await app.request("/meter/quote", { method: "POST", headers: await operatorHeaders("/meter/quote") });
@@ -540,7 +540,7 @@ test("the Asset's EIP-712 domain is read from the token, by ERC-5267 first and n
 
 test("the Collection address is read from ServiceRegistry, and the zero address means the Asset is not accepted", async () => {
   const encoded = (address) => `0x${address.slice(2).toLowerCase().padStart(64, "0")}`;
-  const registry = "0x123c19f46c38d5b4e922d1297250a71a03dffd17";
+  const registry = `0x${"5e".repeat(20)}`;
   const calls = [];
   const provider = { call: async (transaction) => (calls.push(transaction), encoded(COLLECTION)) };
   const read = await readCollectionAddress(provider, registry, SERVICE, ASSET);

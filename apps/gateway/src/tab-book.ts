@@ -15,20 +15,20 @@
  * replaces the delivered response, and a second copy of it that fell out of step
  * would turn the one 402 this surface adds into a 200 carrying no charge block.
  *
- * ## Gas is stated, never estimated, and an exhausted limit is not a revert
+ * ## Gas is estimated and bounded, and an exhausted limit is not a revert
+ *
+ * Monad charges the gas limit rather than the gas used, so the limit a delivery
+ * is sent with is what the Service pays for it. Each broadcast is therefore
+ * estimated, padded by {@link RECORD_DELIVERY_GAS_MARGIN_BPS}, and clamped between
+ * {@link RECORD_DELIVERY_GAS_FLOOR} and {@link RECORD_DELIVERY_GAS_LIMIT}; a caller
+ * that passes `gasLimit` states a fixed limit instead.
  *
  * An estimate comes from a warm simulation while a broadcast pays cold-storage
- * costs again, and Monad charges the gas limit rather than the gas used, so a
- * limit that is a little too low comes back `status 0` with `gasUsed == gasLimit`
- * exactly. That is indistinguishable from a revert unless the two are compared.
- *
- * `recordDelivery` does a lot for one call: it validates a witness
- * against the rolling commitment, resolves every Bond entry through the registry
- * and the `Bond` ledger, recomputes the Credit Limit through `LimitLib`, and then
- * writes tab state. So {@link RECORD_DELIVERY_GAS_LIMIT} is set well above the
- * measured neighbours rather than tuned down to them, and
- * {@link classifySubmission} reports an exhausted limit as its own outcome so a
- * caller never reads "out of gas" as "the contract refused you".
+ * costs again, so a limit that is a little too low comes back `status 0` with
+ * `gasUsed == gasLimit` exactly. That is indistinguishable from a revert unless
+ * the two are compared, so {@link classifySubmission} reports an exhausted limit
+ * as its own outcome and a caller never reads "out of gas" as "the contract
+ * refused you".
  *
  * ## Simulate before spending
  *
@@ -52,8 +52,8 @@ import type { LimitWitness } from "./witness.js";
  * with a flat 2,000,000 reports `gasUsed` of exactly 2,000,000, while the same
  * contract's Settlements, sent with an estimate, report 319,695 and 353,965. So
  * a generous limit is not a reserved balance that comes back. It is spent, every
- * call, and at a 2,000,000 limit a Service paid ten times what metering costs it
- * in order to bill for a cent.
+ * call, and a flat 2,000,000 would have a Service pay ten times what metering
+ * costs it in order to bill for a cent.
  *
  * The limit is therefore an estimate plus {@link RECORD_DELIVERY_GAS_MARGIN_BPS},
  * clamped between these two. The floor covers a cold write the estimate
@@ -291,13 +291,16 @@ export interface TabBookClientOptions {
    *
    * Needed because `recordDelivery` is gated on the Service operator, so a keyless
    * `eth_call` runs as the zero address and is refused `NotServiceOperator` before
-   * it can tell you anything useful. Measured that way on the first live run. The
-   * operator's address is public, so stating it costs nothing and lets an operator
-   * simulate a charge without holding the key that could make it.
+   * it can tell you anything useful. The operator's address is public, so stating
+   * it costs nothing and lets an operator simulate a charge without holding the
+   * key that could make it.
    */
   readonly simulateFrom?: string;
-  /** Defaults to {@link RECORD_DELIVERY_GAS_LIMIT}. */
-  /** A fixed limit, stated as given. Absent, each delivery is estimated. */
+  /**
+   * A fixed limit, stated as given. Absent, each delivery is estimated and
+   * clamped, and {@link RECORD_DELIVERY_GAS_LIMIT} is stated only when the
+   * estimate cannot be made.
+   */
   readonly gasLimit?: bigint;
   /** How long to wait for a delivery's receipt. Defaults to {@link RECEIPT_WAIT_MS}. */
   readonly receiptWaitMs?: number;

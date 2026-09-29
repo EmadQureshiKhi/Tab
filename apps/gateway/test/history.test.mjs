@@ -13,7 +13,7 @@ import { test } from "node:test";
 import { createHistorySource } from "../dist/history.js";
 import { buildWitness, commitmentOf, HISTORY_INTERFACE } from "../dist/witness.js";
 
-const AGENT = "0x1f6f797edc2eecb02bd54009b805fb2e99f80542";
+const AGENT = "0x0a11ce0000000000000000000000000000000001";
 const ASSET = "0x534b2f3a21130d7a60830c2df862319e593943a3";
 const SERVICE = "0x7461622e64656d6f000000000000000000000000000000000000000000000000";
 const DEPLOYED_AT = 100;

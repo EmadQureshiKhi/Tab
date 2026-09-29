@@ -22,7 +22,7 @@ import {
 } from "../dist/tab-book.js";
 import { dispositionOf } from "@tabai/sdk";
 
-const AGENT = "0x1f6f797edc2eecb02bd54009b805fb2e99f80542";
+const AGENT = "0x0a11ce0000000000000000000000000000000001";
 const ASSET = "0x534b2f3a21130d7a60830c2df862319e593943a3";
 const SERVICE = "0x7461622e64656d6f000000000000000000000000000000000000000000000000";
 const TOOL = `0x${"11".repeat(32)}`;
@@ -187,7 +187,8 @@ test("the gas a delivery states is an estimate, because Monad charges the limit"
   // A receipt for a delivery sent with a flat 2,000,000 reports gasUsed of
   // exactly 2,000,000, while the same contract's Settlements, sent with an
   // estimate, report 319,695. A generous limit is spent, not reserved, so a
-  // Service paid ten times what metering costs it to bill for a cent.
+  // flat limit would have a Service pay ten times what metering costs it to
+  // bill for a cent.
   const cases = [
     { estimate: 220_000n, stated: 308_000n, name: "an ordinary estimate carries a 40% margin" },
     { estimate: 100_000n, stated: RECORD_DELIVERY_GAS_FLOOR, name: "a small estimate is lifted to the floor, for a cold write" },

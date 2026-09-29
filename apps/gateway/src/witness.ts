@@ -10,11 +10,12 @@
  * ## Why the history is read from logs rather than from storage
  *
  * `TabBook` commits the history to a rolling hash and keeps no array of it, which
- * is deliberate: an unbounded per-Agent array on chain is exactly what design
- * decision 20 forbids. The records themselves ride out on `HistoryExtended`, which
- * carries the appended `SettlementRecord` in full and is indexed by Agent and by
- * Asset. That event exists so a third party can rebuild the witness from logs
- * alone, and this module is a third party doing precisely that.
+ * is deliberate: an unbounded per-Agent array on chain would make storage grow
+ * with every Settlement an Agent ever made. The records themselves ride out on
+ * `HistoryExtended`, which carries the appended `SettlementRecord` in full and is
+ * indexed by Agent and by Asset. That event exists so a third party can rebuild
+ * the witness from logs alone, and this module is a third party doing precisely
+ * that.
  *
  * The fold is `TabBook._fold`, field for field:
  * `keccak256(abi.encode(previousRoot, serviceId, asset, amount, settledAt,
@@ -22,10 +23,11 @@
  * bound, which is what stops a caller flipping `curated` or `bonded` to
  * manufacture credit through the very commitment meant to prevent it.
  *
- * `apps/registry/src/credit.ts` performs the same reconstruction from indexed rows
- * and folds to the same root. Both were checked against the same live Agent and
- * agree with `TabBook.historyCommitment` on chain, which is the only check that
- * matters: two independent readers reaching the contract's own answer.
+ * `apps/registry/src/credit-service.ts` performs the same reconstruction from
+ * indexed rows, with the fold in `credit.ts`, and reaches the same root. Each
+ * compares its root with `TabBook.historyCommitment` before using it, which is the
+ * only check that matters: two independent readers reaching the contract's own
+ * answer.
  *
  * ## The bond half is smaller than it looks
  *
@@ -156,11 +158,11 @@ export const BOND_ABI = [
  * `ServiceRegistry.serviceOf`, to reach a Service's bond account.
  *
  * **The struct carries no leading `serviceId`, and assuming one reads every field
- * a place out.** Measured: with a spurious `serviceId` at the front, `bondAccount`
- * resolved to `registeredAt`, `partyOf` was handed a timestamp, and the ledger came
- * back `staked: 0` for a party that holds 5,000,000. Nothing reverts and nothing
- * warns, because every field is still the right width; the Credit Limit simply
- * computes against a bond cap of zero. The order below is the contract's own.
+ * a place out.** With a spurious `serviceId` at the front, `bondAccount` resolves
+ * to `registeredAt`, `partyOf` is handed a timestamp, and the ledger reads zero
+ * for a party that holds real stake. Nothing reverts and nothing warns, because
+ * every field is still the right width; the Credit Limit simply computes against a
+ * bond cap of zero. The order below is the contract's own.
  */
 export const SERVICE_ABI = [
   "function serviceOf(bytes32 serviceId) view returns ((address operator, uint8 tier, uint32 settlementWindow, address bondAccount, uint64 registeredAt, bool exists) service)",
@@ -307,7 +309,6 @@ export function recordFromLog(log: RawLog): Result<{ readonly count: number; rea
   }
 }
 
-/** What the witness builder needs from the chain, narrow enough to fake. */
 /** A decoded `HistoryExtended` record with the position the contract assigned it. */
 export interface CountedRecord {
   readonly count: number;
@@ -320,6 +321,7 @@ export interface HistoryRange {
   readonly toBlock?: number;
 }
 
+/** What the witness builder needs from the chain, narrow enough to fake. */
 export interface WitnessReader {
   /**
    * Every `HistoryExtended` log for one Agent and Asset, in any order.
@@ -509,10 +511,10 @@ export function createWitnessReader(
  * registration and a Service's software must hold that key or it can do nothing.
  *
  * Without this check the mismatch surfaces as a `NotServiceOperator` revert from a
- * broadcast, which costs gas, arrives late, and reads like a contract problem. It was
- * an easy confusion: shipping a distinct key per process looks like good hygiene
- * and is wrong here, because every process that meters for one Service is that
- * Service, and one Service has one operator.
+ * broadcast, which costs gas, arrives late, and reads like a contract problem. A
+ * distinct key per process looks like good hygiene and is wrong here, because
+ * every process that meters for one Service is that Service, and one Service has
+ * one operator.
  *
  * A keyless simulation cannot catch it either, because `eth_call` is made with the
  * operator address as `from`, so the simulated call passes and the broadcast does not.

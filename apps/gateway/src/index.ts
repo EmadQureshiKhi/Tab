@@ -9,8 +9,8 @@
  * `TabBookClient` left as an interface. That interface is the seam, and this
  * package is the half that fills it: the chain code the SDK refuses to own.
  *
- * So there is no second metering core here and no second header formatter. What is
- * here is the part that cannot live in a published client library:
+ * So there is no second copy of the plugin here and no second header formatter.
+ * What is here is the part that cannot live in a published client library:
  *
  * - **{@link buildWitness}** rebuilds an Agent's `LimitWitness` from
  *   `HistoryExtended` logs and proves it against `TabBook.historyCommitment`
@@ -19,13 +19,13 @@
  * - **{@link createTabBookClient}** records the delivery, simulating first so a
  *   refusal is read for free rather than paid for as a revert.
  * - **{@link verifyMeteringRequest}** authenticates the caller as the Service
- *   operator, since the gateway holds the key that can charge any Agent up to its
- *   authorisation ceiling.
+ *   operator or as the Agent being metered, since the gateway holds the key that
+ *   can charge any Agent up to its authorisation ceiling.
  *
  * `server.ts` mounts the SDK's post-paid plugin over these, and `main.ts` is the
  * process that serves it.
  *
- * Nothing exported throws. Every fallible call returns a `Result` (design 13.1).
+ * Nothing exported throws. Every fallible call returns a `Result`.
  */
 
 import { WORKSPACE_ID } from "@tabai/shared";
@@ -38,4 +38,5 @@ export * from "./config.js";
 export * from "./witness.js";
 export * from "./tab-book.js";
 export * from "./authorisation.js";
+export * from "./asset.js";
 export * from "./x402.js";

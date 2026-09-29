@@ -16,6 +16,7 @@ import { JsonRpcProvider, Wallet, encodeBytes32String } from "ethers";
 
 import { createX402Facilitator } from "@tabai/sdk";
 
+import { resolveAssetLabel } from "./asset.js";
 import { loadGatewayConfig, requireOperatorKey } from "./config.js";
 import { createHistorySource, headReadFailed } from "./history.js";
 import { buildWitness, checkOperatorKey, createWitnessReader } from "./witness.js";
@@ -32,15 +33,15 @@ import { loadX402Config, readCollectionAddress, readEip712Domain } from "./x402.
  */
 const BLOCK_TAG = "latest";
 
-/**
- * Written as direct member reads off the process environment so
- * `scripts/env-check.mjs` can see them, and every name is declared in the
- * tracked `.env.example`.
- */
 const exit = (code: number): void => {
   process.exitCode = code;
 };
 
+/**
+ * The variables below are read as direct member reads off the process
+ * environment so `scripts/env-check.mjs` can see them, and every name is
+ * declared in the tracked `.env.example`.
+ */
 async function main(): Promise<number> {
   const config = loadGatewayConfig();
   if (!config.ok) {
@@ -115,7 +116,7 @@ async function main(): Promise<number> {
   // `msg.sender` against the registry's operator for exact equality and the operator
   // cannot be reassigned, so a mismatched key makes every delivery revert. Checking it
   // once here turns a late, gas-costing `NotServiceOperator` into a startup error that
-  // names both addresses. `meter.ts` already did this; the server did not.
+  // names both addresses. `bin/meter.ts` makes the same check.
   const operator = await checkOperatorKey(reader, serviceId, await signer.getAddress());
   if (!operator.ok) {
     console.error(`gateway: ${operator.error.code}: ${operator.error.message}`);
@@ -151,25 +152,29 @@ async function main(): Promise<number> {
     },
   });
 
-  // The mock token is named `mUSDC` everywhere the rail prints a symbol, so a
-  // charge in it is never read as one in Circle's USDC.
-  const mockUsdc = process.env.MOCK_USDC_ADDRESS?.toLowerCase();
+  // The symbol every charge and offer is quoted under; see `asset.ts`.
+  const label = await resolveAssetLabel(provider, assetAddress, config.value.chainId, process.env.MOCK_USDC_ADDRESS);
+  if (!label.ok) {
+    console.error(`gateway: ${label.error.code}: ${label.error.message}`);
+    return 2;
+  }
   const asset: GatewayAsset = {
     chainId: BigInt(config.value.chainId),
     address: assetAddress.toLowerCase() as `0x${string}`,
-    decimals: 6,
-    symbol: assetAddress.toLowerCase() === mockUsdc ? "mUSDC" : "USDC",
+    decimals: label.value.decimals,
+    symbol: label.value.symbol,
   };
 
   const priceBaseUnits = BigInt(process.env.GATEWAY_PRICE_BASE_UNITS ?? "10000");
   const tool = encodeBytes32String(process.env.GATEWAY_TOOL ?? "quote.generate") as `0x${string}`;
 
   /*
-    Metered requests must be signed by the operator, and are unless this says
-    otherwise. The switch exists for a demonstration on a machine where the
-    caller is the operator anyway - the Dashboard's "try it" posts from this
-    project's own server to this project's own Service - and it defaults to
-    requiring the signature so that forgetting to set it is the safe outcome.
+    Metered requests must be signed, by the operator or by the Agent being
+    metered, and are unless this says otherwise. The switch exists for a
+    demonstration on a machine where the caller is the operator anyway - the
+    Dashboard's "try it" posts from this project's own server to this project's
+    own Service - and it defaults to requiring a signature so that forgetting to
+    set it is the safe outcome.
 
     It is not a way to run a Service without authentication. Every metered call
     records a delivery on chain and spends the operator's gas, so a gateway

@@ -3,17 +3,19 @@
  *
  * The gateway is the Service side of the rail. It meters delivered work into an
  * Agent's Open Tab on Monad, which means it holds the Service operator's key
- * and is the only component here that spends gas. Everything it needs to do
- * that comes out of the environment, and every name below is already declared in
- * the tracked `.env.example`, so this file introduces no new variable.
+ * and spends gas on every delivery it records. Everything it needs to do that
+ * comes out of the environment, and every name below is already declared in the
+ * tracked `.env.example`, so this file introduces no new variable.
  *
  * ## Every read is written out one name at a time, deliberately
  *
- * `scripts/env-check.mjs` extracts environment reads statically and fails the build
- * when one has no declaration in the tracked `.env.example`. It only recognises a direct member read off the process
- * environment, so reaching those values through a captured record would leave the gate green while this service read undeclared variables,
- * which is the "passes and checks nothing" failure the repository takes seriously.
- * The names below are therefore spelled out one per line rather than looped over.
+ * `scripts/env-check.mjs` extracts environment reads statically and fails the
+ * build when one has no declaration in the tracked `.env.example`. It only
+ * recognises a direct member read off the process environment, so reaching those
+ * values through a captured record would leave the gate green while this service
+ * read undeclared variables, which is the "passes and checks nothing" failure the
+ * repository takes seriously. The names below are therefore spelled out one per
+ * line rather than looped over.
  *
  * ## Nothing throws
  *

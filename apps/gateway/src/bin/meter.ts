@@ -10,22 +10,23 @@
  * returns for free, so paying for it first would be paying for information already
  * available.
  *
- * **Gas is stated, never estimated.** An estimate comes from a warm simulation and
- * underestimates cold-storage writes, and Monad charges the limit rather than the
- * gas used, so a limit that is a little too low comes back `status 0` with
- * `gasUsed == gasLimit` exactly, which is indistinguishable from a refusal unless
- * the two are compared. `recordDelivery` validates a witness, resolves every Bond
- * entry, recomputes the Credit Limit and then writes tab state, and the stated
- * limit sits well above it rather than beside it.
+ * **Gas is estimated, as the gateway does it.** Monad charges the limit rather
+ * than the gas used, so a broadcast is estimated, padded and clamped by
+ * `tab-book.ts` rather than sent with a flat ceiling it would pay in full. An
+ * estimate comes from a warm simulation, so a limit that proves a little too low
+ * comes back `status 0` with `gasUsed == gasLimit` exactly; the client reports
+ * that as an exhausted limit rather than a refusal, and `--gas` states a fixed
+ * limit for the resend.
  *
  * Flags:
  *   --broadcast        record the delivery on chain; without it, nothing is spent
  *   --agent 0x…        Agent to charge
  *   --service 0x…      serviceId, 32 bytes, defaulting to GATEWAY_SERVICE_ID
- *   --asset 0x…        Asset contract address, defaulting to MOCK_USDC_ADDRESS
+ *   --asset 0x…        Asset contract address, defaulting to GATEWAY_ASSET_ADDRESS,
+ *                      then MOCK_USDC_ADDRESS
  *   --tool <name>      priced unit name, encoded to bytes32, default "quote.generate"
  *   --units N          how many units, default 1
- *   --gas N            override the stated gas limit
+ *   --gas N            state this fixed gas limit instead of estimating one
  *
  * Exit codes: 0 the delivery simulated or recorded, 1 it was refused, 2 the run
  * could not start.
@@ -35,7 +36,12 @@ import { JsonRpcProvider, Wallet, Interface, encodeBytes32String } from "ethers"
 
 import { loadGatewayConfig, requireOperatorKey } from "../config.js";
 import { buildWitness, createWitnessReader, SERVICE_FIELD } from "../witness.js";
-import { createTabBookClient, RECORD_DELIVERY_GAS_LIMIT, type MeteredDelivery } from "../tab-book.js";
+import {
+  createTabBookClient,
+  RECORD_DELIVERY_GAS_FLOOR,
+  RECORD_DELIVERY_GAS_LIMIT,
+  type MeteredDelivery,
+} from "../tab-book.js";
 import { authorisationCovers, readAuthorisation } from "../authorisation.js";
 
 /** Every read here is pinned to one tag, so the witness and the simulation see one chain. */
@@ -83,7 +89,7 @@ async function main(): Promise<number> {
 
   const broadcast = has("--broadcast");
   const serviceId = flag("--service") ?? process.env.GATEWAY_SERVICE_ID ?? "";
-  const asset = (flag("--asset") ?? process.env.MOCK_USDC_ADDRESS ?? "").toLowerCase();
+  const asset = (flag("--asset") ?? process.env.GATEWAY_ASSET_ADDRESS ?? process.env.MOCK_USDC_ADDRESS ?? "").toLowerCase();
   const historyFromBlock = Number(process.env.REGISTRY_START_BLOCK ?? "0");
   const tool = toolWord(flag("--tool") ?? DEFAULT_TOOL);
   const unitsRaw = flag("--units") ?? "1";
@@ -94,9 +100,14 @@ async function main(): Promise<number> {
     return 2;
   }
   if (!/^0x[0-9a-fA-F]{40}$/.test(asset)) {
-    console.error("meter: --asset (or MOCK_USDC_ADDRESS) must be a 20-byte 0x address");
+    console.error("meter: --asset (or GATEWAY_ASSET_ADDRESS, or MOCK_USDC_ADDRESS) must be a 20-byte 0x address");
     return 2;
   }
+  if (gasOverride !== undefined && (!/^\d+$/.test(gasOverride) || BigInt(gasOverride) === 0n)) {
+    console.error("meter: --gas must be a positive whole number of gas");
+    return 2;
+  }
+  const gasLimit = gasOverride === undefined ? undefined : BigInt(gasOverride);
   if (!Number.isInteger(historyFromBlock) || historyFromBlock < 0) {
     console.error("meter: REGISTRY_START_BLOCK must be the block the contracts were deployed in");
     return 2;
@@ -218,13 +229,12 @@ async function main(): Promise<number> {
       }
     }
 
-    const gasLimit = gasOverride !== undefined && /^\d+$/.test(gasOverride) ? BigInt(gasOverride) : RECORD_DELIVERY_GAS_LIMIT;
     const client = createTabBookClient({
       provider,
       tabBook: config.value.tabBook,
       blockTag: BLOCK_TAG,
       witnessFor: async () => ({ ok: true, value: built.value.witness }),
-      gasLimit,
+      ...(gasLimit === undefined ? {} : { gasLimit }),
       // Without this the simulation runs as the zero address and is refused
       // `NotServiceOperator` before it can report a charge.
       simulateFrom: operator,
@@ -261,7 +271,10 @@ async function main(): Promise<number> {
             wouldCharge: simulated.value.charged.toString(10),
             openTabAfter: simulated.value.openAfter.toString(10),
             headroomAfter: simulated.value.headroomAfter.toString(10),
-            gasLimitThatWouldBeStated: gasLimit.toString(10),
+            gasLimit:
+              gasLimit === undefined
+                ? `estimated at broadcast, between ${RECORD_DELIVERY_GAS_FLOOR} and ${RECORD_DELIVERY_GAS_LIMIT}`
+                : gasLimit.toString(10),
             witness: {
               historyLength: built.value.witness.history.length,
               root: built.value.rebuilt.root,
@@ -281,15 +294,21 @@ async function main(): Promise<number> {
       console.error(`meter: ${recorded.error.code}: ${recorded.error.message}`);
       return 1;
     }
+    // The limit the transaction was sent with and what it used, read back off the
+    // chain rather than restated, since the limit is what the Service paid for.
+    const hash = recorded.value.monadTxHash;
+    const [sent, receipt] =
+      hash === undefined ? [null, null] : await Promise.all([provider.getTransaction(hash), provider.getTransactionReceipt(hash)]);
     console.log(
       JSON.stringify(
         {
           mode: "broadcast",
-          monadTxHash: recorded.value.monadTxHash,
+          monadTxHash: hash,
           charged: recorded.value.charged.toString(10),
           openTabAfter: recorded.value.openAfter.toString(10),
           headroomAfter: recorded.value.headroomAfter.toString(10),
-          gasLimitStated: gasLimit.toString(10),
+          gasLimit: sent === null ? null : sent.gasLimit.toString(10),
+          gasUsed: receipt === null ? null : receipt.gasUsed.toString(10),
         },
         null,
         2,

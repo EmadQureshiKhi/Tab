@@ -8,9 +8,9 @@
  * to the head, one hundred blocks at a time, because that is the window Monad's
  * public endpoint allows. The deployment block never moves and the head never
  * stops, so the scan grows by a request every hundred blocks: a minute on the
- * day of the deployment, an hour a week later, and it ran before every single
- * metered call. A rail whose per-call cost is proportional to the age of its
- * deployment is not a rail.
+ * day of the deployment, an hour a week later, and run before every metered call
+ * it would make the per-call cost proportional to the age of the deployment. A
+ * rail with that property is not a rail.
  *
  * ## Three facts that make it cheap
  *
@@ -36,7 +36,8 @@
  * wrong, and the only cost is a mismatch that names itself; neither can make
  * a delivery meter against a history that is not the Agent's. That is also why
  * the registry is an optimisation and not a dependency: with it unreachable
- * the module scans from the deployment block, exactly as it did before.
+ * the first sight of an Agent scans from the deployment block, and every call
+ * after that scans only the blocks since.
  */
 
 import { err, ok, type Result, type TabError } from "@tabai/shared";
