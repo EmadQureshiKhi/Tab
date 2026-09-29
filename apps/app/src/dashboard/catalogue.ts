@@ -56,9 +56,15 @@ export interface PublishedHub {
   readonly note?: string | undefined;
 }
 
-/** One Service's published address, from the committed directory. */
+/** One Service's published address on one network, from the committed directory. */
 export interface PublishedService {
   readonly serviceId: string;
+  /**
+   * The Monad network this address serves. A Service id is the same bytes on
+   * every network, so the chain is what tells a Testnet gateway from a Mainnet
+   * one; an entry that names none is served on neither.
+   */
+  readonly chainId?: number | undefined;
   readonly name: string;
   readonly summary: string;
   readonly endpoint: string;
@@ -81,7 +87,7 @@ const optionalString = (value: unknown): string | undefined => (typeof value ===
 /**
  * The directory file, narrowed to the shape the pages take.
  *
- * Only `serviceId` and `endpoint` are required; an entry without them names
+ * Only `serviceId` and `endpoint` are required to keep an entry; an entry without them names
  * nowhere to call and is dropped. Everything else is carried where it is the
  * right type and left out where it is not, so a typo in the file makes a field
  * absent rather than making the page fail. The file is this project's and a
@@ -110,6 +116,8 @@ export function parsePublishedDirectory(parsed: unknown): readonly PublishedServ
     services.push({
       serviceId: record["serviceId"],
       endpoint: record["endpoint"],
+      chainId:
+        typeof record["chainId"] === "number" && Number.isInteger(record["chainId"]) ? record["chainId"] : undefined,
       name: stringOr(record["name"], record["serviceId"]),
       summary: stringOr(record["summary"], ""),
       transport: stringOr(record["transport"], "http"),
@@ -148,6 +156,18 @@ export function parsePublishedDirectory(parsed: unknown): readonly PublishedServ
   return services;
 }
 
+/**
+ * The entries that serve one network.
+ *
+ * Strict equality on the chain id, and an entry with none is on no network.
+ * The same Service id names a Testnet gateway and a Mainnet one, and sending a
+ * Mainnet call to the Testnet host, or the reverse, is a charge on the wrong
+ * tab; an entry that does not say which is not guessed at.
+ */
+export function publishedOn(services: readonly PublishedService[], chainId: number): readonly PublishedService[] {
+  return services.filter((entry) => entry.chainId === chainId);
+}
+
 /** One tool, at one price, in one Asset. */
 export interface CatalogueEntry {
   readonly key: string;
@@ -163,7 +183,7 @@ export interface CatalogueEntry {
   readonly assetAddress: string;
   /** Where a Settlement in this Asset is paid to, as the registry holds it. */
   readonly collection: string | undefined;
-  /** The chain this deployment settles on, so the Asset can be named `chainId:address`. */
+  /** The selected chain, so the Asset can be named `chainId:address`. */
   readonly chainId: number;
   readonly tier: string;
   readonly creditWeight: string;

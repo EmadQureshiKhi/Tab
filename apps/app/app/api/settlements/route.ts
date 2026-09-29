@@ -9,12 +9,12 @@
  */
 
 import { serveSettlements, toResponse } from "../../../src/dashboard/api-settlements";
-import { registry } from "../../_lib/context";
+import { requestContext } from "../../_lib/context";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request): Promise<Response> {
   const url = new URL(request.url);
-  const result = await serveSettlements({ registry: registry() }, url.searchParams);
+  const result = await serveSettlements({ registry: requestContext(request).registry }, url.searchParams);
   return toResponse(result) as Response;
 }

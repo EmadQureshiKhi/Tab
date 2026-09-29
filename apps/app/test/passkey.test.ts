@@ -467,7 +467,7 @@ test("the Keys view renders with no wallet and no passkey as an explanation, not
   const markup = renderToStaticMarkup(
     createElement(
       WalletProvider,
-      null,
+      { network: { chainId: 10143, rpcUrl: "https://testnet-rpc.monad.xyz" } },
       createElement(KeysView, {
         chainId: 10143,
         chainName: "Monad Testnet",

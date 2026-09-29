@@ -47,6 +47,12 @@ export interface AnnouncedTransaction {
 
 interface Announced extends AnnouncedTransaction {
   readonly id: number;
+  /**
+   * The explorer of the network the transaction was sent on, fixed when it was
+   * announced, so switching network while the toast is up does not point its
+   * link at the other chain.
+   */
+  readonly explorerUrl: string;
 }
 
 interface TransactionToastValue {
@@ -67,18 +73,22 @@ export function useTransactionToast(): TransactionToastValue {
 
 export interface TransactionToastProviderProps {
   readonly children: ReactNode;
-  /** Monad explorer base, resolved on the server where the environment is readable. */
+  /** The selected network's explorer base, resolved on the server. */
   readonly explorerUrl: string;
 }
 
 export function TransactionToastProvider({ children, explorerUrl }: TransactionToastProviderProps) {
   const [items, setItems] = useState<readonly Announced[]>([]);
   const next = useRef(0);
+  const explorer = useRef(explorerUrl);
+  useEffect(() => {
+    explorer.current = explorerUrl;
+  }, [explorerUrl]);
 
   const announce = useCallback((transaction: AnnouncedTransaction): void => {
     next.current += 1;
     const id = next.current;
-    setItems((current) => [...current, { ...transaction, id }]);
+    setItems((current) => [...current, { ...transaction, id, explorerUrl: explorer.current }]);
   }, []);
 
   const dismiss = useCallback((id: number): void => {
@@ -104,7 +114,7 @@ export function TransactionToastProvider({ children, explorerUrl }: TransactionT
           <Toast
             key={item.id}
             item={item}
-            explorerUrl={explorerUrl}
+            explorerUrl={item.explorerUrl}
             onDismiss={() => dismiss(item.id)}
           />
         ))}

@@ -9,13 +9,21 @@
  * be reporting a fact about a preflight rather than about the Service. Making it
  * from the server means the answer on the page is the Service's answer.
  *
- * ## Only what the repository publishes
+ * ## Only what the repository publishes, on the selected network
  *
  * The endpoint is looked up in `service-endpoints.json` by the serviceId the
- * caller names. It is never taken from the request. A handler that fetched a URL
- * a browser supplied would be an open proxy sitting on this deployment's network,
- * and the fact that the URL would come from this site's own page is not a control
- * - a request is whatever the sender makes it.
+ * caller names and the network the visitor selected. It is never taken from the
+ * request. A handler that fetched a URL a browser supplied would be an open proxy
+ * sitting on this deployment's network, and the fact that the URL would come from
+ * this site's own page is not a control - a request is whatever the sender makes
+ * it. The page also sends the chain it was drawn for, and a call from a page left
+ * open across a network switch is refused rather than sent to the other network.
+ *
+ * ## Mainnet calls are rationed
+ *
+ * Every trial call spends the operator's gas and puts a charge on the demo
+ * Agent's tab. On Mainnet both are real money, so calls there are limited per
+ * client address and per day; see `src/dashboard/trial-limit.ts`.
  *
  * ## It reports refusals
  *
@@ -25,12 +33,21 @@
  * hide the half of the system worth seeing.
  */
 
-import { readFile } from "node:fs/promises";
-
 import { Wallet } from "ethers";
-import { join } from "node:path";
 
 import { METERING_HEADER, meteringDigest, toolKeyOf } from "@tabai/sdk";
+import { MONAD_MAINNET, MONAD_TESTNET, type MonadChainId } from "@tabai/shared";
+
+import {
+  MAINNET_TRIAL_DEFAULTS,
+  TESTNET_TRIAL_LIMITS,
+  clientAddressOf,
+  createTrialLimiter,
+  limitFromEnv,
+  type TrialLimiter,
+} from "../../../src/dashboard/trial-limit";
+import { requestChainId, tryItAgent } from "../../_lib/context";
+import { publishedDirectory } from "../../_lib/published";
 
 export const dynamic = "force-dynamic";
 
@@ -45,22 +62,31 @@ export const dynamic = "force-dynamic";
  */
 const TIMEOUT_MS = 30_000;
 
-interface Published {
-  readonly serviceId: string;
-  readonly endpoint: string;
-}
+/*
+  One limiter per network, held in this module.
 
-async function endpointFor(serviceId: string): Promise<string | undefined> {
-  try {
-    const path = join(process.cwd(), "..", "..", "service-endpoints.json");
-    const parsed = JSON.parse(await readFile(path, "utf8")) as { services?: readonly Published[] };
-    const match = parsed.services?.find(
-      (entry) => entry.serviceId.toLowerCase() === serviceId.toLowerCase(),
-    );
-    return match?.endpoint;
-  } catch {
-    return undefined;
-  }
+  In memory, deliberately and with a known cost: on a serverless host every
+  warm instance keeps its own windows and a cold start begins empty, so the
+  effective ceiling is the configured one times the number of live instances.
+  That is still a ceiling, which is what stands between the button and an
+  unbounded bill; a shared store would make it exact and is the next step if
+  the demo is ever abused in earnest. `TRY_IT_MAINNET_PER_DAY=0` switches
+  Mainnet trial calls off outright.
+*/
+const LIMITERS: Readonly<Record<MonadChainId, TrialLimiter>> = {
+  [MONAD_TESTNET.chainId]: createTrialLimiter(TESTNET_TRIAL_LIMITS),
+  [MONAD_MAINNET.chainId]: createTrialLimiter({
+    perAddressPerMinute: limitFromEnv(
+      process.env["TRY_IT_MAINNET_PER_IP_PER_MINUTE"],
+      MAINNET_TRIAL_DEFAULTS.perAddressPerMinute,
+    ),
+    perDay: limitFromEnv(process.env["TRY_IT_MAINNET_PER_DAY"], MAINNET_TRIAL_DEFAULTS.perDay ?? 0),
+  }),
+};
+
+function endpointFor(serviceId: string, chainId: MonadChainId): string | undefined {
+  return publishedDirectory(chainId).find((entry) => entry.serviceId.toLowerCase() === serviceId.toLowerCase())
+    ?.endpoint;
 }
 
 /**
@@ -72,15 +98,15 @@ async function endpointFor(serviceId: string): Promise<string | undefined> {
  */
 const ORIGIN_HEADER = "Tab-Try-Origin";
 
-function json(body: unknown, status: number): Response {
+function json(body: unknown, status: number, extra: Readonly<Record<string, string>> = {}): Response {
   return new Response(JSON.stringify(body, null, 2), {
     status,
-    headers: { "content-type": "application/json", [ORIGIN_HEADER]: "dashboard" },
+    headers: { "content-type": "application/json", [ORIGIN_HEADER]: "dashboard", ...extra },
   });
 }
 
 export async function POST(request: Request): Promise<Response> {
-  let body: { serviceId?: unknown; tool?: unknown };
+  let body: { serviceId?: unknown; tool?: unknown; chainId?: unknown };
   try {
     body = (await request.json()) as typeof body;
   } catch {
@@ -93,12 +119,25 @@ export async function POST(request: Request): Promise<Response> {
     return json({ error: "Name a serviceId and a tool." }, 400);
   }
 
-  const endpoint = await endpointFor(serviceId);
+  const chainId = requestChainId(request);
+  if (body.chainId !== undefined && body.chainId !== chainId) {
+    return json(
+      {
+        error:
+          "This page was drawn for a different network than the one now selected, so the call was not sent. Reload the page and try again.",
+        pageChainId: body.chainId,
+        selectedChainId: chainId,
+      },
+      409,
+    );
+  }
+
+  const endpoint = endpointFor(serviceId, chainId);
   if (endpoint === undefined) {
     return json(
       {
         error:
-          "This project publishes no address for that Service, so there is nowhere to send the call.",
+          "This project publishes no address for that Service on this network, so there is nowhere to send the call.",
       },
       404,
     );
@@ -109,16 +148,38 @@ export async function POST(request: Request): Promise<Response> {
 
     Not taken from the request. A charge lands on somebody's Open Tab, and an
     endpoint that let a caller name whose tab would let anyone bill anyone. It is
-    this deployment's demonstration Agent or nothing.
+    this deployment's demonstration Agent on the selected network or nothing.
   */
-  const agent = process.env["TRY_IT_AGENT"]?.trim();
+  const agent = tryItAgent(chainId);
   if (agent === undefined || !/^0x[0-9a-fA-F]{40}$/.test(agent)) {
     return json(
       {
         error:
-          "This deployment names no Agent for a trial call, so there is no tab for the charge to land on. Set TRY_IT_AGENT to enable it.",
+          chainId === MONAD_TESTNET.chainId
+            ? "This deployment names no Agent for a trial call on Testnet, so there is no tab for the charge to land on. Set TRY_IT_AGENT_TESTNET to enable it."
+            : "This deployment names no Agent for a trial call on Mainnet, so there is no tab for the charge to land on. Set TRY_IT_AGENT_MAINNET to enable it.",
       },
       501,
+    );
+  }
+
+  // Counted only once the call is otherwise ready to go, so a malformed request
+  // or an unpublished Service costs a caller none of their allowance.
+  const allowed = LIMITERS[chainId].take(clientAddressOf(request.headers));
+  if (!allowed.ok) {
+    if (allowed.scope === "off") {
+      return json({ error: "Trial calls on this network are switched off on this deployment." }, 429);
+    }
+    return json(
+      {
+        error:
+          allowed.scope === "address"
+            ? `Too many trial calls from this address. Try again in ${allowed.retryAfterSeconds} seconds.`
+            : "This site has made all the trial calls it allows on this network today. Try again tomorrow, or call the Service from your own Agent.",
+        retryAfterSeconds: allowed.retryAfterSeconds,
+      },
+      429,
+      { "retry-after": String(allowed.retryAfterSeconds) },
     );
   }
 
@@ -133,7 +194,9 @@ export async function POST(request: Request): Promise<Response> {
       one is a bill anybody can run up. This route therefore signs the claim when
       it holds the key, and when it does not it sends the request unsigned and
       passes the gateway's refusal straight back, which says what is missing
-      rather than hiding it.
+      rather than hiding it. One operator key serves both networks, because the
+      demo Service has the same operator on each, and each network's gateway
+      recovers the signer and checks it against its own `ServiceRegistry`.
     */
     const target = `${endpoint.replace(/\/$/, "")}/meter/${encodeURIComponent(tool)}`;
     const path = new URL(target).pathname;

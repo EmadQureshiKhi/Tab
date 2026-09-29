@@ -30,12 +30,12 @@
  *
  * ## One chain, and it says which
  *
- * Everything Tab signs is on the one Monad network the deployment runs on. The
- * connection carries the chain the wallet is actually on, and the callers
- * compare that against the chain their action needs, so a wallet left on some
- * other network is caught before a transaction is built rather than after it
- * reverts. A passkey account is on the deployment's chain and takes the page's
- * own chain and endpoint when asked to sign.
+ * Everything Tab signs is on the Monad network the visitor selected on the
+ * masthead. The connection carries the chain the wallet is actually on, and
+ * the callers compare that against the chain their action needs, so a wallet
+ * left on some other network is caught before a transaction is built rather
+ * than after it reverts. A passkey account follows the selected network and
+ * takes the page's own chain and endpoint when asked to sign.
  */
 
 import {
@@ -59,7 +59,7 @@ import {
 } from "./eip1193";
 import { type DiscoveredWallet, watchWallets } from "./discovery";
 import { useTransactionToast } from "../shell/transaction-toast";
-import { type PasskeyConnection, usePasskeyConnection } from "../passkey/use-passkey";
+import { type PasskeyConnection, type SelectedNetwork, usePasskeyConnection } from "../passkey/use-passkey";
 import type { Result } from "./result";
 
 /** What stands behind the connected account. */
@@ -111,7 +111,14 @@ export function useWallet(): WalletState {
 const NOTHING_TO_CONNECT =
   "No wallet is available in this browser. Install one that can add Monad, or create a passkey account from Connect in the masthead. Every read on this site works without one; only signing needs it.";
 
-export function WalletProvider({ children }: { readonly children: ReactNode }) {
+export function WalletProvider({
+  children,
+  network,
+}: {
+  readonly children: ReactNode;
+  /** The network the visitor selected, which a passkey account signs on. */
+  readonly network: SelectedNetwork;
+}) {
   /*
     Every wallet-driven write in this Dashboard goes through `send` below, which
     is why the announcement belongs there and not in each caller: three flows
@@ -119,7 +126,7 @@ export function WalletProvider({ children }: { readonly children: ReactNode }) {
     stops a fifth being added later without one.
   */
   const { announce } = useTransactionToast();
-  const passkey = usePasskeyConnection();
+  const passkey = usePasskeyConnection(network);
   const [provider, setProvider] = useState<Eip1193Provider | undefined>(undefined);
   const [ready, setReady] = useState(false);
   const [injectedAccount, setInjectedAccount] = useState<string | undefined>(undefined);

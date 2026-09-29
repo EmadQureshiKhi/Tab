@@ -13,8 +13,8 @@
  *
  * The tools, the prices, the Assets, the tier and the Bond come from
  * `ServiceRegistry` through the index. The endpoint cannot: `Service` stores no
- * URL, so it comes from the committed `service-endpoints.json` and is labelled as
- * published by this project. A Service with no published address keeps all its
+ * URL, so it comes from the committed `service-endpoints.json`, from the entry
+ * for the selected network, and is labelled as published by this project. A Service with no published address keeps all its
  * real figures and simply cannot be called from here, which the page says.
  *
  * ## The Hub is a third source, and it sorts last
@@ -35,8 +35,8 @@ import { SHOWCASE } from "../../src/dashboard/showcase";
 import { EmptyChain } from "../../components/views/empty-chain";
 import { toCatalogue, type PublishedService } from "../../src/dashboard/catalogue";
 import { toHubEntries, type HubManifestOutcome } from "../../src/dashboard/hub";
-import { readPublishedDirectory } from "../../src/dashboard/published";
-import { chainId, network, registry } from "../_lib/context";
+import { routeContext } from "../_lib/context";
+import { publishedDirectory } from "../_lib/published";
 
 export const dynamic = "force-dynamic";
 
@@ -86,10 +86,12 @@ async function hubManifests(
 }
 
 export default async function BrowsePage() {
-  const [services, published] = await Promise.all([registry().services(50), readPublishedDirectory()]);
+  const context = await routeContext();
+  const published = publishedDirectory(context.chainId);
+  const services = await context.registry.services(50);
   const manifests = await hubManifests(published);
   const hub = services.ok
-    ? toHubEntries(services.value.services, published, manifests, chainId())
+    ? toHubEntries(services.value.services, published, manifests, context.chainId)
     : { entries: [], notes: [] };
 
   return (
@@ -118,7 +120,7 @@ export default async function BrowsePage() {
         />
       ) : (
         <CatalogueView
-          entries={toCatalogue(services.value.services, published, chainId()).map((entry) => ({
+          entries={toCatalogue(services.value.services, published, context.chainId).map((entry) => ({
             ...entry,
             priceBaseUnits: entry.priceBaseUnits.toString(),
             freeBondBaseUnits: entry.freeBondBaseUnits?.toString(),
@@ -127,8 +129,8 @@ export default async function BrowsePage() {
           hubNotes={hub.notes}
           showcase={SHOWCASE}
           indexedBlock={services.value.index.lastBlock}
-          networkName={network().name}
-          networkKind={network().network}
+          networkName={context.network.name}
+          networkKind={context.network.network}
         />
       )}
     </section>

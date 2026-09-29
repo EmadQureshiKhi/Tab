@@ -26,7 +26,7 @@ export default async function ExplorerPage({
   readonly searchParams: Promise<SearchParams>;
 }) {
   const params = await searchParams;
-  const context = routeContext();
+  const context = await routeContext();
   const cursor = firstParam(params, "cursor");
 
   const page = await context.registry.settlements({
@@ -69,7 +69,7 @@ export default async function ExplorerPage({
           Overdue tabs anyone may mark delinquent
         </h2>
         <Suspense fallback={<Skeleton className="h-28 w-full" />}>
-          <OverdueTabsSection />
+          <OverdueTabsSection context={context} />
         </Suspense>
       </section>
 

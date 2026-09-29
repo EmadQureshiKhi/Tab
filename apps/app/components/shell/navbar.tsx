@@ -9,14 +9,15 @@
  * is marked with a dotted underline rather than a colour alone, so the state
  * survives a reader who cannot separate the two.
  *
- * ## The network badge
+ * ## The network switch
  *
- * Tab runs on one Monad network per deployment, so there is nothing to toggle
- * and the masthead states which network this is instead. The word `Testnet` or
- * `Mainnet` is in the text, not only in a colour, because a reader should never
- * have to know that a name means test money to read a balance correctly. It is
- * on every page for the same reason the connection is: a reader about to sign
- * needs to know which chain before they press, not after the dialog opens.
+ * The Dashboard shows one Monad network at a time and the visitor picks which,
+ * so the masthead both states the network and offers the other one. The word
+ * `Testnet` or `Mainnet` is in the text, not only in a colour, because a reader
+ * should never have to know that a name means test money to read a balance
+ * correctly. It is on every page for the same reason the connection is: a
+ * reader about to sign needs to know which chain before they press, not after
+ * the dialog opens.
  */
 
 import { useEffect, useState } from "react";
@@ -27,6 +28,7 @@ import { Button } from "../ui/button";
 import { useTheme } from "../providers/theme-context";
 import { ScrollProgress } from "../motion/scroll-progress";
 import { ConnectWallet } from "../wallet/connect-wallet";
+import { NetworkSwitch } from "./network-switch";
 
 const LINKS = [
   // First, because it is the one route a reader who has just arrived can act on.
@@ -45,62 +47,12 @@ const ACTIVE_CLASSES = "text-foreground underline decoration-dotted";
 
 export interface NavbarProps {
   readonly pathname: string;
-  /** The chain's own name, such as `Monad Testnet`. From the network option. */
-  readonly networkName: string;
-  /** Whether the figures on this deployment are test money or real money. */
+  /** Whether the figures on this page are test money or real money. */
   readonly networkKind: "testnet" | "mainnet";
   readonly docsUrl: string;
 }
 
-/**
- * The network, stated in words.
- *
- * The badge draws the chain's name, and the kind is appended only where the name
- * does not already end in it, so `Monad Testnet` is never rendered as `Monad
- * Testnet testnet`. The accessible name always carries both, because the whole
- * point of the badge is that the kind is said rather than implied.
- */
-export function NetworkBadge({
-  networkName,
-  networkKind,
-  className,
-}: {
-  readonly networkName: string;
-  readonly networkKind: "testnet" | "mainnet";
-  readonly className?: string;
-}) {
-  const kind = networkKind === "testnet" ? "Testnet" : "Mainnet";
-  const endsWithKind = networkName.toLowerCase().endsWith(kind.toLowerCase());
-  return (
-    <span
-      // `role="img"` with the full sentence as its name, the same shape the tier
-      // badge uses: one accessible name that says both the chain and the kind,
-      // and no live region for a fact that never changes while the page is open.
-      role="img"
-      aria-label={`${networkName}, ${networkKind}`}
-      title={`${networkName}, ${networkKind}`}
-      className={cn(
-        // The same tinted treatment the connection uses, so the two facts a signer
-        // needs sit side by side in one voice.
-        "inline-flex items-center gap-2 rounded-md border px-3 py-1.5 font-mono text-xs tracking-wide uppercase",
-        networkKind === "testnet"
-          ? "border-amber-600/25 bg-amber-500/10 text-amber-600 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-400"
-          : "border-teal-700/25 bg-teal-500/10 text-teal-700 dark:border-teal-400/20 dark:bg-teal-800/40 dark:text-teal-200",
-        className,
-      )}
-    >
-      <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />
-      <span>{networkName}</span>
-      {endsWithKind ? null : (
-        <span aria-hidden="true" className="opacity-70">
-          {kind}
-        </span>
-      )}
-    </span>
-  );
-}
-
-export function Navbar({ pathname, networkName, networkKind, docsUrl }: NavbarProps) {
+export function Navbar({ pathname, networkKind, docsUrl }: NavbarProps) {
   const { isDark, mounted, toggleTheme } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -124,7 +76,7 @@ export function Navbar({ pathname, networkName, networkKind, docsUrl }: NavbarPr
       <ScrollProgress />
       {/*
         The desktop masthead folds at `lg`, not at `sm`. Seven links, a docs link,
-        a network badge, the connection and a theme button do not fit beside the
+        a network switch, the connection and a theme button do not fit beside the
         wordmark at 768px, and a row that runs past the viewport makes the whole
         page scroll sideways. Below `lg` everything folds into the sheet, which
         carries the switch too.
@@ -183,13 +135,9 @@ export function Navbar({ pathname, networkName, networkKind, docsUrl }: NavbarPr
           </div>
 
           <div className="flex items-center justify-end gap-1">
-            <NetworkBadge
-              networkName={networkName}
-              networkKind={networkKind}
-              className="hidden lg:inline-flex"
-            />
+            <NetworkSwitch networkKind={networkKind} className="hidden lg:inline-flex" />
             {/*
-              After the network badge, not before it. The network is a property
+              After the network switch, not before it. The network is a property
               of every page; the wallet is needed by two of them.
             */}
             <ConnectWallet className="hidden lg:block" />
@@ -276,7 +224,7 @@ export function Navbar({ pathname, networkName, networkKind, docsUrl }: NavbarPr
             </a>
           </div>
           <div className="mt-auto flex flex-col items-start gap-3 px-6 pb-8">
-            <NetworkBadge networkName={networkName} networkKind={networkKind} />
+            <NetworkSwitch networkKind={networkKind} />
             <ConnectWallet />
           </div>
         </div>

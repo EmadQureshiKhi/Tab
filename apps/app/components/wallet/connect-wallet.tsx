@@ -8,7 +8,7 @@
  * Every read on this site works without a wallet, and only two actions need one.
  * A connect button drawn as the loudest thing in the masthead would say the
  * opposite: that this is a site you sign into. It takes the same tinted treatment
- * the network badge uses, sits after it, and only becomes emphatic once there is
+ * the network switch uses, sits after it, and only becomes emphatic once there is
  * something to report - a wrong chain.
  *
  * ## Connected is a fact, not a badge
@@ -79,9 +79,13 @@ export function ConnectWallet({ className }: { readonly className?: string }) {
     and then swapping it for an account a frame later is a flicker on every page
     load for anyone who has connected once, and the masthead is the worst place
     on the page for one.
+
+    The placeholder is the width of the Connect button, which is what most
+    readers get. At 104px it was 26px wider, and the whole right-hand group of
+    the masthead slid sideways on every page load when the button replaced it.
   */
   if (!wallet.ready) {
-    return <span className={cn("h-[30px] w-[104px]", className)} aria-hidden="true" />;
+    return <span className={cn("h-[30px] w-[78.5px]", className)} aria-hidden="true" />;
   }
 
   if (wallet.account === undefined) {

@@ -11,28 +11,20 @@
  * pull the Asset, then `deposit`, which escrows it under the caller's party.
  * `depositFor` lets a treasury fund a Service's bond account without holding its
  * key, and only that account can ever withdraw what is credited. Both are on the
- * one chain this deployment runs on, and the stake is readable the block after
- * the second lands.
+ * network the visitor selected, and the stake is readable the block after the
+ * second lands.
  */
 
 import { BondFlow } from "./_flow";
-import { EmptyChain } from "../../../components/views/empty-chain";
 import { assetUnitFor, serviceNameOf } from "../../../src/dashboard/views";
-import {
-  bondAddress,
-  chainId,
-  explorerBaseUrl,
-  monadRpcUrl,
-  network,
-  registry,
-} from "../../_lib/context";
+import { routeContext } from "../../_lib/context";
 
 export const dynamic = "force-dynamic";
 
 export default async function BondPage() {
-  const bond = bondAddress();
-  const chain = network();
-  const services = await registry().services(50);
+  const context = await routeContext();
+  const chain = context.network;
+  const services = await context.registry.services(50);
 
   return (
     <section className="flex flex-col gap-8">
@@ -53,42 +45,35 @@ export default async function BondPage() {
         </p>
       </div>
 
-      {bond === undefined ? (
-        <EmptyChain
-          message="BOND_ADDRESS is not configured, so this deployment cannot escrow a Bond."
-          indexedBlock={null}
-        />
-      ) : (
-        <BondFlow
-          bond={bond}
-          chainId={chainId()}
-          chainName={chain.name}
-          rpcUrl={monadRpcUrl()}
-          explorerUrl={explorerBaseUrl()}
-          services={
-            services.ok
-              ? services.value.services.map((service) => ({
-                  serviceId: service.serviceId,
-                  name: serviceNameOf(service.serviceId),
-                  operator: service.operator,
-                  assets: service.acceptedAssets.map((term) => {
-                    const unit = assetUnitFor(term.asset);
-                    const ledger = service.bond.find(
-                      (row) => row.asset.toLowerCase() === term.asset.toLowerCase(),
-                    );
-                    return {
-                      address: term.asset,
-                      symbol: unit.symbol,
-                      decimals: unit.decimals,
-                      freeBaseUnits: ledger?.crossCheck?.agrees === false ? undefined : ledger?.free,
-                    };
-                  }),
-                }))
-              : []
-          }
-          servicesError={services.ok ? undefined : services.error.message}
-        />
-      )}
+      <BondFlow
+        bond={context.contracts.bond}
+        chainId={context.chainId}
+        chainName={chain.name}
+        rpcUrl={context.rpcUrl}
+        explorerUrl={context.explorerUrl}
+        services={
+          services.ok
+            ? services.value.services.map((service) => ({
+                serviceId: service.serviceId,
+                name: serviceNameOf(service.serviceId),
+                operator: service.operator,
+                assets: service.acceptedAssets.map((term) => {
+                  const unit = assetUnitFor(term.asset);
+                  const ledger = service.bond.find(
+                    (row) => row.asset.toLowerCase() === term.asset.toLowerCase(),
+                  );
+                  return {
+                    address: term.asset,
+                    symbol: unit.symbol,
+                    decimals: unit.decimals,
+                    freeBaseUnits: ledger?.crossCheck?.agrees === false ? undefined : ledger?.free,
+                  };
+                }),
+              }))
+            : []
+        }
+        servicesError={services.ok ? undefined : services.error.message}
+      />
     </section>
   );
 }

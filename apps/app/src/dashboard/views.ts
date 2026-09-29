@@ -42,8 +42,8 @@ export interface AssetUnitView {
  *
  * The Mainnet stablecoins and Circle's Testnet USDC come from `@tabai/shared`.
  * The mock token the deploy script ships to Testnet is deployment output, so
- * it is registered at startup through {@link registerAsset} from
- * `MOCK_USDC_ADDRESS` rather than written here.
+ * it is registered at startup through {@link registerAsset} from the
+ * deployment table in `deployments.ts` rather than written here.
  */
 const KNOWN_ASSETS = new Map<string, AssetUnitView>(
   [...Object.values(MAINNET_ASSETS), ...Object.values(TESTNET_ASSETS)].map((asset) => [

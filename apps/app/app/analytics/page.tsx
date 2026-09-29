@@ -44,14 +44,15 @@ import {
   TableRow,
 } from "../../components/ui/table";
 import type { ServiceRow } from "../../src/dashboard/client";
-import { network, registry } from "../_lib/context";
+import { routeContext } from "../_lib/context";
 
 export const dynamic = "force-dynamic";
 
 export default async function AnalyticsPage() {
+  const context = await routeContext();
   const [adoption, services] = await Promise.all([
-    registry().adoption(),
-    registry().services(50),
+    context.registry.adoption(),
+    context.registry.services(50),
   ]);
 
   return (
@@ -130,7 +131,7 @@ export default async function AnalyticsPage() {
           <p className="font-mono text-xs text-muted-foreground">
             {adoption.value.allowlistInternalCount} address
             {adoption.value.allowlistInternalCount === 1 ? " is" : "es are"} classified as ours.
-            Read at {network().name} block{" "}
+            Read at {context.network.name} block{" "}
             {adoption.value.index.lastBlock === null
               ? "an unrecorded height"
               : adoption.value.index.lastBlock.toLocaleString("en-US")}
@@ -149,7 +150,7 @@ export default async function AnalyticsPage() {
             indexedBlock={null}
           />
         ) : (
-          <BondMeters services={services.value.services} networkName={network().name} />
+          <BondMeters services={services.value.services} networkName={context.network.name} />
         )}
       </section>
     </section>

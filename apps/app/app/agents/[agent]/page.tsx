@@ -53,7 +53,7 @@ export default async function AgentDetailPage({
   readonly params: Promise<{ readonly agent: string }>;
 }) {
   const { agent } = await params;
-  const context = routeContext();
+  const context = await routeContext();
   const [detail, settlements] = await Promise.all([
     context.registry.agent(agent),
     context.registry.settlements({ agent, limit: 25 }),

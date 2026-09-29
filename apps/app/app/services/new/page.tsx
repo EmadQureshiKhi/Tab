@@ -8,28 +8,18 @@
  * checked before a wallet is opened, and shown in full before it is signed.
  *
  * The page is a shell. Everything below the heading needs a wallet and a form,
- * so it is one island, and this route resolves the addresses it reads from the
- * environment the same way `/authorise` does - refusing plainly where the
- * deployment has not been configured rather than offering a form that could only
- * fail.
+ * so it is one island, and this route resolves the selected network and its
+ * `ServiceRegistry` the same way `/authorise` does.
  */
 
 import { NewServiceWizard } from "./_wizard";
-import { EmptyChain } from "../../../components/views/empty-chain";
-import {
-  chainId,
-  explorerBaseUrl,
-  mockUsdcAddress,
-  monadRpcUrl,
-  network,
-  serviceRegistryAddress,
-} from "../../_lib/context";
+import { routeContext } from "../../_lib/context";
 
 export const dynamic = "force-dynamic";
 
-export default function NewServicePage() {
-  const registry = serviceRegistryAddress();
-  const chain = network();
+export default async function NewServicePage() {
+  const context = await routeContext();
+  const chain = context.network;
 
   return (
     <section className="flex flex-col gap-8">
@@ -49,22 +39,15 @@ export default function NewServicePage() {
         </p>
       </div>
 
-      {registry === undefined ? (
-        <EmptyChain
-          message="SERVICE_REGISTRY_ADDRESS is not configured, so this deployment cannot register a Service."
-          indexedBlock={null}
-        />
-      ) : (
-        <NewServiceWizard
-          serviceRegistry={registry}
-          chainId={chainId()}
-          chainName={chain.name}
-          networkKind={chain.network}
-          rpcUrl={monadRpcUrl()}
-          explorerUrl={explorerBaseUrl()}
-          defaultAsset={chain.network === "testnet" ? mockUsdcAddress() : undefined}
-        />
-      )}
+      <NewServiceWizard
+        serviceRegistry={context.contracts.serviceRegistry}
+        chainId={context.chainId}
+        chainName={chain.name}
+        networkKind={chain.network}
+        rpcUrl={context.rpcUrl}
+        explorerUrl={context.explorerUrl}
+        defaultAsset={context.contracts.mockUsdc}
+      />
     </section>
   );
 }

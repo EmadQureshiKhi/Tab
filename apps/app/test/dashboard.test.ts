@@ -56,11 +56,11 @@ import {
   toSettlementViews,
   type SettlementView,
 } from "../src/dashboard/views";
-import { offersX402, parsePublishedDirectory, toCatalogue } from "../src/dashboard/catalogue";
+import { offersX402, parsePublishedDirectory, publishedOn, toCatalogue } from "../src/dashboard/catalogue";
 import { readCurationAuthority } from "../src/dashboard/curation";
 import { hubRecipeFor, toHubEntries, withMargin, type HubEndpointInput } from "../src/dashboard/hub";
 import { parseLimit, serveSettlements } from "../src/dashboard/api-settlements";
-import { NetworkBadge } from "../components/shell/navbar";
+import { NetworkSwitchView } from "../components/shell/network-switch";
 import { LabelsStrip } from "../components/custom-ui/labels-strip";
 import { EmptyChain } from "../components/views/empty-chain";
 import { IdentitySection } from "../components/views/identity-section";
@@ -302,14 +302,20 @@ test("every view renders in a process with no provider and no account", () => {
   // one could not produce markup here, so the claim is asserted rather than said.
   assert.equal((globalThis as { window?: unknown }).window, undefined);
 
-  const badge = renderToStaticMarkup(
-    createElement(NetworkBadge, { networkName: "Monad Testnet", networkKind: "testnet" }),
-  );
-  // The network kind is stated in words rather than carried by colour, and it is
-  // not repeated where the chain's name already ends in it.
-  assert.match(badge, /Monad Testnet/);
-  assert.match(badge, /aria-label="Monad Testnet, testnet"/);
-  assert.equal(badge.includes(">Testnet<"), false, "the badge does not print the kind twice");
+  const networkSwitch = renderToStaticMarkup(createElement(NetworkSwitchView, { selected: "testnet" }));
+  // The network is stated in words rather than carried by colour, as a radio
+  // group with exactly one option checked and only that one in the tab order.
+  assert.match(networkSwitch, /role="radiogroup"/);
+  assert.match(networkSwitch, /aria-label="Network"/);
+  assert.match(networkSwitch, />Testnet</);
+  assert.match(networkSwitch, />Mainnet</);
+  assert.equal(networkSwitch.match(/aria-checked="true"/g)?.length, 1);
+  assert.match(networkSwitch, /aria-checked="true" tabindex="0"[^>]*data-network="testnet"/);
+  assert.match(networkSwitch, /aria-checked="false" tabindex="-1"[^>]*data-network="mainnet"/);
+  assert.doesNotMatch(networkSwitch, /aria-busy/, "nothing is loading until a choice is made");
+  const switching = renderToStaticMarkup(createElement(NetworkSwitchView, { selected: "mainnet", pending: true }));
+  assert.match(switching, /aria-busy="true"/);
+  assert.match(switching, /aria-checked="true"[^>]*data-network="mainnet"/);
 
   const empty = renderToStaticMarkup(
     createElement(EmptyChain, {
@@ -745,6 +751,37 @@ test("the committed directory parses, with its x402 and Hub blocks carried", () 
   // entry is dropped rather than rendered with holes.
   assert.deepEqual(parsePublishedDirectory(null), []);
   assert.deepEqual(parsePublishedDirectory({ services: [{ name: "no id" }] }), []);
+});
+
+test("the committed directory names a network on every entry, and each network gets only its own", () => {
+  const parsed = parsePublishedDirectory(
+    JSON.parse(readFileSync(join(APP_ROOT, "..", "..", "service-endpoints.json"), "utf8")),
+  );
+  for (const entry of parsed) {
+    assert.ok(entry.chainId === 10143 || entry.chainId === 143, `${entry.name} names a Monad network`);
+  }
+  const testnet = publishedOn(parsed, 10143).find((entry) => entry.name === "tab.demo");
+  const mainnet = publishedOn(parsed, 143).find((entry) => entry.name === "tab.demo");
+  assert.notEqual(testnet, undefined);
+  assert.notEqual(mainnet, undefined);
+  // The same Service id on both networks, so only the chain keeps the two
+  // gateways apart, and they must be two gateways.
+  assert.equal(testnet?.serviceId, mainnet?.serviceId);
+  assert.notEqual(testnet?.endpoint, mainnet?.endpoint);
+
+  // An entry that names no chain, or names it as text, serves neither network.
+  const loose = parsePublishedDirectory({
+    services: [
+      { serviceId: "0x01", endpoint: "http://a.test" },
+      { serviceId: "0x02", endpoint: "http://b.test", chainId: "143" },
+      { serviceId: "0x03", endpoint: "http://c.test", chainId: 143 },
+    ],
+  });
+  assert.deepEqual(publishedOn(loose, 10143), []);
+  assert.deepEqual(
+    publishedOn(loose, 143).map((entry) => entry.serviceId),
+    ["0x03"],
+  );
 });
 
 /* --------------------------------------------------------------- the Hub */

@@ -1,19 +1,26 @@
 /**
  * The Dashboard's framework-free core.
  *
- * Everything a route needs that is not JSX lives here: the chain toggle model,
- * the registry reader, the view models the composites take, and the
- * `/api/settlements` handler. None of it imports React and none of it imports a
+ * Everything a route needs that is not JSX lives here: the network model and
+ * the deployment table behind it, the registry reader, the view models the
+ * composites take, the trial-call limits, and the `/api/settlements` handler. None of it imports React and none of it imports a
  * framework, so all of it is testable in a plain Node test and portable to
  * whichever host serves the pages.
  */
 
 export {
   DEFAULT_CHAIN_ID,
+  NETWORK_COOKIE,
+  NETWORK_COOKIE_MAX_AGE_SECONDS,
+  chainIdForNetwork,
+  cookieFromHeader,
   explorerAddressUrl,
   explorerTxUrl,
+  networkCookieAssignment,
   networkOptionFor,
   parseChainId,
+  parseNetworkCookie,
+  selectChainId,
   type ChainNetwork,
   type NetworkOption,
 } from "./network.js";
@@ -86,6 +93,7 @@ export {
 export {
   offersX402,
   parsePublishedDirectory,
+  publishedOn,
   recipeFor,
   toCatalogue,
   type CatalogueEntry,
@@ -106,7 +114,24 @@ export {
   type HubRecipe,
 } from "./hub.js";
 
-export { publishedDirectoryPath, readPublishedDirectory } from "./published.js";
+export {
+  DEPLOYMENTS,
+  MAINNET_DEPLOYMENT,
+  TESTNET_DEPLOYMENT,
+  deploymentFor,
+  type NetworkDeployment,
+} from "./deployments.js";
+
+export {
+  MAINNET_TRIAL_DEFAULTS,
+  TESTNET_TRIAL_LIMITS,
+  clientAddressOf,
+  createTrialLimiter,
+  limitFromEnv,
+  type TrialDecision,
+  type TrialLimiter,
+  type TrialLimits,
+} from "./trial-limit.js";
 
 export {
   DEFAULT_PAGE_SIZE,

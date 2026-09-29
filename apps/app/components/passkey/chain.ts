@@ -1,16 +1,16 @@
 /**
  * Which Monad chain a passkey account signs on, and how its MON is read.
  *
- * ## The chain is the deployment's
+ * ## The chain is the one the visitor selected
  *
  * An injected wallet is on whichever chain its owner left it on, and the
  * masthead reports that. A passkey account is on no chain at all: it signs
- * whatever chain id it is handed. So it takes the deployment's chain, which
- * the server knows from `MONAD_CHAIN_ID` and the browser bundle cannot see.
- * `NEXT_PUBLIC_MONAD_CHAIN_ID` is the same fact made visible to the client,
- * and a page that asks the account to sign passes the deployment's chain and
- * endpoint again through `ensureChain`, so the two can never disagree for
- * long: the page's own values win the moment it asks to sign.
+ * whatever chain id it is handed. So it takes the network the visitor chose on
+ * the masthead switch, which the server resolves from the cookie and the root
+ * layout hands to the wallet provider with that network's endpoint. A page
+ * that asks the account to sign passes the same chain and endpoint again
+ * through `ensureChain`, so the two can never disagree for long: the page's
+ * own values win the moment it asks to sign.
  *
  * ## The balance is a read, never a guess
  *
@@ -54,18 +54,14 @@ export function passkeyChainFor(chainId: number, rpcUrl?: string | undefined): P
 }
 
 /**
- * The deployment's chain as the client bundle sees it.
+ * The chain a passkey account signs on: the selected network, with its endpoint.
  *
- * Only `NEXT_PUBLIC_` names are inlined into the client, so these two are the
- * browser-side mirror of `MONAD_CHAIN_ID` and `MONAD_RPC_URL`. Unset, they
- * fall back to Testnet exactly as `parseChainId` does on the server, because
- * the cost of mistaking testnet for mainnet is smaller than the reverse.
+ * A chain id this Dashboard does not know falls back to Testnet, exactly as
+ * `parseChainId` does on the server, because the cost of mistaking testnet
+ * for mainnet is smaller than the reverse.
  */
-export function defaultPasskeyChain(): PasskeyChain {
-  const raw = process.env["NEXT_PUBLIC_MONAD_CHAIN_ID"]?.trim();
-  const parsed = raw !== undefined && /^\d+$/.test(raw) ? Number.parseInt(raw, 10) : Number.NaN;
-  const rpc = process.env["NEXT_PUBLIC_MONAD_RPC_URL"];
-  return passkeyChainFor(parsed, rpc) ?? fromSpec(MONAD_TESTNET_CHAIN, rpc);
+export function selectedPasskeyChain(chainId: number, rpcUrl?: string | undefined): PasskeyChain {
+  return passkeyChainFor(chainId, rpcUrl) ?? fromSpec(MONAD_TESTNET_CHAIN, undefined);
 }
 
 /** A provider pinned to one chain, so a wrong endpoint fails loudly rather than signing elsewhere. */

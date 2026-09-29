@@ -12,11 +12,14 @@
  * and correct it a frame later, which a reader who chose dark sees as a white
  * flash on every navigation.
  *
- * ## The network is a deployment constant
+ * ## The network is the visitor's choice
  *
- * One Monad chain per deployment, resolved once here from the environment and
- * shown on the masthead. There is no toggle and nothing in the URL, because a
- * Settlement on this chain could not have come from any other.
+ * Testnet or Mainnet, picked on the masthead switch and kept in a cookie. It
+ * is resolved once here per render and handed to the masthead, the footer, the
+ * transaction toasts and the wallet provider, so every one of them names the
+ * same chain the page beneath them reads. Nothing is in the URL: a link to a
+ * Settlement is a link to that network's Settlement, and the reader who follows
+ * it is shown the network they chose.
  *
  * ## No wallet anywhere on a read
  *
@@ -36,7 +39,7 @@ import { SmoothScroll } from "../components/motion/smooth-scroll";
 import { Chrome } from "./_lib/chrome";
 import { WalletProvider } from "../components/wallet/wallet-context";
 import { TransactionToastProvider } from "../components/shell/transaction-toast";
-import { docsUrl, explorerBaseUrl, network } from "./_lib/context";
+import { docsUrl, routeContext } from "./_lib/context";
 import "./globals.css";
 
 const inter = Inter({
@@ -104,8 +107,8 @@ export const metadata = {
   },
 };
 
-export default function RootLayout({ children }: { readonly children: ReactNode }) {
-  const chain = network();
+export default async function RootLayout({ children }: { readonly children: ReactNode }) {
+  const context = await routeContext();
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -115,15 +118,15 @@ export default function RootLayout({ children }: { readonly children: ReactNode 
         className={`${inter.variable} ${hostGrotesk.variable} ${geistMono.variable} min-h-screen bg-background text-foreground antialiased`}
       >
         <ThemeProvider>
-          <TransactionToastProvider explorerUrl={explorerBaseUrl()}>
-            <WalletProvider>
+          <TransactionToastProvider explorerUrl={context.explorerUrl}>
+            <WalletProvider network={{ chainId: context.chainId, rpcUrl: context.rpcUrl }}>
               <SmoothScroll />
               <SkipLink />
               <Chrome
                 docsUrl={docsUrl()}
-                explorerUrl={explorerBaseUrl()}
-                networkName={chain.name}
-                networkKind={chain.network}
+                explorerUrl={context.explorerUrl}
+                chainId={context.chainId}
+                networkKind={context.network.network}
               >
                 {children}
               </Chrome>

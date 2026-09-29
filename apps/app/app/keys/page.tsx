@@ -7,20 +7,20 @@
  * one, lets a session key be revealed once for a runtime, and sends the reader
  * to `/authorise` with that key active so it can authorise a Service as itself.
  *
- * Like `/authorise`, it is a server component that resolves the deployment's
- * chain and hands it to a client island, because `MONAD_CHAIN_ID` and
- * `MONAD_RPC_URL` are server-side variables the client bundle cannot read.
+ * Like `/authorise`, it is a server component that resolves the selected
+ * network and hands it to a client island, because the choice is a cookie the
+ * server reads and the endpoint is a server-side variable.
  * The island renders fully with no wallet and no passkey: the empty state is
  * an explanation of what a passkey account is and two ways to have one.
  */
 
-import { chainId, explorerBaseUrl, monadRpcUrl, network } from "../_lib/context";
+import { routeContext } from "../_lib/context";
 import { KeysView } from "../../components/passkey/keys-view";
 
 export const dynamic = "force-dynamic";
 
-export default function KeysPage() {
-  const chain = network();
+export default async function KeysPage() {
+  const context = await routeContext();
   return (
     <section className="flex flex-col gap-6">
       <div className="flex flex-col gap-4">
@@ -39,10 +39,10 @@ export default function KeysPage() {
       </div>
 
       <KeysView
-        chainId={chainId()}
-        chainName={chain.name}
-        rpcUrl={monadRpcUrl()}
-        explorerUrl={explorerBaseUrl()}
+        chainId={context.chainId}
+        chainName={context.network.name}
+        rpcUrl={context.rpcUrl}
+        explorerUrl={context.explorerUrl}
       />
     </section>
   );

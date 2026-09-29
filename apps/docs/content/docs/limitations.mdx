@@ -18,6 +18,7 @@ There is no cross-chain settlement: an Agent on Monad pays a Service on Monad, i
 That is the bound and it is also the reason the design holds.
 `TabSettlement` can weld the transfer and the ledger entry into one transaction only because both happen on the same ledger, and the moment a payment lived elsewhere something would have to be trusted to report it.
 Mainnet and Testnet are separate deployments, with separate addresses, and a figure read from one says nothing about the other.
+The Dashboard shows both, one at a time: the switch on its masthead picks the network, and every figure on the page is read from that one.
 
 ### Credit is backed by Service Bonds, never by Agent balances
 

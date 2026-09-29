@@ -483,7 +483,7 @@ export function createRegistryClient(options: RegistryClientOptions): RegistryCl
       return err({
         category: "VALIDATION",
         code: "REGISTRY_BASE_URL_MISSING",
-        message: "NEXT_PUBLIC_REGISTRY_API_URL is empty, so there is no registry to read",
+        message: "no registry read API is configured for this network, so there is no registry to read",
         retryable: false,
       });
     }

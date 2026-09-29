@@ -24,7 +24,7 @@ import { WorksWith } from "../components/shell/works-with";
 import { SettlementWalkthrough } from "../components/motion/settlement-walkthrough";
 import { Reveal, RevealGroup, RevealItem } from "../components/motion/reveal";
 import { toSettlementViews } from "../src/dashboard/views";
-import { docsUrl, explorerBaseUrl, routeContext } from "./_lib/context";
+import { docsUrl, routeContext } from "./_lib/context";
 
 export const dynamic = "force-dynamic";
 
@@ -44,7 +44,7 @@ const REMOVAL_TEST = [
 ];
 
 export default async function OverviewPage() {
-  const context = routeContext();
+  const context = await routeContext();
   const page = await context.registry.settlements({ limit: 10 });
 
   // Two figures, both read from the index rather than counted here, and both
@@ -217,7 +217,7 @@ export default async function OverviewPage() {
             <LiveSettlements
               caption={`Settlements on ${context.network.name}`}
               initialRows={toSettlementViews(page.value.settlements)}
-              explorerBaseUrl={explorerBaseUrl()}
+              explorerBaseUrl={context.explorerUrl}
             />
           </Reveal>
         )}

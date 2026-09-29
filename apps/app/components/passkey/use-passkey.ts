@@ -34,7 +34,7 @@ import { assertPasskey, createPasskey, relyingPartyId } from "./ceremony";
 import {
   MONAD_FAUCET_URL,
   type PasskeyChain,
-  defaultPasskeyChain,
+  selectedPasskeyChain,
   passkeyChainFor,
   providerFor,
   readNativeBalance,
@@ -170,15 +170,29 @@ export function describeSendFailure(cause: unknown, chain: PasskeyChain): string
   return "The transaction was not sent, and the endpoint gave no reason.";
 }
 
-export function usePasskeyConnection(): PasskeyConnection {
+/** The network the visitor selected, as the root layout resolves it on the server. */
+export interface SelectedNetwork {
+  readonly chainId: number;
+  readonly rpcUrl: string;
+}
+
+export function usePasskeyConnection(selected: SelectedNetwork): PasskeyConnection {
   const accountRef = useRef<PasskeyAccount | undefined>(undefined);
   const [supported, setSupported] = useState(false);
   const [remembered, setRemembered] = useState<PasskeyRecord | undefined>(undefined);
   const [busy, setBusy] = useState(false);
   const [views, setViews] = useState<{ owner: KeyView; sessionKeys: readonly KeyView[] } | undefined>(undefined);
   const [activeIndex, setActiveIndex] = useState<number>(OWNER_INDEX);
-  const [chain, setChain] = useState<PasskeyChain>(defaultPasskeyChain);
+  const [chain, setChain] = useState<PasskeyChain>(() => selectedPasskeyChain(selected.chainId, selected.rpcUrl));
   const [balance, setBalance] = useState<BalanceReading | undefined>(undefined);
+
+  // The visitor switched network on the masthead: the account follows, so the
+  // balance in the connection menu and the next signature are on the chain the
+  // page now shows. The keys themselves are the same on every chain.
+  useEffect(() => {
+    const next = selectedPasskeyChain(selected.chainId, selected.rpcUrl);
+    setChain((current) => (current.id === next.id && current.rpcUrl === next.rpcUrl ? current : next));
+  }, [selected.chainId, selected.rpcUrl]);
 
   // What the browser can do and what it remembers. Neither opens a prompt.
   useEffect(() => {

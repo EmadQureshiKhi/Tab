@@ -21,12 +21,12 @@ import {
   streamReader,
   streamTick,
 } from "../../../src/dashboard/api-stream";
-import { registry } from "../../_lib/context";
+import { requestContext } from "../../_lib/context";
 
 export const dynamic = "force-dynamic";
 
 export function GET(request: Request): Response {
-  const read = streamReader(registry());
+  const read = streamReader(requestContext(request).registry);
 
   let seen: ReadonlySet<string> = new Set<string>();
   let first = true;

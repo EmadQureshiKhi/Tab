@@ -8,37 +8,28 @@
  * would pass the ceiling the Agent set, and refuses once the expiry has lapsed.
  * Nothing in Tab can raise that ceiling on the Agent's behalf.
  *
- * The page is a server component that resolves configuration and hands it to a
- * client island. That split is not ceremony: `TAB_BOOK_ADDRESS` and
- * `MONAD_CHAIN_ID` are server-side variables, and a client component reading
- * `process.env` for them would compile and then find them undefined in the
- * browser, because only `NEXT_PUBLIC_` names are inlined into the client bundle.
+ * The page is a server component that resolves the selected network and hands
+ * it to a client island. That split is not ceremony: the network is a cookie
+ * the server reads before rendering, `TabBook` is that network's address from
+ * the built-in deployment table, and the endpoint is a server-side variable the
+ * client bundle cannot see.
  */
 
-import { EmptyChain } from "../../components/views/empty-chain";
 import { assetUnitFor, serviceNameOf } from "../../src/dashboard/views";
-import {
-  chainId,
-  explorerBaseUrl,
-  monadRpcUrl,
-  network,
-  registry,
-  tabBookAddress,
-} from "../_lib/context";
+import { routeContext } from "../_lib/context";
 import { AuthoriseForm, type ServiceChoice } from "./_form";
 
 export const dynamic = "force-dynamic";
 
 export default async function AuthorisePage() {
-  const tabBook = tabBookAddress();
-  const chain = network();
-  const services = await registry().services(50);
+  const context = await routeContext();
+  const services = await context.registry.services(50);
 
   /*
     Every Service and every Asset it accepts, named where it can be. The symbol
     is resolved here rather than in the island because the Testnet token is
-    registered at server startup from the environment, and the client bundle
-    has no such table to consult.
+    registered at server startup from the deployment table, and the client
+    bundle has no such registration to consult.
   */
   const choices: readonly ServiceChoice[] = services.ok
     ? services.value.services.map((service) => ({
@@ -76,22 +67,15 @@ export default async function AuthorisePage() {
         </p>
       </div>
 
-      {tabBook === undefined ? (
-        <EmptyChain
-          message="TAB_BOOK_ADDRESS is not configured, so this deployment cannot build an authorisation."
-          indexedBlock={null}
-        />
-      ) : (
-        <AuthoriseForm
-          tabBook={tabBook}
-          chainId={chainId()}
-          chainName={chain.name}
-          rpcUrl={monadRpcUrl()}
-          explorerUrl={explorerBaseUrl()}
-          services={choices}
-          servicesError={services.ok ? undefined : services.error.message}
-        />
-      )}
+      <AuthoriseForm
+        tabBook={context.contracts.tabBook}
+        chainId={context.chainId}
+        chainName={context.network.name}
+        rpcUrl={context.rpcUrl}
+        explorerUrl={context.explorerUrl}
+        services={choices}
+        servicesError={services.ok ? undefined : services.error.message}
+      />
     </section>
   );
 }

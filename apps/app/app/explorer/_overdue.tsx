@@ -39,7 +39,7 @@ import { OverdueTabs } from "../../components/views/overdue-tabs";
 import type { RegistryClient } from "../../src/dashboard/client";
 import { markCommand, overdueBy, readOverdueTabs, type TabCandidate } from "../../src/dashboard/overdue";
 import { assetUnitFor, serviceNameOf } from "../../src/dashboard/views";
-import { chain, registry, serviceRegistryAddress, tabBookAddress } from "../_lib/context";
+import type { NetworkContext } from "../_lib/context";
 
 /** How many feed pages the walk will turn before it stops and says so. */
 const MAX_FEED_PAGES = 200;
@@ -79,27 +79,16 @@ function Unavailable({ reason }: { readonly reason: string }) {
   );
 }
 
-export async function OverdueTabsSection() {
-  const tabBook = tabBookAddress();
-  const serviceRegistry = serviceRegistryAddress();
-  if (tabBook === undefined) {
-    return (
-      <Unavailable reason="TAB_BOOK_ADDRESS is not configured, so the tabs cannot be read from the chain." />
-    );
-  }
-  if (serviceRegistry === undefined) {
-    return (
-      <Unavailable reason="SERVICE_REGISTRY_ADDRESS is not configured, so no Settlement Window can be read and no tab can be judged overdue." />
-    );
-  }
+export async function OverdueTabsSection({ context }: { readonly context: NetworkContext }) {
+  const { tabBook, serviceRegistry } = context.contracts;
 
-  const candidates = await everyTab(registry());
+  const candidates = await everyTab(context.registry);
   if (!candidates.ok) {
     return <Unavailable reason={`The delivery feed could not be read: ${candidates.reason}`} />;
   }
 
   const report = await readOverdueTabs({
-    chain: chain(),
+    chain: context.chain,
     tabBook,
     serviceRegistry,
     candidates: candidates.candidates,

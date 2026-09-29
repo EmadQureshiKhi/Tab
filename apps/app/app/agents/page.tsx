@@ -17,7 +17,7 @@ import { routeContext } from "../_lib/context";
 export const dynamic = "force-dynamic";
 
 export default async function AgentsPage() {
-  const context = routeContext();
+  const context = await routeContext();
   const page = await context.registry.agents(25);
 
   return (

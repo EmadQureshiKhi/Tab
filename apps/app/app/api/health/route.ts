@@ -5,19 +5,22 @@
  * lives in `serveHealth`, which is a pure function from two probes to a status,
  * headers and a body, so the interesting behaviour is tested without standing up
  * a server or an upstream.
+ *
+ * It answers for one network: `?network=testnet` or `?network=mainnet` when a
+ * monitor names it, else the visitor's cookie, else the deployment's default.
  */
 
 import { serveHealth } from "../../../src/dashboard/api-health";
 import { toResponse } from "../../../src/dashboard/api-settlements";
-import { chain, registry } from "../../_lib/context";
+import { requestContext } from "../../_lib/context";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(): Promise<Response> {
-  const client = registry();
+export async function GET(request: Request): Promise<Response> {
+  const context = requestContext(request);
   const result = await serveHealth({
-    chain: chain(),
-    registry: { probe: () => client.health() },
+    chain: context.chain,
+    registry: { probe: () => context.registry.health() },
   });
   return toResponse(result) as Response;
 }

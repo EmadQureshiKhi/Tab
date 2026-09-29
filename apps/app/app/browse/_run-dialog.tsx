@@ -34,6 +34,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../componen
 import { Link } from "../../components/ui/link";
 import { cn } from "../../components/ui/cn";
 import { FOCUS_RING } from "../../components/ui/focus-ring";
+import { MONAD_MAINNET_CHAIN } from "../../components/wallet/eip1193";
 import { recipeFor } from "../../src/dashboard/catalogue";
 
 type Tab = "terms" | "connect" | "try";
@@ -300,7 +301,9 @@ function TryIt({ entry, networkName }: { readonly entry: WireEntry; readonly net
       const response = await fetch("/api/try", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ serviceId: entry.serviceId, tool: entry.tool }),
+        // The chain this page was drawn for, so a call from a page left open
+        // across a network switch is refused rather than sent elsewhere.
+        body: JSON.stringify({ serviceId: entry.serviceId, tool: entry.tool, chainId: entry.chainId }),
       });
       const body = await response.text();
       // The route marks what it refused itself, so a refusal that never left
@@ -330,6 +333,9 @@ function TryIt({ entry, networkName }: { readonly entry: WireEntry; readonly net
         nothing is paid to make the call: the Service answers first, and the charge is written to an
         Open Tab on {networkName} afterwards. That is the whole of post-paid, and it is the one
         claim on this site you can test by pressing a button.
+        {entry.chainId === MONAD_MAINNET_CHAIN.id
+          ? " On Mainnet that charge is real money on the tab of this site's demonstration Agent, so trial calls are limited to a few a minute and a fixed number a day."
+          : null}
       </p>
 
       <button

@@ -37,7 +37,6 @@ import { Reveal, RevealGroup, RevealItem } from "../../components/motion/reveal"
 import { ServiceCard } from "../../components/shell/service-card";
 import { formatAssetAmount } from "../../components/custom-ui/format";
 import { offersX402 } from "../../src/dashboard/catalogue";
-import { readPublishedDirectory } from "../../src/dashboard/published";
 import {
   assetUnitFor,
   serviceNameOf,
@@ -46,34 +45,23 @@ import {
   toIdentityView,
 } from "../../src/dashboard/views";
 import type { IdentityRow, RegistryClient, ServiceRow } from "../../src/dashboard/client";
-import { chain, explorerBaseUrl, routeContext } from "../_lib/context";
+import { routeContext, type NetworkContext } from "../_lib/context";
+import { publishedDirectory } from "../_lib/published";
 import { readCurationAuthority, type CurationAuthorityView } from "../../src/dashboard/curation";
 
 export const dynamic = "force-dynamic";
 
 /**
- * The curation authority, from the environment contract, or nothing.
+ * The curation authority on the selected network, and what it is, asked of the chain.
  *
- * The template ships the zero address, which is present and well formed and holds
- * no contract, so it is treated as absent rather than drawn as a party.
+ * The address is the `ServiceRegistry` constructor immutable, from the built-in
+ * deployment table. A read that cannot be made is reported as one, not guessed
+ * at: the address is what the registry checks whatever this page manages to
+ * learn about it.
  */
-function curationAuthorityAddress(): string | undefined {
-  const value = process.env["CURATION_AUTHORITY_ADDRESS"]?.trim();
-  if (value === undefined || !/^0x[0-9a-fA-F]{40}$/.test(value)) return undefined;
-  if (/^0x0{40}$/i.test(value)) return undefined;
-  return value;
-}
-
-/**
- * What that address is, asked of the chain.
- *
- * A read that cannot be made is reported as one, not guessed at: the address is
- * what the registry checks whatever this page manages to learn about it.
- */
-async function curationAuthority(): Promise<CurationAuthorityView | undefined> {
-  const address = curationAuthorityAddress();
-  if (address === undefined) return undefined;
-  const reader = chain();
+async function curationAuthority(context: NetworkContext): Promise<CurationAuthorityView> {
+  const address = context.contracts.curationAuthority;
+  const reader = context.chain;
   const head = await reader.latestBlock();
   if (!head.ok) {
     return { address, kind: "unreadable", unreadable: `the chain could not be read (${head.error.code})` };
@@ -116,11 +104,11 @@ async function operatorIdentities(
 }
 
 export default async function ServicesPage() {
-  const context = routeContext();
+  const context = await routeContext();
   const [page, published, authority] = await Promise.all([
     context.registry.services(25),
-    readPublishedDirectory(),
-    curationAuthority(),
+    publishedDirectory(context.chainId),
+    curationAuthority(context),
   ]);
   const identities = page.ok
     ? await operatorIdentities(page.value.services, context.registry.service)
@@ -162,7 +150,7 @@ export default async function ServicesPage() {
         clause: the role is fixed at construction, so it cannot be moved quietly.
       */}
       <Reveal>
-        <CurationAuthority authority={authority} explorerBaseUrl={explorerBaseUrl()} />
+        <CurationAuthority authority={authority} explorerBaseUrl={context.explorerUrl} />
       </Reveal>
 
       {!page.ok ? (

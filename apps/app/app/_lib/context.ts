@@ -1,13 +1,27 @@
 /**
  * What every route needs before it can render: which network, and how to read.
  *
- * ## One chain per deployment
+ * ## One network per render, chosen by the visitor
  *
- * Tab settles on the Monad chain it is deployed to and nowhere else. The Agent's
- * payment and the ledger entry happen in one transaction, so there is no second
- * chain a Settlement could have come from and no toggle to choose one. The chain
- * id comes from the environment once, here, and every route reads the same
- * answer, so a page cannot quietly render Testnet rows under a Mainnet heading.
+ * The Dashboard serves Monad Testnet and Monad Mainnet from one deployment,
+ * and the visitor picks which with the switch on the masthead. The choice is
+ * the `tab-network` cookie, read here and nowhere else: a page resolves it with
+ * {@link routeContext}, an API route with {@link requestContext}, and both hand
+ * back one {@link NetworkContext} carrying the chain, the contracts, the
+ * readers and the links for that network. Nothing below a route asks the
+ * question again, so a page cannot render Testnet rows under a Mainnet
+ * heading. With no cookie, `MONAD_CHAIN_ID` names the network, as it did when
+ * a deployment served only one.
+ *
+ * ## Contracts are built in, hosts are configured
+ *
+ * The contract addresses are transaction results and the same for every host,
+ * so they come from `src/dashboard/deployments.ts`. What differs per host is
+ * where the registry read API and the RPC endpoint live, and each network has
+ * its own variable for those. The unsuffixed variables a single-network
+ * deployment set still work, for the default network only: a Testnet registry
+ * URL answering for Mainnet would be the one mistake this file exists to make
+ * impossible, so a network with nothing configured reports that instead.
  *
  * ## No wallet, no signer, no key
  *
@@ -17,18 +31,24 @@
  * route could not connect a wallet if it tried.
  */
 
+import { cookies } from "next/headers";
+
 import { createChainReader, type ChainReader } from "../../src/dashboard/chain";
 import { createRegistryClient, type RegistryClient } from "../../src/dashboard/client";
+import { DEPLOYMENTS, deploymentFor, type NetworkDeployment } from "../../src/dashboard/deployments";
 import {
+  NETWORK_COOKIE,
+  cookieFromHeader,
   explorerAddressUrl,
   explorerTxUrl,
   networkOptionFor,
   parseChainId,
+  selectChainId,
   type NetworkOption,
 } from "../../src/dashboard/network";
 import { registerAsset } from "../../src/dashboard/views";
 import { registerAsset as registerAssetUnit } from "../../components/custom-ui/format";
-import { CHAINS, type MonadChainId } from "@tabai/shared";
+import { CHAINS, MONAD_TESTNET, type MonadChainId } from "@tabai/shared";
 
 /** Search parameters as the App Router hands them over. */
 export type SearchParams = Record<string, string | string[] | undefined>;
@@ -40,62 +60,101 @@ export function firstParam(params: SearchParams, name: string): string | undefin
   return Array.isArray(value) ? value[0] : value;
 }
 
-/**
- * An address from the environment, or nothing.
- *
- * The template ships the zero address, which is present, well formed, and holds
- * no contract. Treated as absent, so an unfilled environment reports "not
- * configured" rather than "nothing found", which is the same wrong answer this
- * Dashboard refuses to give everywhere else.
- */
-function configuredAddress(raw: string | undefined): string | undefined {
-  const address = raw?.trim();
-  if (address === undefined || !/^0x[0-9a-fA-F]{40}$/.test(address)) return undefined;
-  if (/^0x0{40}$/i.test(address)) return undefined;
-  return address.toLowerCase();
-}
-
 /*
-  The Testnet token is deployment output, so it is named here at module load
-  rather than in the shared table: once `MOCK_USDC_ADDRESS` is set, every amount
-  in it renders as mUSDC instead of as an address at zero decimals. It is
-  `mUSDC` and not the `USDC` its own `symbol()` returns, because the demo
-  Service accepts Circle's Testnet USDC beside it and a reader must be able to
-  tell the two apart; the mock is minted freely and the real one is not. Both
-  tables are told, because `components/` cannot import from `src/` and keeps a
-  mirror.
+  The Testnet token is named here at module load rather than in the shared
+  table, because it is this project's deployment output rather than a network
+  constant. It is `mUSDC` and not the `USDC` its own `symbol()` returns, because
+  the demo Service accepts Circle's Testnet USDC beside it and a reader must be
+  able to tell the two apart; the mock is minted freely and the real one is
+  not. Both tables are told, because `components/` cannot import from `src/`
+  and keeps a mirror.
 */
-const mockUsdc = configuredAddress(process.env["MOCK_USDC_ADDRESS"]);
-if (mockUsdc !== undefined) {
-  registerAsset(mockUsdc, { symbol: "mUSDC", decimals: 6 });
-  registerAssetUnit(mockUsdc, { symbol: "mUSDC", decimals: 6 });
+for (const deployment of Object.values(DEPLOYMENTS)) {
+  if (deployment.mockUsdc === undefined) continue;
+  registerAsset(deployment.mockUsdc, { symbol: "mUSDC", decimals: 6 });
+  registerAssetUnit(deployment.mockUsdc, { symbol: "mUSDC", decimals: 6 });
 }
 
-/** The Monad chain this deployment reads, from the environment contract. */
-export function chainId(): MonadChainId {
+/** A configured value, or nothing where the variable is unset or blank. */
+function configured(raw: string | undefined): string | undefined {
+  const value = raw?.trim();
+  return value === undefined || value.length === 0 ? undefined : value;
+}
+
+const isTestnet = (chainId: MonadChainId): boolean => chainId === MONAD_TESTNET.chainId;
+
+/** The network a visitor who has not chosen one is shown, from the environment contract. */
+export function defaultChainId(): MonadChainId {
   return parseChainId(process.env["MONAD_CHAIN_ID"]);
 }
 
-/** The network, as the chrome and the views describe it. */
-export function network(): NetworkOption {
-  return networkOptionFor(chainId());
+/** The network this render is for: the visitor's cookie, else the default. */
+export async function selectedChainId(): Promise<MonadChainId> {
+  const jar = await cookies();
+  return selectChainId(jar.get(NETWORK_COOKIE)?.value, defaultChainId());
 }
 
-/** Base URL of the registry read API, from the environment contract. */
-export function registryBaseUrl(): string {
-  return process.env["NEXT_PUBLIC_REGISTRY_API_URL"] ?? "http://localhost:8787";
+/**
+ * The network an API request is for.
+ *
+ * A `network` query parameter first, so a monitor can probe either network
+ * without holding a cookie; then the cookie the page's own `fetch` carries;
+ * then the default.
+ */
+export function requestChainId(request: Request): MonadChainId {
+  const fallback = defaultChainId();
+  const asked = new URL(request.url).searchParams.get("network");
+  if (asked !== null) return selectChainId(asked, fallback);
+  return selectChainId(cookieFromHeader(request.headers.get("cookie"), NETWORK_COOKIE), fallback);
 }
 
-/** The block explorer, from the environment contract, defaulting to the network's own. */
-export function explorerBaseUrl(): string {
-  const configured = process.env["MONAD_EXPLORER_URL"]?.trim();
-  return configured !== undefined && configured.length > 0 ? configured : network().explorerUrl;
+/**
+ * Base URL of the registry read API for a network.
+ *
+ * Each network indexes into its own database behind its own API. The
+ * unsuffixed variable is honoured for the default network only, and a network
+ * with nothing configured gets an empty base, which the client reports as
+ * `REGISTRY_BASE_URL_MISSING` rather than reading another network's rows.
+ */
+export function registryBaseUrl(chainId: MonadChainId): string {
+  const own = configured(
+    isTestnet(chainId)
+      ? process.env["NEXT_PUBLIC_REGISTRY_API_URL_TESTNET"]
+      : process.env["NEXT_PUBLIC_REGISTRY_API_URL_MAINNET"],
+  );
+  if (own !== undefined) return own;
+  if (chainId !== defaultChainId()) return "";
+  return configured(process.env["NEXT_PUBLIC_REGISTRY_API_URL"]) ?? "http://localhost:8787";
 }
 
-/** The Monad RPC endpoint, from the environment contract, defaulting to the network's own. */
-export function monadRpcUrl(): string {
-  const configured = process.env["MONAD_RPC_URL"]?.trim();
-  return configured !== undefined && configured.length > 0 ? configured : CHAINS[chainId()].rpcUrl;
+/** The Monad RPC endpoint for a network: its own variable, the shared one on the default network, else the public one. */
+export function monadRpcUrl(chainId: MonadChainId): string {
+  const own = configured(
+    isTestnet(chainId) ? process.env["MONAD_RPC_URL_TESTNET"] : process.env["MONAD_RPC_URL_MAINNET"],
+  );
+  if (own !== undefined) return own;
+  const shared = chainId === defaultChainId() ? configured(process.env["MONAD_RPC_URL"]) : undefined;
+  return shared ?? CHAINS[chainId].rpcUrl;
+}
+
+/** The block explorer for a network: the configured one on the default network, else the network's own. */
+export function explorerBaseUrl(chainId: MonadChainId): string {
+  const shared = chainId === defaultChainId() ? configured(process.env["MONAD_EXPLORER_URL"]) : undefined;
+  return shared ?? CHAINS[chainId].explorerUrl;
+}
+
+/**
+ * The Agent a trial call on a network is billed to, where one is named.
+ *
+ * Each network's demo Agent is its own account with its own Open Tab, so each
+ * has its own variable; the unsuffixed one stands in on the default network.
+ */
+export function tryItAgent(chainId: MonadChainId): string | undefined {
+  const own = configured(
+    isTestnet(chainId) ? process.env["TRY_IT_AGENT_TESTNET"] : process.env["TRY_IT_AGENT_MAINNET"],
+  );
+  if (own !== undefined) return own;
+  return chainId === defaultChainId() ? configured(process.env["TRY_IT_AGENT"]) : undefined;
 }
 
 /**
@@ -109,59 +168,46 @@ export function docsUrl(): string {
   return process.env["NEXT_PUBLIC_DOCS_URL"] ?? "http://localhost:3001";
 }
 
-/** The reader every route uses. */
-export function registry(): RegistryClient {
-  return createRegistryClient({ baseUrl: registryBaseUrl() });
-}
-
-/** `TabBook`, from the environment contract. */
-export function tabBookAddress(): string | undefined {
-  return configuredAddress(process.env["TAB_BOOK_ADDRESS"]);
-}
-
-/** `ServiceRegistry`, from the environment contract. */
-export function serviceRegistryAddress(): string | undefined {
-  return configuredAddress(process.env["SERVICE_REGISTRY_ADDRESS"]);
-}
-
-/** `Bond`, from the environment contract. */
-export function bondAddress(): string | undefined {
-  return configuredAddress(process.env["BOND_ADDRESS"]);
-}
-
-/** `TabSettlement`, from the environment contract. */
-export function tabSettlementAddress(): string | undefined {
-  return configuredAddress(process.env["TAB_SETTLEMENT_ADDRESS"]);
-}
-
-/** The Testnet mock token, where this deployment ships one. */
-export function mockUsdcAddress(): string | undefined {
-  return mockUsdc;
-}
-
-/** The keyless chain reader, for the figures the index cannot supply. */
-export function chain(): ChainReader {
-  return createChainReader({ rpcUrl: monadRpcUrl() });
-}
-
-/** Everything a route resolves before it renders anything. */
-export interface RouteContext {
+/** Everything a route resolves before it renders anything, for one network. */
+export interface NetworkContext {
   readonly chainId: MonadChainId;
   readonly network: NetworkOption;
+  /** Tab's contracts on this network, from the built-in table. */
+  readonly contracts: NetworkDeployment;
   readonly registry: RegistryClient;
+  /** The keyless chain reader, for the figures the index cannot supply. */
+  readonly chain: ChainReader;
+  readonly rpcUrl: string;
+  readonly explorerUrl: string;
   /** The explorer link for a Monad transaction. */
   readonly explorerHrefFor: (txHash: string) => string;
   /** The explorer link for a Monad address. */
   readonly explorerAddressHrefFor: (address: string) => string;
 }
 
-export function routeContext(): RouteContext {
-  const explorer = explorerBaseUrl();
+/** The context for a named network. Construction reads nothing over the network. */
+export function networkContext(chainId: MonadChainId): NetworkContext {
+  const explorer = explorerBaseUrl(chainId);
+  const rpcUrl = monadRpcUrl(chainId);
   return {
-    chainId: chainId(),
-    network: network(),
-    registry: registry(),
+    chainId,
+    network: networkOptionFor(chainId),
+    contracts: deploymentFor(chainId),
+    registry: createRegistryClient({ baseUrl: registryBaseUrl(chainId) }),
+    chain: createChainReader({ rpcUrl }),
+    rpcUrl,
+    explorerUrl: explorer,
     explorerHrefFor: (txHash) => explorerTxUrl(txHash, explorer),
     explorerAddressHrefFor: (address) => explorerAddressUrl(address, explorer),
   };
+}
+
+/** The context for the network this page render is for. */
+export async function routeContext(): Promise<NetworkContext> {
+  return networkContext(await selectedChainId());
+}
+
+/** The context for the network an API request is for. */
+export function requestContext(request: Request): NetworkContext {
+  return networkContext(requestChainId(request));
 }

@@ -34,11 +34,11 @@ export {
 export { SessionSigner } from "./signer";
 export {
   MONAD_FAUCET_URL,
-  defaultPasskeyChain,
   formatMon,
   passkeyChainFor,
   providerFor,
   readNativeBalance,
+  selectedPasskeyChain,
   type PasskeyChain,
 } from "./chain";
 export {
@@ -61,5 +61,6 @@ export {
   type BalanceReading,
   type KeyView,
   type PasskeyConnection,
+  type SelectedNetwork,
 } from "./use-passkey";
 export { KeysView, type KeysViewProps } from "./keys-view";

@@ -26,7 +26,7 @@ import { SettlementStrip } from "../../../components/motion/settlement-strip";
 import { SettlementCard } from "../../../components/custom-ui/settlement-card";
 import { SettlementTimeline } from "../../../components/custom-ui/settlement-timeline";
 import { toSettlementView } from "../../../src/dashboard/views";
-import { explorerBaseUrl, routeContext } from "../../_lib/context";
+import { routeContext } from "../../_lib/context";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +36,7 @@ export default async function SettlementDetailPage({
   readonly params: Promise<{ readonly settlementId: string }>;
 }) {
   const { settlementId } = await params;
-  const context = routeContext();
+  const context = await routeContext();
 
   const detail = await context.registry.settlement(settlementId);
   if (!detail.ok) {
@@ -107,7 +107,7 @@ export default async function SettlementDetailPage({
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
-        <SettlementCard settlement={view} explorerUrl={explorerBaseUrl()} />
+        <SettlementCard settlement={view} explorerUrl={context.explorerUrl} />
         <SettlementStrip blockNumber={view.blockNumber.toLocaleString("en-GB")} />
       </div>
 
