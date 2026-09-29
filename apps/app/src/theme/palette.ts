@@ -20,8 +20,8 @@ export const PALETTE_RELATIVE_PATH = join("assets", "palette.json");
  *
  * `pending` is a thing still in flight, `settled` is done, `danger` needs a
  * reader's attention, `muted` is over and no longer matters, and `notice` is
- * information without urgency. Naming them by meaning is what keeps a badge
- * from being coloured for a state that no longer exists.
+ * information without urgency. Naming them by meaning keeps a badge's colour
+ * tied to what its state says rather than to a hue somebody picked for one screen.
  */
 export const STATUS_KEYS = ["pending", "settled", "danger", "muted", "notice"] as const;
 

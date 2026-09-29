@@ -108,8 +108,8 @@ export function Steps({ children }: { readonly children: ReactNode }) {
  * A boundary, with the bound that says how far it reaches.
  *
  * The bound is a required prop for the same reason the stat's sentence is: a
- * boundary named without one reads as either worse or better than it is, which
- * is the house rule this documentation is written to.
+ * boundary named without one reads as either worse or better than it is, and
+ * this documentation states every limit at its real size.
  */
 export function Bounded({
   title,

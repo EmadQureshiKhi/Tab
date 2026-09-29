@@ -2,7 +2,7 @@
  * Playwright, configured for the one thing this suite exists to prove: every
  * read-only route resolves in a real browser with no wallet present.
  *
- * ## Why the browser is named explicitly
+ * ## Where the browser comes from
  *
  * On a host Playwright supports, `playwright install chromium` provides the
  * browser and nothing else is needed. On a Linux release Playwright ships no
@@ -42,7 +42,7 @@ export default defineConfig({
     // No GPU: the suite asserts structure and console output, never pixels, and a
     // headless run on a CI runner has no GPU to offer.
     launchOptions: {
-      args: ["--no-sandbox", "--disable-gpu"],
+      args: ["--disable-gpu"],
       ...(executablePath === undefined ? {} : { executablePath }),
     },
   },

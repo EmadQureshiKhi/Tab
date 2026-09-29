@@ -4,9 +4,9 @@
     "",
     "`tsx` applies compiler options only to files the resolved project covers, and",
     "the three build projects each cover one directory: `src`, `components/ui`, or",
-    "`components/custom-ui`. A test that imports across all of them therefore had",
-    "no single project to be read under, and the components were transpiled with",
-    "the classic JSX runtime, so every render threw `React is not defined`.",
+    "`components/custom-ui`. A test that imports across all of them would have no",
+    "single project to be read under, and its components would be transpiled with",
+    "the classic JSX runtime, so every render would throw `React is not defined`.",
     "",
     "This project spans the whole package for that one purpose. It emits nothing,",
     "and `tsc -b` never builds it."

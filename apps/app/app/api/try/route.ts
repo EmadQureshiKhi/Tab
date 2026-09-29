@@ -69,9 +69,9 @@ const TIMEOUT_MS = 30_000;
   warm instance keeps its own windows and a cold start begins empty, so the
   effective ceiling is the configured one times the number of live instances.
   That is still a ceiling, which is what stands between the button and an
-  unbounded bill; a shared store would make it exact and is the next step if
-  the demo is ever abused in earnest. `TRY_IT_MAINNET_PER_DAY=0` switches
-  Mainnet trial calls off outright.
+  unbounded bill; a shared store would make it exact at the cost of one more
+  service to run. `TRY_IT_MAINNET_PER_DAY=0` switches Mainnet trial calls off
+  outright.
 */
 const LIMITERS: Readonly<Record<MonadChainId, TrialLimiter>> = {
   [MONAD_TESTNET.chainId]: createTrialLimiter(TESTNET_TRIAL_LIMITS),

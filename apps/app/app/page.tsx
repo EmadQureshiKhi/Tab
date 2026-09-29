@@ -24,14 +24,14 @@ import { WorksWith } from "../components/shell/works-with";
 import { SettlementWalkthrough } from "../components/motion/settlement-walkthrough";
 import { Reveal, RevealGroup, RevealItem } from "../components/motion/reveal";
 import { toSettlementViews } from "../src/dashboard/views";
-import { docsUrl, routeContext } from "./_lib/context";
+import { docsUrl, knownAssetsFor, routeContext } from "./_lib/context";
 
 export const dynamic = "force-dynamic";
 
 const REMOVAL_TEST = [
   {
     heading: "A Service meters first and is paid later",
-    body: "Usage is recorded into an Open Tab on Monad as the work is delivered. Nothing is prepaid, and no payment blocks a call.",
+    body: "Usage is recorded into an Open Tab on Monad as the work is delivered. Nothing has to be paid up front, and no payment blocks a call.",
   },
   {
     heading: "The Agent settles with its own key",
@@ -39,18 +39,24 @@ const REMOVAL_TEST = [
   },
   {
     heading: "The payment and the ledger entry are one transaction",
-    body: "TabSettlement moves the Asset and applies the Settlement to the tab in the same Monad transaction. There is no second step, no oracle and no bridge, and the transaction hash is the whole receipt.",
+    body: "TabSettlement moves the Asset and applies the Settlement to the tab in the same Monad transaction. Either both happen or neither does, and the transaction hash is the whole receipt.",
   },
 ];
 
 export default async function OverviewPage() {
   const context = await routeContext();
-  const page = await context.registry.settlements({ limit: 10 });
+  const [page, adoption] = await Promise.all([
+    context.registry.settlements({ limit: 10 }),
+    context.registry.adoption(),
+  ]);
 
   // Two figures, both read from the index rather than counted here, and both
-  // stated as unavailable rather than as zero when the read failed. A dash is the
-  // honest rendering of "not known"; a zero is a claim.
-  const settled = page.ok ? page.value.settlements.length : null;
+  // stated as unavailable rather than as zero when the read failed: a zero is a
+  // claim. The Settlement count is the index's own total, external and internal
+  // together, not the length of the page of rows below.
+  const settled = adoption.ok
+    ? adoption.value.externalSettlementCount + adoption.value.internalSettlementCount
+    : null;
   const indexedBlock = page.ok ? page.value.index.lastBlock : null;
   // The strip is handed the newest Settlement's block where there is one, so the
   // figure it animates is a real one. Where nothing has settled it shows the
@@ -64,7 +70,7 @@ export default async function OverviewPage() {
         body="An Agent is served before it pays, settles in stablecoin with its own key, and the payment and the ledger entry land in one Monad transaction. Nothing asserts that money arrived, because the transaction that moved it is the one that recorded it."
         stats={[
           {
-            label: "Settlements shown",
+            label: "Settlements",
             value: settled === null ? "unavailable" : String(settled),
             ...(settled === null ? {} : { target: settled }),
           },
@@ -137,10 +143,10 @@ export default async function OverviewPage() {
             Take the atomic settlement away and there is no product
           </h2>
           <p className="mt-4 max-w-3xl text-sm leading-relaxed text-muted-foreground">
-            Split the payment from the ledger entry and a Service has no mechanism by which to learn
-            that it was paid, other than an off-chain operator asserting that funds landed, which is
-            the trusted facilitator Tab exists to remove. Tab does not degrade without same-chain
-            settlement. It inverts into the product it replaces.
+            Split the payment from the ledger entry and a Service would learn that it was paid only
+            because somebody told it so. Tab never asks a Service to take that on trust: the
+            transfer that pays the tab is the call that records it, so the Open Tab, the Credit
+            Limit and the Service&apos;s balance can only ever agree.
           </p>
         </Reveal>
 
@@ -218,6 +224,7 @@ export default async function OverviewPage() {
               caption={`Settlements on ${context.network.name}`}
               initialRows={toSettlementViews(page.value.settlements)}
               explorerBaseUrl={context.explorerUrl}
+              knownAssets={knownAssetsFor(context.chainId)}
             />
           </Reveal>
         )}

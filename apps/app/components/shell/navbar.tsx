@@ -82,9 +82,9 @@ export function Navbar({ pathname, networkKind, docsUrl }: NavbarProps) {
         carries the switch too.
 
         At `lg` itself the links sit 12px apart and open out to 24px from `xl`.
-        The seventh link, Keys, measured the row at 1057px in a 1008px grid at
-        1024px wide, and the links were drawn over the wordmark; the tighter
-        step leaves room for a connected address in the right-hand group too.
+        At 1024px wide the wider step would push the links over the wordmark;
+        the tighter one leaves room for a connected address in the right-hand
+        group too.
       */}
       <div className="w-full px-2">
         <div className="flex items-center justify-between py-2 lg:grid lg:grid-cols-[1fr_auto_1fr]">
@@ -138,7 +138,7 @@ export function Navbar({ pathname, networkKind, docsUrl }: NavbarProps) {
             <NetworkSwitch networkKind={networkKind} className="hidden lg:inline-flex" />
             {/*
               After the network switch, not before it. The network is a property
-              of every page; the wallet is needed by two of them.
+              of every page; the wallet is needed by the four that sign.
             */}
             <ConnectWallet className="hidden lg:block" />
             <Button
@@ -172,8 +172,8 @@ export function Navbar({ pathname, networkKind, docsUrl }: NavbarProps) {
       {/*
         The sheet is a sibling of the masthead, not a child. The masthead carries
         `backdrop-blur`, and a backdrop filter makes its element the containing
-        block for every fixed descendant, so a sheet rendered inside it was sized
-        to the masthead rather than to the viewport and the page showed through.
+        block for every fixed descendant, so a sheet rendered inside it would be
+        sized to the masthead rather than to the viewport.
       */}
       {menuOpen ? (
         <div

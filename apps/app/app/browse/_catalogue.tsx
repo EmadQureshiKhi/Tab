@@ -11,20 +11,15 @@
  * filter above. Every card has the same frame, so a reader compares tools by
  * reading across rather than by relearning each card.
  *
- * ## What is on chain and what is not is never blurred
+ * ## Two sources, never blurred
  *
- * A real entry carries prices, an Asset, a tier and a Bond, all read from the
- * index. A showcase entry carries none of those and says so, in the same place
- * the real one puts its price. That is not decoration: the argument this product
- * makes is that a figure you can check differs in kind from a figure somebody
- * typed, so an invented price sitting in the same column as a read one would be
- * the exact thing it exists to refuse.
- *
- * A fronted entry is a third kind. Its price was read from the API Hub's
- * manifest and the Tab price is that plus the fronting Service's published
- * margin, so the card prints both figures with their sources and carries the
- * word `fronted` where a listed card carries `metered`. Fronted cards sort after
- * every on-chain-priced tool and before the examples.
+ * A listed entry carries prices, an Asset, a tier and a Bond, all read from the
+ * index. A fronted entry's price was read from the API Hub's manifest and the
+ * Tab price is that plus the fronting Service's published margin, so the card
+ * prints both figures with their sources and carries the word `fronted` where a
+ * listed card carries `metered`. Fronted cards sort after every
+ * on-chain-priced tool, so a reader scanning from the top is looking at the
+ * chain.
  *
  * ## A client island for one reason
  *
@@ -42,9 +37,8 @@ import { AssetAmount } from "../../components/custom-ui/asset-amount";
 import { cn } from "../../components/ui/cn";
 import { FOCUS_RING } from "../../components/ui/focus-ring";
 import { Reveal } from "../../components/motion/reveal";
-import { CATEGORY_TINT, hubProviderLogo, providerLogo, type ShowcaseEntry } from "../../src/dashboard/showcase";
 import type { CatalogueEntry } from "../../src/dashboard/catalogue";
-import type { HubEntry, HubNote } from "../../src/dashboard/hub";
+import { hubProviderLogo, type HubEntry, type HubNote } from "../../src/dashboard/hub";
 
 export type WireEntry = Omit<CatalogueEntry, "priceBaseUnits" | "freeBondBaseUnits"> & {
   readonly priceBaseUnits: string;
@@ -54,20 +48,27 @@ export type WireEntry = Omit<CatalogueEntry, "priceBaseUnits" | "freeBondBaseUni
 /** Whether the figures on a card are test money or real money. */
 export type NetworkKind = "testnet" | "mainnet";
 
+/** The kind a listed card carries. */
+const METERED = "METERED";
+
 /** The word a fronted card carries where a listed one carries `Metered`. */
 const FRONTED = "FRONTED";
 
-/** A card is a row the chain holds, an endpoint a Service fronts, or one of the examples beside them. */
+/**
+ * The tint of the `Metered` chip. It names a kind of listing and carries no
+ * meaning about money, which is why it may use a hue the settlement tokens do not.
+ */
+const METERED_TINT = "bg-teal-500/15 text-teal-700 dark:text-teal-400";
+
+/** A card is a row the chain holds or an endpoint a Service fronts. */
 type Card =
   | { readonly kind: "listed"; readonly key: string; readonly entry: WireEntry }
-  | { readonly kind: "hub"; readonly key: string; readonly entry: HubEntry }
-  | { readonly kind: "showcase"; readonly key: string; readonly entry: ShowcaseEntry };
+  | { readonly kind: "hub"; readonly key: string; readonly entry: HubEntry };
 
 export function CatalogueView({
   entries,
   hub = [],
   hubNotes = [],
-  showcase,
   indexedBlock,
   networkName,
   networkKind,
@@ -77,7 +78,6 @@ export function CatalogueView({
   readonly hub?: readonly HubEntry[] | undefined;
   /** What the Hub reads had to say beside their cards: a manifest that did not answer, a count. */
   readonly hubNotes?: readonly HubNote[] | undefined;
-  readonly showcase: readonly ShowcaseEntry[];
   readonly indexedBlock: number | null;
   /** The chain's own name, for the badge on every listed card. */
   readonly networkName: string;
@@ -90,24 +90,23 @@ export function CatalogueView({
   const [openHub, setOpenHub] = useState<HubEntry | undefined>(undefined);
 
   /*
-    Every category present, with the metered ones first. A listed tool is
-    `METERED` rather than an output kind: what it produces is the Service's
-    business, and what the chain knows is that it is priced. A fronted endpoint
-    is `FRONTED` for the same reason: what the page knows is who pays whom.
+    Every kind present, metered first. A listed tool is `METERED` rather than
+    an output kind: what it produces is the Service's business, and what the
+    chain knows is that it is priced. A fronted endpoint is `FRONTED` for the
+    same reason: what the page knows is who pays whom.
   */
   const categories = useMemo(() => {
-    const seen = new Set<string>();
-    if (entries.length > 0) seen.add("METERED");
-    if (hub.length > 0) seen.add(FRONTED);
-    for (const entry of showcase) seen.add(entry.category);
-    return ["ALL", ...[...seen].sort()];
-  }, [entries, hub, showcase]);
+    const kinds = ["ALL"];
+    if (entries.length > 0) kinds.push(METERED);
+    if (hub.length > 0) kinds.push(FRONTED);
+    return kinds;
+  }, [entries, hub]);
 
   const cards = useMemo<readonly Card[]>(() => {
     const needle = search.trim().toLowerCase();
 
     const listed: Card[] =
-      category === "ALL" || category === "METERED"
+      category === "ALL" || category === METERED
         ? entries
             .filter(
               (entry) =>
@@ -135,33 +134,22 @@ export function CatalogueView({
             .map((entry) => ({ kind: "hub" as const, key: entry.key, entry }))
         : [];
 
-    const examples: Card[] =
-      category === "METERED" || category === FRONTED
-        ? []
-        : showcase
-            .filter((entry) => category === "ALL" || entry.category === category)
-            .filter(
-              (entry) =>
-                needle.length === 0 ||
-                entry.tool.toLowerCase().includes(needle) ||
-                entry.description.toLowerCase().includes(needle) ||
-                entry.capabilities.some((capability) => capability.toLowerCase().includes(needle)),
-            )
-            .map((entry) => ({ kind: "showcase" as const, key: entry.key, entry }));
-
-    return [...listed, ...fronted, ...examples];
-  }, [entries, hub, showcase, search, category]);
+    return [...listed, ...fronted];
+  }, [entries, hub, search, category]);
 
   const listedCount = cards.filter((card) => card.kind === "listed").length;
-  const frontedCount = cards.filter((card) => card.kind === "hub").length;
-  const exampleCount = cards.length - listedCount - frontedCount;
+  const frontedCount = cards.length - listedCount;
 
   return (
     <div className="mx-auto w-full max-w-6xl">
-      <div className="mb-8 flex items-center gap-3">
-        <div className="relative flex-1">
+      {/*
+        The search takes a row of its own on a phone, so its placeholder is
+        never squeezed to a few letters by the filter and the view toggle.
+      */}
+      <div className="mb-8 flex flex-wrap items-center gap-3 sm:flex-nowrap">
+        <div className="relative w-full sm:w-auto sm:flex-1">
           <label className="sr-only" htmlFor="catalogue-search">
-            Search tools by name, Service, description or capability
+            Search tools by name, Service, provider or description
           </label>
           <Search
             aria-hidden="true"
@@ -184,16 +172,16 @@ export function CatalogueView({
         <select
           value={category}
           onChange={(event) => setCategory(event.target.value)}
-          aria-label="Output"
+          aria-label="Kind"
           className={cn(
-            "h-12 min-w-[130px] rounded-[4px] border border-border/30 bg-card px-3",
+            "h-12 min-w-[130px] flex-1 rounded-[4px] border border-border/30 bg-card px-3 sm:flex-none",
             "font-mono text-xs tracking-wider text-foreground uppercase",
             FOCUS_RING,
           )}
         >
           {categories.map((entry) => (
             <option key={entry} value={entry}>
-              {entry === "ALL" ? "Any output" : entry}
+              {entry === "ALL" ? "Any kind" : entry}
             </option>
           ))}
         </select>
@@ -233,8 +221,7 @@ export function CatalogueView({
             : `, read at ${networkName} block ${indexedBlock.toLocaleString("en-US")}`}
           {frontedCount > 0
             ? `. ${frontedCount} ${frontedCount === 1 ? "endpoint" : "endpoints"} fronted from the API Hub on credit, priced by the Hub${listedCount > 0 ? " and listed after them" : ""}.`
-            : ""}
-          {exampleCount > 0 ? ` The ${exampleCount} below ${exampleCount === 1 ? "is an example" : "are examples"}.` : ""}
+            : "."}
         </p>
         {/*
           What the Hub reads had to say, beside the cards they did or did not
@@ -255,8 +242,9 @@ export function CatalogueView({
 
       {cards.length === 0 ? (
         <p className="rounded-lg border border-dashed border-border/60 bg-muted/30 px-6 py-10 text-center text-sm text-muted-foreground">
-          Nothing matches that. The filters are applied to what the chain holds, so an empty result
-          is a real answer about the registry rather than a failed search.
+          {entries.length === 0 && hub.length === 0
+            ? `No Service on ${networkName} prices a tool yet. A Service that registers and prices one appears here as soon as the index reads it.`
+            : "Nothing matches that. The filters are applied to what the chain holds, so an empty result is a real answer about the registry rather than a failed search."}
         </p>
       ) : (
         <div
@@ -275,7 +263,7 @@ export function CatalogueView({
                   networkKind={networkKind}
                   onRun={() => setOpen(card.entry)}
                 />
-              ) : card.kind === "hub" ? (
+              ) : (
                 <HubCard
                   entry={card.entry}
                   dense={view === "list"}
@@ -283,8 +271,6 @@ export function CatalogueView({
                   networkKind={networkKind}
                   onRun={() => setOpenHub(card.entry)}
                 />
-              ) : (
-                <ShowcaseCard entry={card.entry} dense={view === "list"} />
               )}
             </Reveal>
           ))}
@@ -372,7 +358,7 @@ function ListedCard({
         <span
           className={cn(
             "shrink-0 rounded px-2 py-0.5 font-mono text-[10px] font-medium tracking-wider uppercase",
-            CATEGORY_TINT["METERED"],
+            METERED_TINT,
           )}
         >
           Metered
@@ -617,110 +603,15 @@ function HubCard({
   );
 }
 
-/**
- * An example, in the same frame and unmistakably not on the chain.
- *
- * The listing's own rows: price and unit, max resolution, max duration,
- * capabilities, description. The one thing added is the word `example` beside the
- * price, because that is where a reader looks to decide whether a figure is real,
- * and a dollar figure somebody typed sitting silently where an Asset amount goes
- * would be the exact confusion this product exists to remove.
- */
-function ShowcaseCard({ entry, dense }: { readonly entry: ShowcaseEntry; readonly dense: boolean }) {
-  const logo = providerLogo(entry.tool);
-  const tint = CATEGORY_TINT[entry.category] ?? "bg-foreground/[0.06] text-muted-foreground";
-
-  if (dense) {
-    return (
-      <div className="flex items-center gap-3 rounded-lg border border-border/60 bg-[var(--panel)] p-4">
-        <Mark src={logo} />
-        <span className="min-w-0 flex-1 truncate text-sm text-foreground">{entry.tool}</span>
-        <span className={cn("rounded px-2 py-0.5 font-mono text-[10px] tracking-wider uppercase", tint)}>
-          {entry.category}
-        </span>
-        <span className="font-mono text-[13px] text-muted-foreground">
-          {entry.price} <span className="text-[11px]">/ {entry.priceUnit}</span>
-        </span>
-        <span className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase">
-          Example
-        </span>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex h-full flex-col overflow-hidden rounded-lg border border-border/60 bg-[var(--panel)] transition-colors duration-200 hover:border-border">
-      <div className="flex items-center gap-3 px-5 pt-5 pb-4">
-        <Mark src={logo} />
-        <h3 className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{entry.tool}</h3>
-        <span
-          className={cn(
-            "shrink-0 rounded px-2 py-0.5 font-mono text-[10px] font-medium tracking-wider uppercase",
-            tint,
-          )}
-        >
-          {entry.category}
-        </span>
-      </div>
-
-      <Rule />
-      <div className="flex flex-col gap-2.5 px-5 py-4">
-        <Spec label="Price">
-          {entry.price} <span className="text-[11px] text-muted-foreground">/ {entry.priceUnit}</span>
-        </Spec>
-        <Spec label="Max res">{entry.maxRes}</Spec>
-        <Spec label="Max dur">{entry.maxDur}</Spec>
-      </div>
-
-      <Rule />
-      <div className="px-5 py-3.5">
-        <p className="mb-2 font-mono text-[10px] tracking-[0.12em] text-muted-foreground uppercase">
-          Capabilities
-        </p>
-        <div className="flex flex-wrap gap-1.5">
-          {entry.capabilities.map((capability) => (
-            <Chip key={capability}>{capability}</Chip>
-          ))}
-        </div>
-      </div>
-
-      <Rule />
-      <div className="flex-1 px-5 py-3.5">
-        <p className="text-xs leading-relaxed text-muted-foreground">{entry.description}</p>
-      </div>
-
-      <Rule />
-      <div className="flex items-center">
-        <div className="px-5 py-1">
-          <span className="rounded bg-foreground/[0.06] px-2 py-0.5 font-mono text-[9px] font-medium tracking-wider text-muted-foreground uppercase">
-            Example
-          </span>
-        </div>
-        <div className="flex-1" />
-        <span className="flex-1 border-s border-border/60 py-3.5 text-center font-mono text-sm tracking-wider text-muted-foreground uppercase">
-          Not registered
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function Mark({ src }: { readonly src: string | undefined }) {
-  if (src === undefined) {
-    return (
-      <span
-        aria-hidden="true"
-        className="size-7 shrink-0 rounded-full border border-border/60 bg-background"
-      />
-    );
-  }
+/** A provider's mark, on a light disc so a dark logo still reads in dark mode. */
+function Mark({ src }: { readonly src: string }) {
   return (
     <img
       src={src}
       alt=""
       width={28}
       height={28}
-      className="size-7 shrink-0 rounded-full bg-white/90 p-1"
+      className="size-7 shrink-0 rounded-full bg-white/90 object-contain p-1"
     />
   );
 }

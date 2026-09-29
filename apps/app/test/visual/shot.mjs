@@ -23,7 +23,7 @@ const theme = themeRaw ?? "light";
 
 const browser = await chromium.launch({
   executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE,
-  args: ["--no-sandbox", "--disable-gpu"],
+  args: ["--disable-gpu"],
 });
 const context = await browser.newContext({
   viewport: { width, height: 1000 },

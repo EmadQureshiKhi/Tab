@@ -50,14 +50,33 @@ export default async function AgentsPage() {
             {page.value.agents.map((agent) => (
               <TableRow key={agent.agent}>
                 <TableCell>
-                  <Link href={`/agents/${agent.agent}`} mono>
-                    {agent.agent}
+                  {/*
+                    One line at every width. On a phone the address is shortened
+                    on screen so the other columns stay in view, the full one is
+                    what a screen reader hears, and `title` carries it for a
+                    pointer; from `sm` the full address fits and is shown.
+                  */}
+                  <Link
+                    href={`/agents/${agent.agent}`}
+                    mono
+                    title={agent.agent}
+                    className="break-normal whitespace-nowrap"
+                  >
+                    <span aria-hidden="true" className="sm:hidden">
+                      {`${agent.agent.slice(0, 8)}…${agent.agent.slice(-6)}`}
+                    </span>
+                    <span className="sr-only sm:not-sr-only">{agent.agent}</span>
                   </Link>
                 </TableCell>
                 <TableCell className="font-mono text-xs">{agent.settlementCount}</TableCell>
                 <TableCell className="font-mono text-xs">{agent.assetCount}</TableCell>
                 <TableCell className="font-mono text-xs text-muted-foreground">
-                  <Link href={context.explorerHrefFor(agent.monad.txHash)} external mono>
+                  <Link
+                    href={context.explorerHrefFor(agent.monad.txHash)}
+                    external
+                    mono
+                    className="break-normal whitespace-nowrap"
+                  >
                     block {agent.monad.blockNumber.toLocaleString("en-US")}
                   </Link>
                 </TableCell>

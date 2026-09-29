@@ -57,8 +57,10 @@ const QUESTIONS: readonly Question[] = [
       <>
         No payment blocks a call. The Service delivers the work and records the charge against an
         Open Tab in <code className="font-mono text-xs">TabBook</code> afterwards, and the Agent
-        settles whenever it chooses inside the Settlement Window. Nothing is deposited up front,
-        and no balance is topped up in advance.
+        settles whenever it chooses inside the Settlement Window. Nothing has to be deposited up
+        front. An Agent that wants to pay ahead can: a Settlement larger than the Open Tab is kept
+        as prepaid credit, and a call refused for lack of credit can be paid for on the spot with
+        x402 instead.
       </>
     ),
   },
@@ -70,8 +72,8 @@ const QUESTIONS: readonly Question[] = [
         Service, the Asset and an amount. In that one Monad transaction the stablecoin moves from
         the Agent to the Service&apos;s collection address and{" "}
         <code className="font-mono text-xs">TabBook</code> applies it to the Open Tab. The
-        transaction hash is the whole record. There is no second chain, no facilitator, and
-        nothing to confirm afterwards.
+        transaction hash is the whole record: if either half reverts, both do, so there is
+        nothing to reconcile or confirm afterwards.
       </>
     ),
   },
@@ -127,8 +129,10 @@ const QUESTIONS: readonly Question[] = [
     answer: (
       <>
         Each Service sets its own price per tool, in integer base units of one Asset. Tab adds no
-        fee of its own. The only other cost is gas on Monad, paid in MON, for the one
-        transaction that settles.
+        fee of its own. The other cost is gas on Monad, paid in MON: the Agent pays it to
+        authorise a Service and to settle, and the Service pays it to meter each delivery. An
+        Agent that settles through a gateway&apos;s Permit2 relay only signs, and the relay
+        submits the transaction, once the Agent has approved Permit2 for that Asset.
       </>
     ),
   },

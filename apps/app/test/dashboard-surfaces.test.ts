@@ -50,11 +50,12 @@ import { readBuildInfo, serveHealth } from "../src/dashboard/api-health";
 import { sseFrame, streamTick, unsentRows } from "../src/dashboard/api-stream";
 import { encodeAuthorise, parseAddress, parseWord, readAuthorisation } from "../src/dashboard/authorisation";
 
-const TAB_BOOK = "0xba86c0d053ba88afdecbed8aba5b2ec3973fb230";
-const SERVICE_REGISTRY = "0x123c19f46c38d5b4e922d1297250a71a03dffd17";
-const AGENT = "0x1f6f797edc2eecb02bd54009b805fb2e99f80542";
+/** The Testnet contracts and mock token, as `src/dashboard/deployments.ts` names them; the Agent is synthetic. */
+const TAB_BOOK = "0x87571030cce27c84836baff85288eb1d85d908a4";
+const SERVICE_REGISTRY = "0x3638db35a76e5a22ea1e827636da994be622c139";
+const AGENT = "0xa9e1000000000000000000000000000000007c30";
 const SERVICE = "0x7461622e64656d6f2d7365727669636500000000000000000000000000000000";
-const ASSET = "0x5d519a1e8cf4edd7067fd631047e6869e9a7e4fe";
+const ASSET = "0x480209747417f5c830fda188a9b9acfa70bc4083";
 
 /** A `bigint` as one ABI word, for building fixture return data. */
 const word = (value: bigint | number): string => BigInt(value).toString(16).padStart(64, "0");
@@ -388,7 +389,7 @@ test("only an open, unmarked tab past its window is offered as markable", async 
     { id: settled, tab: tabData({ open: 0n, oldestUnsettledAt: 0n }), ref: tabRefData({ serviceId: serviceD }) },
   ];
   const report = await readOverdueTabs({
-    chain: tabChain({ head: { number: 64_486_946, timestamp: 1_000 }, windowSeconds: 100, tabs }),
+    chain: tabChain({ head: { number: 66_742_380, timestamp: 1_000 }, windowSeconds: 100, tabs }),
     tabBook: TAB_BOOK,
     serviceRegistry: SERVICE_REGISTRY,
     // The feed names the overdue tab twice; the verdict still reads it once.
@@ -401,7 +402,7 @@ test("only an open, unmarked tab past its window is offered as markable", async 
   assert.deepEqual(report.value.pending.map((view) => view.tabId), [running]);
   assert.equal(report.value.overdue[0]?.windowEnd, 950n);
   assert.equal(report.value.overdue[0]?.settlementWindowSeconds, 100);
-  assert.equal(report.value.at.blockNumber, 64_486_946, "the verdict names the block it used");
+  assert.equal(report.value.at.blockNumber, 66_742_380, "the verdict names the block it used");
 });
 
 test("the window end is inclusive, matching the contract's own comparison", async () => {
@@ -445,7 +446,7 @@ const okChain = {
     return { ok: true as const, value: 10143 };
   },
   async latestBlock() {
-    return { ok: true as const, value: { number: 64_486_946, timestamp: 1_000 } };
+    return { ok: true as const, value: { number: 66_742_380, timestamp: 1_000 } };
   },
   async call() {
     return { ok: true as const, value: "0x" };
@@ -463,7 +464,7 @@ const failure = (code: string) => ({
 test("health reports both upstreams up as ok", async () => {
   const result = await serveHealth({
     chain: okChain,
-    registry: { probe: async () => ({ ok: true, value: { status: "ok", lastBlock: 64_486_945 } }) },
+    registry: { probe: async () => ({ ok: true, value: { status: "ok", lastBlock: 66_742_379 } }) },
     now: () => new Date(0),
     env: {},
   });

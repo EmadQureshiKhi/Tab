@@ -5,9 +5,9 @@
  *
  * ## Why a context rather than a hook per page
  *
- * Two routes ask a wallet to sign: authorising a Service to meter and
- * registering one. They need the same account, and a reader who connected on
- * one and found themselves disconnected on the other would reasonably conclude
+ * Four routes ask a wallet to sign: `/authorise`, `/services/new`,
+ * `/services/bond` and `/keys`. They need the same account, and a reader who
+ * connected on one and found themselves disconnected on another would reasonably conclude
  * the site had lost track of them. The masthead shows the connection, so it has
  * to be the same one the forms use.
  *

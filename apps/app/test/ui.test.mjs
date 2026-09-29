@@ -29,20 +29,19 @@ import { test } from "node:test";
 
 const UI_DIRECTORY = join(dirname(fileURLToPath(import.meta.url)), "..", "components", "ui");
 
-/** The colour names the Tailwind namespace is rebuilt from in `styles/`. */
-/*
- * Every colour name a component may reach for.
+/**
+ * Every colour name a component may reach for, as the Tailwind namespace is
+ * rebuilt from it in `styles/`.
  *
- * Two sets, because the theme is now two layers. The first is the generated token
+ * Two sets, because the theme is two layers. The first is the generated token
  * set the contrast gate measures, and the five status colours in it are the ones
  * that carry meaning rather than decoration. The second is the presentation
  * vocabulary declared in `styles/presentation.css`, including the teal steps the
  * product accents with.
  *
- * The rule this test enforces is unchanged and is the reason the list is written
- * out rather than opened up: a colour that appears in a component must have been
- * declared somewhere a reader can find it. A hex literal in a class name still
- * fails, and so does a shade of a ramp nobody declared.
+ * The list is written out rather than opened up because a colour that appears
+ * in a component must have been declared somewhere a reader can find it. A hex
+ * literal in a class name fails, and so does a shade of a ramp nobody declared.
  */
 const TOKEN_COLOURS = [
   // Generated tokens, checked by the contrast gate.

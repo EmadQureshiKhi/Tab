@@ -12,17 +12,17 @@
  * ## The geometry is measured, not authored
  *
  * The beams are drawn between the real positions of the marks rather than
- * between numbers in a `viewBox`. The first version of this diagram put its
- * labels inside a 320-unit `viewBox` stretched to 800 pixels, which rendered an
- * `11px` label at 27 pixels: text in a scaled SVG is not the size it says it is.
- * Every word here is HTML at its own size, and only the wires are drawn.
+ * between numbers in a `viewBox`. Text inside a scaled SVG is not the size it
+ * says it is: an `11px` label in a 320-unit `viewBox` stretched to 800 pixels
+ * renders at 27. So every word here is HTML at its own size, and only the wires
+ * are drawn.
  *
  * ## Colour
  *
  * A request is teal, the charge coming back is slate, and neither is saturated
  * enough to compete with the marks it connects. The pulse is what carries the
- * eye; the resting wire stays at 14% so the picture reads as a diagram when
- * nothing is moving.
+ * eye; the resting wire stays at 30% opacity so the picture reads as a diagram
+ * when nothing is moving.
  */
 
 import { useRef } from "react";
@@ -32,11 +32,11 @@ import { Reveal } from "./reveal";
 import { cn } from "../ui/cn";
 
 /**
- * Six of the eight clients the row above names.
+ * Five of the seven clients the row above names.
  *
- * All eight would make thirteen wires converging on one square, and the point of
- * the picture is the shape of the path rather than the length of the list. The
- * row above is the list.
+ * All seven would make nine wires, seven of them converging on one square, and
+ * the point of the picture is the shape of the path rather than the length of
+ * the list. The row above is the list.
  */
 const CLIENTS = [
   { name: "Claude", icon: "/logos/clients/claude.svg" },
@@ -123,7 +123,7 @@ export function ClientFlow({ className }: { readonly className?: string }) {
         </div>
 
         {/*
-          The fan in is one wire per client, staggered so six beams do not fire
+          The fan in is one wire per client, staggered so five beams do not fire
           as a single flash.
         */}
         {clients.map((ref, index) => (
@@ -141,9 +141,9 @@ export function ClientFlow({ className }: { readonly className?: string }) {
 
         {/*
           The leg to the Service and the leg back are bowed in opposite
-          directions, which is the whole reason they are drawn as two wires. They
-          were drawn along the same path once, one reversed, and the picture then
-          had two colours in its legend and one line on the page.
+          directions, which is the whole reason they are drawn as two wires.
+          Drawn along one path, one reversed, the picture would have two colours
+          in its legend and one line on the page.
         */}
         <AnimatedBeam
           containerRef={container}

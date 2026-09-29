@@ -1,7 +1,7 @@
 /**
  * `/api/stream`: Settlements pushed as they are indexed.
  *
- * ## The requirement is freshness, not the transport
+ * ## The promise is freshness, not the transport
  *
  * A `Settled` reaches a reader within 30 seconds. Server
  * sent events are how that is done when the network allows it, and a 15-second
@@ -11,7 +11,7 @@
  * about somebody else's network.
  *
  * So the client runs both, and the fallback is not a degraded mode bolted on: the
- * poll is what actually satisfies the requirement in the worst case, and the
+ * poll is what actually keeps the 30-second bound in the worst case, and the
  * stream is the optimisation that usually beats it.
  *
  * ## Why the server polls the index rather than listening to the chain
@@ -38,13 +38,13 @@ import type { RegistryClient, SettlementRow, SettlementsPage } from "./client.js
 /**
  * How often the server checks the index for new rows.
  *
- * Half the 15-second client fallback, so a reader on the stream sees a row
- * sooner than a reader who fell back to polling, and comfortably inside the
- * 30-second freshness requirement even if a tick is missed entirely.
+ * A third of the 15-second client poll, so a reader on the stream sees a row
+ * sooner than a reader who is only polling, and comfortably inside the
+ * 30-second freshness bound even if a tick is missed entirely.
  */
 export const STREAM_POLL_MS = 5_000;
 
-/** How often a client that has fallen back to polling re-reads the feed. */
+/** How often the client's poll, which always runs beside the stream, re-reads the feed. */
 export const CLIENT_POLL_MS = 15_000;
 
 /**

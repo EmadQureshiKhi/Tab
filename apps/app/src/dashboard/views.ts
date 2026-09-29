@@ -16,8 +16,8 @@
  * **Money is `bigint` from the first moment it stops being text.** No amount
  * passes through `number`, at any width, ever.
  *
- * **An Asset is only named where it is known.** The launch scope is USDC and
- * AUSD (design decision 1), but an unrecognised Asset renders as its own
+ * **An Asset is only named where it is known.** Tab settles in USDC and AUSD
+ * (and the mock token on Testnet), but an unrecognised Asset renders as its own
  * address rather than being labelled USDC on the assumption that it must be.
  */
 

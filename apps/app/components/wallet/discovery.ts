@@ -3,9 +3,8 @@
  *
  * `window.ethereum` is a single slot that every injected wallet writes to, so
  * with two installed it holds whichever loaded last, and with none it holds
- * nothing at all. Reading it was why pressing Connect could appear to do nothing:
- * there was no provider, the failure was recorded, and the button had no way to
- * say so.
+ * nothing at all. A Connect button that read only the slot would pick a wallet
+ * the reader did not choose, or appear to do nothing when the slot was empty.
  *
  * EIP-6963 replaces the slot with an announcement. A page dispatches
  * `eip6963:requestProvider`, every installed wallet answers with its own
@@ -45,15 +44,6 @@ export interface SuggestedWallet {
   readonly name: string;
   readonly icon: string;
   readonly url: string;
-  /**
-   * Said beside the name where the wallet cannot sign on Monad.
-   *
-   * Tab signs on an EVM network a wallet may not ship with, so a wallet that
-   * cannot add one cannot be used here however good it is elsewhere. Listing it
-   * without saying so would send somebody to install a wallet that will not
-   * work, which is worse than leaving it out.
-   */
-  readonly caveat?: string;
 }
 
 /**
@@ -62,8 +52,8 @@ export interface SuggestedWallet {
  * An announced wallet supplies its own icon, and this is the fallback for one
  * whose icon cannot be used. That happens more often than it sounds: the icon is
  * only accepted as a `data:` URI, because a wallet should not get to make this
- * page fetch from a host of its choosing, and an installed Phantom announcing an
- * `https:` icon therefore arrived with none and drew as the letter P.
+ * page fetch from a host of its choosing, so a wallet that announces an `https:`
+ * icon (Phantom does) arrives with none and would otherwise draw as its initial.
  */
 export function knownMark(name: string): string | undefined {
   const needle = name.trim().toLowerCase();

@@ -3,9 +3,9 @@
  *
  * ## Every fact says where it came from
  *
- * Three sources meet on this card and none of them is the chain this Dashboard
- * settles on. The agent id, the owner, the wallet and the block are the Identity
- * registry's own events, folded by the index. The name, the description and the
+ * Three sources meet on this card and none of them is Tab's own contracts. The
+ * agent id, the owner, the wallet and the block are the ERC-8004 Identity
+ * registry's own events on Monad, folded by the index. The name, the description and the
  * services are whatever the registration file at the `agentURI` said, fetched
  * over HTTP at read time. The reputation summary is a live read of the
  * Reputation registry. A card that blended those would be asking a reader to

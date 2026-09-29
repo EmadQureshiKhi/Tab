@@ -45,6 +45,11 @@ export interface BondMeterProps {
   readonly ledgers: readonly BondAssetLedger[];
   /** The heading above the set of panels. */
   readonly caption?: string | undefined;
+  /**
+   * The account the Bond belongs to, drawn after the caption in its own case:
+   * an address uppercased is no longer the address.
+   */
+  readonly account?: string | undefined;
   readonly className?: string | undefined;
 }
 
@@ -70,11 +75,15 @@ function LedgerPanel({ ledger }: { readonly ledger: BondAssetLedger }) {
       className="flex flex-col gap-3 border-t border-border pt-4 first:border-t-0 first:pt-0"
     >
       <header className="flex flex-wrap items-baseline justify-between gap-2">
-        <h4 id={headingId} className="font-mono text-sm uppercase tracking-wider text-foreground">
+        {/* The symbol in its own case: `mUSDC` uppercased would name a different token. */}
+        <h4 id={headingId} className="font-mono text-sm tracking-wider text-foreground">
           {asset.symbol}
         </h4>
         <span className={LABEL_CLASS}>
-          Staked <AssetAmount baseUnits={ledger.stakedBaseUnits} asset={asset} emphasis="strong" />
+          Staked{" "}
+          <span className="normal-case">
+            <AssetAmount baseUnits={ledger.stakedBaseUnits} asset={asset} emphasis="strong" />
+          </span>
         </span>
       </header>
 
@@ -129,7 +138,7 @@ function LedgerPanel({ ledger }: { readonly ledger: BondAssetLedger }) {
   );
 }
 
-export function BondMeter({ ledgers, caption = "Bond", className }: BondMeterProps) {
+export function BondMeter({ ledgers, caption = "Bond", account, className }: BondMeterProps) {
   const headingId = "bond-meter-heading";
 
   return (
@@ -142,16 +151,14 @@ export function BondMeter({ ledgers, caption = "Bond", className }: BondMeterPro
     >
       <header className="flex flex-col gap-1">
         {/*
-          `break-all` because this caption ends in a 42-character address, and a
-          heading that cannot break sets the min-content width of the panel it is
-          in. At 390px that carried the whole analytics page 33px past the viewport
-          and scrolled the document sideways.
+          `break-all` because this heading can end in a 42-character address, and
+          a heading that cannot break sets the min-content width of the panel it
+          is in. On a phone that would carry the whole page past the viewport and
+          scroll the document sideways.
         */}
-        <h3
-          id={headingId}
-          className="font-mono text-sm tracking-wider break-all text-foreground uppercase"
-        >
-          {caption}
+        <h3 id={headingId} className="font-mono text-sm tracking-wider break-all text-foreground">
+          <span className="uppercase">{caption}</span>
+          {account === undefined ? null : <span className="normal-case">{` ${account}`}</span>}
         </h3>
         <p className="text-xs text-muted-foreground">
           One ledger per Asset, escrowed in isolation. Stake in one Asset never backs credit in

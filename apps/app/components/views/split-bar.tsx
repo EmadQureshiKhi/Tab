@@ -3,11 +3,10 @@
  *
  * ## Why the internal share is hatched
  *
- * Every measure on the analytics page is currently 100% internal, which drew the
- * bar as a single flat pill in one muted grey across its whole width. Four of
- * those stacked down the page read as loading skeletons rather than as findings,
- * and a reader who bounced off them never got to the sentence underneath. A
- * diagonal hatch cannot be mistaken for a placeholder, and it carries the meaning
+ * A measure that is wholly internal would draw as a single flat pill in one
+ * muted grey across its whole width, and several of those stacked down a page
+ * read as loading skeletons rather than as findings. A diagonal hatch cannot be
+ * mistaken for a placeholder, and it carries the meaning
  * honestly besides: the hatched part is the share that is us, and it is drawn as
  * the part that does not count rather than as a solid achievement.
  *

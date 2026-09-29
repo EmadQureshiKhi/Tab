@@ -65,7 +65,7 @@
  * worth keeping, and it means every shade a component reaches for has to be
  * declared rather than assumed: without this block `text-teal-700` and
  * `fill-teal-600` compile to nothing at all and the accents render as the
- * inherited foreground, which is what they did before this was written.
+ * inherited foreground.
  *
  * Only the steps in use are here. A ramp declared in full would be eleven colours
  * nobody checked, which is the thing the status rule exists to prevent.
@@ -266,8 +266,8 @@
  * contrast gate reads and which must stay as they are. Redeclaring it here keeps
  * the compensating mechanism the gate requires - a boundary rather than a fill
  * separates a raised surface from the page - while drawing it in the surfaces the
- * rest of the site now uses. Without this a lifted panel kept the old navy card
- * and sat visibly apart from every panel beside it in dark.
+ * rest of the site uses. Without this a lifted panel would take the generated
+ * card fill and sit visibly apart from every panel beside it in dark.
  */
 /*
  * `--panel` is `bg-muted/30` over the page, resolved to one opaque colour.
@@ -275,15 +275,15 @@
  * Panels on this site are written as a translucent muted fill over the page
  * ground. That is correct until one of them sits inside another, at which point
  * the fill applies twice and the inner surface reads a step lighter than
- * everything around it - which is what put a pale band across the Service card's
- * four figures. An opaque equivalent stacks without compounding. `var()` inside
+ * everything around it, as a pale band across a nested block of figures. An
+ * opaque equivalent stacks without compounding. `var()` inside
  * a custom property is substituted where the property is used, so this resolves
  * against whichever theme is in scope without being declared twice.
  *
  * `in srgb` rather than oklab, because this has to land on the same colour a
  * browser produces when it composites a 30% fill over the page. Compositing is
  * linear in the encoded channels; an oklab mix interpolates perceptual lightness
- * and came out two steps lighter, which is exactly the mismatch this exists to
+ * and lands two steps lighter, which is exactly the mismatch this exists to
  * remove.
  */
 :root {
@@ -301,9 +301,9 @@
    * rather than translucent, so a panel nested inside another does not darken
    * twice.
    *
-   * The boundary is what the contrast gate requires of a raised surface, and it
-   * is still here. Only the fill changed, and it moved closer to the page, which
-   * is the direction the boundary exists to compensate for.
+   * The boundary is what the contrast gate requires of a raised surface. The
+   * fill sits close to the page, which is the direction the boundary exists to
+   * compensate for.
    */
   background-color: var(--panel);
   border: 1px solid color-mix(in oklab, var(--border) 60%, transparent);

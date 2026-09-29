@@ -16,10 +16,11 @@
  *
  * ## Floors are labelled as floors
  *
- * Metered Deliveries are counted from `PrepaidConsumed`, which fires only when a
- * delivery draws on prepaid credit, because `DeliveryRecorded` is not indexed. That
- * count is therefore a floor and not a total, and it is drawn and worded as one.
- * Publishing it as a total would be the easiest way for this page to be wrong.
+ * The registry's adoption figures count Metered Deliveries from `PrepaidConsumed`,
+ * which fires only when a delivery draws on prepaid credit. That count is
+ * therefore a floor and not a total, and it is drawn and worded as one, with the
+ * registry's own basis sentence beside it. Publishing it as a total would be the
+ * easiest way for this page to be wrong.
  *
  * ## No chart library
  *
@@ -203,7 +204,8 @@ function BondMeters({
       {meters.map((entry) => (
         <BondMeter
           key={entry.serviceId}
-          caption={`Bond staked by ${entry.operator}`}
+          caption="Bond staked by"
+          account={entry.operator}
           ledgers={entry.ledgers}
         />
       ))}
@@ -231,7 +233,6 @@ function VolumeRow({
   const share =
     totalBaseUnits === 0n ? 0 : Number((externalBaseUnits * 10_000n) / totalBaseUnits) / 100;
   // `.text` already carries the symbol, so the sentence does not prefix it again.
-  // It did, and read "USDC: 0.452003 USDC settled in total".
   const summary = `${formatAssetAmount(totalBaseUnits, asset).text} settled in total, of which ${formatAssetAmount(externalBaseUnits, asset).text} came from addresses outside this project and ${formatAssetAmount(internalBaseUnits, asset).text} from addresses inside it.`;
 
   return (

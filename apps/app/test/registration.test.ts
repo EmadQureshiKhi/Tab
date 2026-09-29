@@ -25,15 +25,16 @@ const ABI = new Interface([
   "function registerService(bytes32 serviceId, address[] assets, address[] collections, bytes32[] tools, uint256[] prices, uint32 settlementWindow)",
 ]);
 
-const TESTNET_USDC = "0x5d519a1e8cf4edd7067fd631047e6869e9a7e4fe";
+/** The Testnet mock token and Bond, and Mainnet USDC; the collection address is synthetic. */
+const TESTNET_MUSDC = "0x480209747417f5c830fda188a9b9acfa70bc4083";
 const MAINNET_USDC = "0x754704bc059f8c67012fed69bc8a327a5aafb603";
-const COLLECTION = "0x952acc70e6f54ce87dca963193a5957bcb27729e";
-const BOND = "0x4f791f13f94944fcb2f884f8c7991caa583884a6";
+const COLLECTION = "0xc011ec7000000000000000000000000000000001";
+const BOND = "0x29adfd90fc7c9026563fc60651f696ab089080e7";
 
 const ONE_ASSET = {
   serviceName: "tab.demo",
   settlementWindowSeconds: "21600",
-  assets: [{ asset: TESTNET_USDC, collection: COLLECTION }],
+  assets: [{ asset: TESTNET_MUSDC, collection: COLLECTION }],
   tools: [{ tool: "quote.generate", priceBaseUnits: "10000" }],
 };
 
@@ -72,7 +73,7 @@ test("the calldata decodes back to exactly what was entered", () => {
 
   const decoded = ABI.decodeFunctionData("registerService", encoded.value.data);
   assert.equal(decodeBytes32String(decoded[0] as string), "tab.demo");
-  assert.deepEqual([...(decoded[1] as string[])].map((a) => a.toLowerCase()), [TESTNET_USDC]);
+  assert.deepEqual([...(decoded[1] as string[])].map((a) => a.toLowerCase()), [TESTNET_MUSDC]);
   assert.deepEqual([...(decoded[2] as string[])].map((a) => a.toLowerCase()), [COLLECTION]);
   assert.equal(decodeBytes32String((decoded[3] as string[])[0] ?? ""), "quote.generate");
   assert.deepEqual([...(decoded[4] as bigint[])], [10_000n]);
@@ -86,7 +87,7 @@ test("prices are Asset-major, so each Asset gets every tool in order", () => {
     serviceName: "tab.demo",
     settlementWindowSeconds: "3600",
     assets: [
-      { asset: TESTNET_USDC, collection: COLLECTION },
+      { asset: TESTNET_MUSDC, collection: COLLECTION },
       { asset: MAINNET_USDC, collection: COLLECTION },
     ],
     tools: [
@@ -100,7 +101,7 @@ test("prices are Asset-major, so each Asset gets every tool in order", () => {
   const decoded = ABI.decodeFunctionData("registerService", encoded.value.data);
   assert.deepEqual(
     [...(decoded[1] as string[])].map((address) => address.toLowerCase()),
-    [TESTNET_USDC, MAINNET_USDC],
+    [TESTNET_MUSDC, MAINNET_USDC],
   );
   // Two Assets by two tools: the first Asset's pair first, then the second's, each in tool order.
   assert.deepEqual([...(decoded[4] as bigint[])], [1n, 500n, 1n, 500n]);
@@ -128,28 +129,28 @@ test("funding a Bond is an approval for Bond and a deposit it pulls", () => {
     "function depositFor(address account, address asset, uint128 amount)",
     "function withdraw(address asset, uint128 amount) returns (uint128 released)",
   ]);
-  const own = encodeDeposit({ asset: TESTNET_USDC, baseUnits: "5000000" });
+  const own = encodeDeposit({ asset: TESTNET_MUSDC, baseUnits: "5000000" });
   assert.equal(own.ok, true);
   if (!own.ok) return;
   const decodedOwn = BOND_ABI.decodeFunctionData("deposit", own.value);
-  assert.equal((decodedOwn[0] as string).toLowerCase(), TESTNET_USDC);
+  assert.equal((decodedOwn[0] as string).toLowerCase(), TESTNET_MUSDC);
   assert.equal(decodedOwn[1] as bigint, 5_000_000n);
 
   // A treasury funds a Service's bond account without holding its key.
-  const forAccount = encodeDeposit({ asset: TESTNET_USDC, baseUnits: "5000000", account: COLLECTION });
+  const forAccount = encodeDeposit({ asset: TESTNET_MUSDC, baseUnits: "5000000", account: COLLECTION });
   assert.equal(forAccount.ok, true);
   if (!forAccount.ok) return;
   const decodedFor = BOND_ABI.decodeFunctionData("depositFor", forAccount.value);
   assert.equal((decodedFor[0] as string).toLowerCase(), COLLECTION);
 
-  const withdrawal = encodeWithdraw(TESTNET_USDC, "1000");
+  const withdrawal = encodeWithdraw(TESTNET_MUSDC, "1000");
   assert.equal(withdrawal.ok, true);
   if (!withdrawal.ok) return;
   assert.equal(BOND_ABI.decodeFunctionData("withdraw", withdrawal.value)[1] as bigint, 1_000n);
 
   // Nothing is not a deposit, a decimal is not base units, and uint128 is the ceiling.
-  assert.equal(encodeDeposit({ asset: TESTNET_USDC, baseUnits: "0" }).ok, false);
-  assert.equal(encodeDeposit({ asset: TESTNET_USDC, baseUnits: "0.5" }).ok, false);
-  assert.equal(encodeDeposit({ asset: TESTNET_USDC, baseUnits: (1n << 128n).toString() }).ok, false);
+  assert.equal(encodeDeposit({ asset: TESTNET_MUSDC, baseUnits: "0" }).ok, false);
+  assert.equal(encodeDeposit({ asset: TESTNET_MUSDC, baseUnits: "0.5" }).ok, false);
+  assert.equal(encodeDeposit({ asset: TESTNET_MUSDC, baseUnits: (1n << 128n).toString() }).ok, false);
   assert.equal(encodeApprove("0xnope", "1").ok, false);
 });

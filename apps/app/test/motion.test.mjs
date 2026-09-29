@@ -1,12 +1,12 @@
 /**
  * Motion may decide how a thing moves, never whether it exists.
  *
- * This is the same defect three times over, and it will be a fourth without a
- * test. `useReducedMotion()` is read during the client's first render while the
- * server had no preference to read, so any component that branches its markup on
- * it produces one tree on the server and a different one in a browser set to
- * reduce motion. React throws a hydration error and re-renders the whole tree,
- * which is expensive, and it happened on every route both times.
+ * `useReducedMotion()` is read during the client's first render while the server
+ * has no preference to read, so any component that branches its markup on it
+ * produces one tree on the server and a different one in a browser set to reduce
+ * motion. React throws a hydration error and re-renders the whole tree, which is
+ * expensive and happens on every route the component appears on. The mistake is
+ * easy to make and invisible in a screenshot, so it is held by a test.
  *
  * The rule is narrow and mechanical: the value may reach a `transition`, a
  * `delay`, an `animate` or a `style`, and it may not decide an early `return` or

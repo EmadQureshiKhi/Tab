@@ -4,7 +4,7 @@
  * Input.
  *
  * The `numeric` variant is for the amounts this Dashboard is mostly made of -
- * a required Settlement amount, a Bond figure, an Open Tab. It renders in the
+ * a price, a Bond deposit, an authorisation ceiling. It renders in the
  * mono face, right-aligned, and takes a `unit` suffix so a value is never a
  * bare number: the unit is real text on the page, and it is wired into the
  * field's description through `aria-describedby` so it is announced with the
@@ -12,8 +12,8 @@
  *
  * Any `aria-describedby` the call site passes is kept and the unit id is
  * appended, so an error message and a unit can both describe one field. That
- * matters on `/register`, where the error text has to name the exact required
- * Settlement amount (SC 3.3.1, SC 3.3.3).
+ * matters on `/services/new`, where the error text has to name what is wrong
+ * with the figure in the field it describes (SC 3.3.1, SC 3.3.3).
  *
  * The border is the stroke token, measured at 6.06:1 light and 5.69:1 dark
  * against the page surface, which is what SC 1.4.11 asks of a control boundary.

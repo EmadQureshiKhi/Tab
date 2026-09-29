@@ -37,9 +37,9 @@ export function ClosingCta({ docsUrl }: ClosingCtaProps) {
             Let your agents pay for what they use.
           </h2>
           <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
-            One command connects a client. Nothing is prepaid, nothing holds your keys, a
-            Settlement is one Monad transaction, and every figure on this site is checkable
-            against the chain it came from.
+            One command connects a client. Nothing has to be paid up front, nothing holds your
+            keys, a Settlement is one Monad transaction, and every Settlement on this site is
+            checkable against the block it landed in.
           </p>
           <div className="flex w-full flex-col gap-3 pt-2 sm:w-auto sm:flex-row">
             <Button

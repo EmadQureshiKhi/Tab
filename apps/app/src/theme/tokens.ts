@@ -49,7 +49,7 @@ export interface TokenSpec {
  * `badge-ink` aliases `surface`: a filled badge always takes the surface colour
  * as its label ink, which is the rule the artwork already follows.
  *
- * `focus-ring` aliases `accent`, so task 20.1 consumes a focus-ring token
+ * `focus-ring` aliases `accent`, so the UI primitives consume a focus-ring token
  * instead of picking a colour again.
  */
 export const TOKENS: readonly TokenSpec[] = [

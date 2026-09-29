@@ -9,9 +9,9 @@
  * squeezing: heading, mark, actions, figures.
  *
  * The figures are the argument. A landing page that claims a rail works and shows
- * nothing is a brochure, so the count and the volume are read from the same index
- * the explorer reads, and they are the first thing under the heading that a reader
- * can go and check.
+ * nothing is a brochure, so the Settlement count and the indexed block are read
+ * from the same index the explorer reads, and they are the first thing under the
+ * heading that a reader can go and check.
  */
 
 import { motion, useReducedMotion } from "motion/react";
@@ -57,8 +57,8 @@ export function Hero({ heading, body, stats }: HeroProps) {
         {/*
           Clipped by the wrapper rather than sized to fit. A glow wide enough to
           fall off both edges is what makes it read as light rather than as a
-          shape, and without the clip that extra width scrolled the page sideways
-          by 20px at 390 and 48px at 768.
+          shape, and without the clip that extra width would scroll the page
+          sideways on a phone or a tablet.
         */}
         <div
           className="absolute -top-24 left-1/2 h-[520px] w-[min(1100px,140%)] -translate-x-1/2 opacity-60 dark:opacity-45"

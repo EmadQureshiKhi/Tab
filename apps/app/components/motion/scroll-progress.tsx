@@ -14,9 +14,8 @@
  * The element is always rendered and the preference decides only whether it is
  * visible. Returning `null` under the preference instead is a hydration mismatch:
  * the server has no preference to read and renders the bar, a browser set to
- * reduce motion renders nothing, and React throws and re-renders the tree. The
- * same mistake, in a different component, is why the diagram carries the note it
- * does.
+ * reduce motion renders nothing, and React throws and re-renders the tree.
+ * `test/motion.test.mjs` refuses that shape in every component.
  */
 
 import { useEffect, useState } from "react";

@@ -5,7 +5,8 @@
  *
  * ## It is deliberately quiet
  *
- * Every read on this site works without a wallet, and only two actions need one.
+ * Every read on this site works without a wallet, and only four routes sign:
+ * `/authorise`, `/services/new`, `/services/bond` and `/keys`.
  * A connect button drawn as the loudest thing in the masthead would say the
  * opposite: that this is a site you sign into. It takes the same tinted treatment
  * the network switch uses, sits after it, and only becomes emphatic once there is
@@ -37,7 +38,7 @@ import { useWallet } from "./wallet-context";
 import { cn } from "../ui/cn";
 import { FOCUS_RING } from "../ui/focus-ring";
 
-/** `0x1f6f…0542`, which is the shortest form that still distinguishes two accounts. */
+/** `0x1234…abcd`, which is the shortest form that still distinguishes two accounts. */
 function short(address: string): string {
   return `${address.slice(0, 6)}…${address.slice(-4)}`;
 }
@@ -80,9 +81,9 @@ export function ConnectWallet({ className }: { readonly className?: string }) {
     load for anyone who has connected once, and the masthead is the worst place
     on the page for one.
 
-    The placeholder is the width of the Connect button, which is what most
-    readers get. At 104px it was 26px wider, and the whole right-hand group of
-    the masthead slid sideways on every page load when the button replaced it.
+    The placeholder is exactly the width of the Connect button, which is what
+    most readers get, so the right-hand group of the masthead does not shift
+    when the button replaces it.
   */
   if (!wallet.ready) {
     return <span className={cn("h-[30px] w-[78.5px]", className)} aria-hidden="true" />;
@@ -109,10 +110,9 @@ export function ConnectWallet({ className }: { readonly className?: string }) {
 
         {/*
           A menu even when there is one wallet, and especially when there are
-          none. Pressing Connect used to call straight through and, with nothing
-          installed, recorded a failure the control had no way to show - so the
-          button appeared to do nothing at all. Whatever the answer is, it is
-          now drawn here.
+          none. A button that called straight through would, with nothing
+          installed, record a failure it had no way to show and appear to do
+          nothing at all. Whatever the answer is, it is drawn here.
         */}
         {open ? (
           <div
@@ -198,18 +198,7 @@ export function ConnectWallet({ className }: { readonly className?: string }) {
                       >
                         <Mark src={entry.icon} name={entry.name} />
                         <span className="font-mono text-xs text-foreground">{entry.name}</span>
-                        {entry.caveat === undefined ? null : (
-                          <span className="ms-auto font-mono text-[10px] tracking-wider text-muted-foreground">
-                            {entry.caveat}
-                          </span>
-                        )}
-                        <ExternalLink
-                          aria-hidden="true"
-                          className={cn(
-                            "size-3 text-muted-foreground",
-                            entry.caveat === undefined && "ms-auto",
-                          )}
-                        />
+                        <ExternalLink aria-hidden="true" className="ms-auto size-3 text-muted-foreground" />
                       </a>
                     </li>
                   ))}
@@ -348,8 +337,7 @@ export function ConnectWallet({ className }: { readonly className?: string }) {
  *
  * An announced icon is a data URI the wallet supplied; a suggested one is a file
  * in this repository. Either way it is drawn on a light ground, because several
- * of these are dark monochrome marks that vanish on a dark page - which is why
- * one of them appeared to have no logo at all.
+ * of these are dark monochrome marks that would vanish on a dark page.
  */
 function Mark({ src, name }: { readonly src: string | undefined; readonly name: string }) {
   if (src === undefined) {

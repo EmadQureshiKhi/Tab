@@ -1,7 +1,8 @@
 /**
  * The Dashboard composites.
  *
- * Eight components, each about one fact the rail asserts:
+ * Eight composites, each about one fact the rail asserts, plus the `CopyButton`
+ * several of them share:
  *
  * - `SettlementCard` - one Settlement, its id, and the Monad transaction that
  *   both paid it and applied it

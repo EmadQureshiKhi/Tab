@@ -180,6 +180,15 @@ export function PasskeyAccountPanel({ onDone }: { readonly onDone: () => void })
  * Before the read returns it says so in words; it never draws a spinner in the
  * place a figure will go, because a spinner is a claim that a figure exists.
  */
+/** The faucet's host, for the link text, so the text always names where the link goes. */
+function faucetHost(url: string): string {
+  try {
+    return new URL(url).host;
+  } catch {
+    return url;
+  }
+}
+
 export function BalanceLine({ className }: { readonly className?: string }) {
   const { passkey } = useWallet();
   const balance = passkey.balance;
@@ -203,7 +212,7 @@ export function BalanceLine({ className }: { readonly className?: string }) {
             rel="noreferrer noopener"
             className="text-foreground underline decoration-dotted underline-offset-2"
           >
-            faucet.monad.xyz
+            {faucetHost(faucet)}
           </a>
         </p>
       )}

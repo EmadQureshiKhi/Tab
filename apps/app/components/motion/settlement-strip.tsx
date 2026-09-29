@@ -8,9 +8,8 @@
  * signs `TabSettlement.settle`, and from that one mark three things fan out in
  * the same block - the Asset lands at the Service's collection address,
  * `TabBook` applies it to the Open Tab, and the Agent's headroom comes back.
- * There is no second chain, no waiting period and nothing to confirm later, and
- * a picture with one origin and one block boundary says that faster than a
- * paragraph does.
+ * All of it lands in the block that carries the call, and a picture with one
+ * origin and one block boundary says that faster than a paragraph does.
  *
  * ## The geometry is measured, not authored
  *
@@ -28,8 +27,8 @@
  *
  * Motion decides how, never whether: the wires, the marks and the labels render
  * in every case, and under a reduced-motion preference the pulse simply does
- * not travel. Reading the preference to decide markup is what produced the
- * hydration mismatches `test/motion.test.mjs` now refuses.
+ * not travel. Reading the preference to decide markup would be a hydration
+ * mismatch, which `test/motion.test.mjs` refuses.
  */
 
 import { type ReactNode, type RefObject, useRef } from "react";
@@ -59,9 +58,9 @@ export function SettlementStrip({ blockNumber, className }: SettlementStripProps
     <div
       className={cn(
         // `h-full` with a column layout so the diagram takes whatever height the
-        // grid row has. Beside a tall card this panel used to stop short and leave
-        // a third of the row empty, which read as a missing block rather than as
-        // a deliberately short one.
+        // grid row has. Beside a tall card a panel that stopped short would leave
+        // part of the row empty, which reads as a missing block rather than as a
+        // deliberately short one.
         "relative flex h-full flex-col overflow-hidden rounded-lg border border-border/60 bg-muted/30",
         className,
       )}

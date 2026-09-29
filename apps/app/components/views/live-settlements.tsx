@@ -66,9 +66,9 @@ export interface LiveSettlementsProps {
   /** Rows kept on screen. The feed is a head, not a backfill. */
   readonly limit?: number | undefined;
   /**
-   * Assets to name that the client's own table does not carry. The server
-   * registers the deployment's Testnet token from its environment; a live row in
-   * that token would otherwise render as an address at zero decimals.
+   * Assets to name that the client's own table does not carry, such as the
+   * Testnet mock token from the deployment table. A live row in that token would
+   * otherwise render as an address at zero decimals.
    */
   readonly knownAssets?: readonly KnownAssetView[] | undefined;
 }

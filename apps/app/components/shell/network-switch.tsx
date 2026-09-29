@@ -5,8 +5,8 @@
  *
  * ## It states the network before it offers the other one
  *
- * This is where the network badge stood, and it still does the badge's job
- * first. The outline and the selected half carry the badge's tint, and the
+ * It is the network badge first and a control second. The outline and the
+ * selected half carry the network's tint, and the
  * selected half says `Testnet` or `Mainnet` in words, because a reader should
  * never have to know that a colour means test money to read a balance
  * correctly. The other half is quiet until it is hovered. The two words are
@@ -42,8 +42,8 @@ const OPTIONS = [
 ] as const satisfies readonly { kind: ChainNetwork; label: string; title: string }[];
 
 /*
-  The badge's own tint, so the switch reads as the badge it replaced: amber for
-  test money, teal for real money, in both themes. The outline takes the
+  The network's tint, the same one the Testnet and Mainnet badges on every card
+  use: amber for test money, teal for real money, in both themes. The outline takes the
   selected network's border and the selected half its fill and ink.
 */
 const OUTLINE_CLASSES: Record<ChainNetwork, string> = {
@@ -83,9 +83,9 @@ export function NetworkSwitchView({ selected, pending = false, onSelect, classNa
       aria-busy={pending || undefined}
       onKeyDown={onKeyDown}
       className={cn(
-        // Thirty pixels tall and about as wide as the badge it replaces, the
-        // height of the connection beside it. The masthead's right-hand group
-        // has no spare width at 1024px, where a wider control pushed the links
+        // Thirty pixels tall, the height of the connection beside it, and no
+        // wider than two short words. The masthead's right-hand group has no
+        // spare width at 1024px, where a wider control would push the links
         // over the wordmark.
         "inline-flex items-stretch rounded-md border font-mono text-xs tracking-wide transition-colors",
         OUTLINE_CLASSES[selected],

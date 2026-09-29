@@ -10,18 +10,17 @@
  * back one {@link NetworkContext} carrying the chain, the contracts, the
  * readers and the links for that network. Nothing below a route asks the
  * question again, so a page cannot render Testnet rows under a Mainnet
- * heading. With no cookie, `MONAD_CHAIN_ID` names the network, as it did when
- * a deployment served only one.
+ * heading. With no cookie, `MONAD_CHAIN_ID` names the network.
  *
  * ## Contracts are built in, hosts are configured
  *
  * The contract addresses are transaction results and the same for every host,
  * so they come from `src/dashboard/deployments.ts`. What differs per host is
  * where the registry read API and the RPC endpoint live, and each network has
- * its own variable for those. The unsuffixed variables a single-network
- * deployment set still work, for the default network only: a Testnet registry
- * URL answering for Mainnet would be the one mistake this file exists to make
- * impossible, so a network with nothing configured reports that instead.
+ * its own variable for those. The unsuffixed variables apply to the default
+ * network only: a Testnet registry URL answering for Mainnet would be the one
+ * mistake this file exists to make impossible, so a network with nothing
+ * configured reports that instead.
  *
  * ## No wallet, no signer, no key
  *
@@ -73,6 +72,26 @@ for (const deployment of Object.values(DEPLOYMENTS)) {
   if (deployment.mockUsdc === undefined) continue;
   registerAsset(deployment.mockUsdc, { symbol: "mUSDC", decimals: 6 });
   registerAssetUnit(deployment.mockUsdc, { symbol: "mUSDC", decimals: 6 });
+}
+
+/** An Asset a client island must be told about, because its own table cannot know it. */
+export interface KnownAsset {
+  readonly address: string;
+  readonly symbol: string;
+  readonly decimals: number;
+}
+
+/**
+ * The deployment-output Assets for a network, for a client island to register.
+ *
+ * The registration above runs in the server's module graph. A client island
+ * has its own copy of the table, which carries only the network constants, so
+ * a live row in the Testnet mock token would otherwise render as an address at
+ * zero decimals.
+ */
+export function knownAssetsFor(chainId: MonadChainId): readonly KnownAsset[] {
+  const mock = deploymentFor(chainId).mockUsdc;
+  return mock === undefined ? [] : [{ address: mock, symbol: "mUSDC", decimals: 6 }];
 }
 
 /** A configured value, or nothing where the variable is unset or blank. */

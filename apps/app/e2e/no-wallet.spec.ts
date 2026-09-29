@@ -25,9 +25,9 @@
  *
  * ## Running it
  *
- * `scripts/e2e.sh` at the repository root supplies the browser on hosts where
- * `playwright install` refuses, and `playwright.config.ts` starts the app for the
- * run. On a supported host:
+ * `playwright.config.ts` starts the app for the run, and `scripts/e2e.sh` at the
+ * repository root supplies the browser on a host Playwright ships no build for.
+ * On a supported host:
  *   pnpm --filter @tabai/app exec playwright install chromium
  *   pnpm --filter @tabai/app exec playwright test
  */
@@ -48,7 +48,7 @@ const READY = { waitUntil: "domcontentloaded" } as const;
 /** Every read-only route, with the heading each one must render. */
 const READ_ONLY_ROUTES = [
   { path: "/", heading: /Post-paid billing for autonomous agents/i },
-  { path: "/browse", heading: /The best tools/i },
+  { path: "/browse", heading: /Tools an agent can call now/i },
   { path: "/explorer", heading: /Settlement explorer/i },
   { path: "/agents", heading: /Agents/i },
   // "Service directory", not "Services": the nav label and the page heading are

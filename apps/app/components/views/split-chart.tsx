@@ -4,10 +4,10 @@
  * ## Why this is a bar and not a chart library
  *
  * The measure is a two-part split of one total. That is a single proportion, and a
- * proportion is drawn by two rectangles. Recharts is not a dependency of this
- * package and adding one to draw two rectangles would be a poor trade: it is a
- * large client bundle, it needs a client boundary, and it would make this the only
- * server-rendered view on the Dashboard that could not render without JavaScript.
+ * proportion is drawn by two rectangles. A chart library would be a poor trade for
+ * two rectangles: it is a large client bundle, it needs a client boundary, and it
+ * would make this the only server-rendered view on the Dashboard that could not
+ * render without JavaScript.
  * The bar below is CSS, renders on the server, and needs no runtime at all.
  *
  * ## Three ways to read the same numbers
@@ -38,9 +38,9 @@ export interface SplitChartProps {
   /**
    * The plural, supplied rather than derived.
    *
-   * English plurals are not a suffix rule, and deriving one gave "Metered
-   * Deliverys" on this very page. A component that renders a sentence should be
-   * given the words rather than guess at them.
+   * English plurals are not a suffix rule: deriving one would print "Metered
+   * Deliverys". A component that renders a sentence should be given the words
+   * rather than guess at them.
    */
   readonly plural: string;
   readonly external: number;
@@ -74,7 +74,9 @@ export function SplitChart({
   const qualifier = lowerBound === true ? "at least " : "";
   const summary =
     total === 0
-      ? `No ${plural} are indexed yet, so there is no split to report.`
+      ? lowerBound === true
+        ? `None of the ${plural} this floor counts is indexed yet, so the floor is zero and there is no split to report. The note below says what is counted.`
+        : `No ${plural} are indexed yet, so there is no split to report.`
       : `${qualifier}${external.toLocaleString("en-US")} of ${total.toLocaleString("en-US")} ${total === 1 ? noun : plural} came from an address outside this project, and ${internal.toLocaleString("en-US")} from an address inside it.`;
 
   return (

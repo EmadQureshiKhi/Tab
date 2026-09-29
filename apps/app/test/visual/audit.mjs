@@ -1,17 +1,17 @@
 /**
  * Visual audit: every route, at three widths, in both themes.
  *
- * This is not a screenshot-diff suite. It asserts the two things that were
- * actually breaking during the presentation work and that no unit test can see:
+ * This is not a screenshot-diff suite. It asserts the two things a layout change
+ * breaks most easily and that no unit test can see:
  *
  *   - the document never scrolls sideways. A 66-character transaction hash or a
  *     42-character address that cannot wrap runs the page past the viewport, and
  *     on a phone that is the whole layout ruined. When a route does overflow the
  *     audit walks the tree and names the deepest element responsible, because
  *     "the page is 198px too wide" is not an actionable finding on its own.
- *   - the console stays quiet. React #418 hydration mismatches reached this
- *     product three separate times, each from a client-only preference read
- *     during the first render, and each was invisible in a screenshot.
+ *   - the console stays quiet. A React #418 hydration mismatch, typically from
+ *     a client-only preference read during the first render, is invisible in a
+ *     screenshot and only shows up here.
  *
  * It needs a server already running (`pnpm --filter @tabai/app dev`) and a
  * Chromium that Playwright can launch. Point `PLAYWRIGHT_CHROMIUM_EXECUTABLE`
@@ -28,22 +28,25 @@ import { chromium } from "@playwright/test";
 const ORIGIN = process.argv[2] ?? "http://127.0.0.1:3000";
 
 /**
- * A settlement and an Agent that the local index actually holds. Detail routes
- * are where the long identifiers live, so auditing only the list routes would
- * miss the class of bug this exists to catch.
+ * A Settlement on Monad Testnet and the Agent that paid it, both held by the
+ * Testnet index. Detail routes are where the long identifiers live, so auditing
+ * only the list routes would miss the class of bug this exists to catch. Against
+ * a Mainnet or an empty index the two detail routes render their not-found
+ * state, which is still a layout worth auditing.
  */
 const ROUTES = [
   "/",
   "/browse",
   "/explorer",
-  "/explorer/0x00000000000000010000000000b1c07c000000000000005d0000000000000000",
+  "/explorer/0x969270b10b14126aa8902d168ca6e149273c45921501a8cb0311c0c03449818f",
   "/agents",
-  "/agents/0x1f6f797edc2eecb02bd54009b805fb2e99f80542",
+  "/agents/0x3a3b6079e418c81a9de08414bb07ea817939e7ce",
   "/services",
   "/services/new",
   "/services/bond",
   "/analytics",
-  "/register",
+  "/authorise",
+  "/keys",
 ];
 
 const WIDTHS = [390, 768, 1440];
@@ -89,7 +92,7 @@ function findOverflow() {
 
 const browser = await chromium.launch({
   executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE,
-  args: ["--no-sandbox", "--disable-gpu"],
+  args: ["--disable-gpu"],
 });
 
 let failures = 0;

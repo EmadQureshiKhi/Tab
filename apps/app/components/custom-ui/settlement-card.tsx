@@ -8,8 +8,7 @@
  * facts are the whole record: `TabSettlement.settle` moved the Asset from the
  * Agent to the Service's collection address and called `TabBook.applySettlement`
  * in the same transaction, so the transaction hash is both the payment and the
- * ledger entry. There is no second chain the money could have come from, no
- * waiting period, and nothing to confirm afterwards. The card links that hash to
+ * ledger entry, with nothing to confirm afterwards. The card links that hash to
  * the Monad explorer and states the block it landed in.
  *
  * ## What the amount became

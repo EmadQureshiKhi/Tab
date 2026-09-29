@@ -14,10 +14,9 @@
  * ## Fronted, and drawn as fronted
  *
  * These entries sort after every on-chain-priced tool and carry the word
- * `fronted` where a listed tool carries `metered`. The distinction is the same
- * one the rest of the catalogue draws between a figure read from the chain and
- * a figure somebody typed: here the figure was read from the Hub's manifest,
- * which is a third source, and it is labelled as that.
+ * `fronted` where a listed tool carries `metered`. A listed price is read from
+ * the chain; a fronted price is read from the Hub's manifest, which is a
+ * different source, and the card labels it as that.
  *
  * ## Money stays text
  *
@@ -51,6 +50,22 @@ export interface HubEndpointInput {
   readonly priceBaseUnits: string | null;
   readonly networks: readonly string[];
   readonly categories: readonly string[];
+}
+
+/**
+ * The mark for an API Hub provider a Service fronts, by the Hub's provider id.
+ *
+ * A fronted endpoint is sold through a Tab Service, so a provider with no mark
+ * of its own here is drawn with Tab's rather than left blank. A mark is listed
+ * only when it is the provider's own, because a wrong logo says something false
+ * about who made a thing.
+ */
+const HUB_PROVIDER_LOGO: Readonly<Record<string, string>> = {
+  defillama: "/logos/providers/defillama.png",
+};
+
+export function hubProviderLogo(provider: string): string {
+  return HUB_PROVIDER_LOGO[provider.toLowerCase()] ?? "/logo.png";
 }
 
 /** What one Service's manifest read came to. */
@@ -204,7 +219,7 @@ export function toHubEntries(
       notes.push({
         serviceName,
         provider: hub.provider,
-        text: `The Hub lists ${manifest.total} endpoints for ${hub.provider}; the first ${manifest.endpoints.length} are shown.`,
+        text: `The Hub lists ${manifest.total} endpoints for ${manifest.endpoints[0]?.providerName ?? hub.provider}; the first ${manifest.endpoints.length} are shown.`,
       });
     }
   }

@@ -5,10 +5,10 @@
  *
  * ## Why this is not a node graph
  *
- * It was one: marks on two lanes with curved wires crossing between them. A
- * wire diagram is the picture an engineer draws on a whiteboard, and it has a
- * real weakness on a page - the crossings are the most visually prominent
- * thing in it, and crossings carry no meaning. The reader's eye goes to the
+ * A wire diagram, marks on two lanes with curved wires crossing between them,
+ * is the picture an engineer draws on a whiteboard, and it has a real weakness
+ * on a page - the crossings are the most visually prominent thing in it, and
+ * crossings carry no meaning. The reader's eye goes to the
  * tangle rather than to the order of events, which is the only thing the section
  * is there to teach.
  *
@@ -22,9 +22,9 @@
  * Each step draws the actual record it produces: the discovery, the metered
  * call, the 402 that arrives when headroom runs out, the one Monad transaction
  * that settles, and the headroom that comes back in the same block. The
- * addresses and figures are this deployment's. A diagram of abstract boxes
- * would have been easier and would have taught nobody what a Settlement
- * actually looks like.
+ * figures are illustrative, one cycle of the demo Service's `quote.generate`,
+ * and the note under the last step says so. A diagram of
+ * abstract boxes would teach nobody what a Settlement actually looks like.
  *
  * Every step carries the same number of rows so the panel never changes height,
  * because a panel that resizes on a timer is a page that jumps while you read it.
@@ -95,9 +95,9 @@ const STEPS: readonly Step[] = [
       { label: "Service", value: "tab.demo" },
       { label: "Tool", value: "quote.generate" },
       { label: "Price", value: "0.01 USDC per call" },
-      { label: "Prepayment", value: "none", lead: true },
+      { label: "Prepayment", value: "not required", lead: true },
     ],
-    note: "Nothing is deposited and no balance is opened. The Agent already has credit.",
+    note: "Nothing has to be deposited before the first call. The Agent already has credit.",
   },
   {
     key: "call",
@@ -136,8 +136,8 @@ const STEPS: readonly Step[] = [
     onChain: true,
     call: "TabSettlement.settle",
     rows: [
-      { label: "From", value: "0x1f6f…0542" },
-      { label: "To collection", value: "0xe5ea…2b37" },
+      { label: "From", value: "0xa9e1…7c30" },
+      { label: "To collection", value: "0x5c0f…e2d4" },
       { label: "Value", value: "0.05 USDC" },
       { label: "Applied to tab", value: "0.05 USDC", lead: true },
     ],
@@ -156,7 +156,7 @@ const STEPS: readonly Step[] = [
       { label: "Credit Limit", value: "0.05 USDC" },
       { label: "Headroom", value: "0.05 USDC", lead: true },
     ],
-    note: "The figures here illustrate one cycle. Every figure elsewhere on this site is read from Monad.",
+    note: "The figures here illustrate one cycle. Every Settlement, tab and Bond figure elsewhere on this site is read from Monad.",
   },
 ];
 
@@ -236,9 +236,9 @@ export function SettlementWalkthrough({ className }: { readonly className?: stri
     <section ref={track} className={cn("relative lg:h-[360vh]", className)}>
       {/*
         The pinned block fills the screen below the masthead and centres what it
-        holds. Pinned to the top instead, a 530px card left 280px of empty page
-        under it for the whole time the section was held, which reads as the page
-        having stopped rather than as the section having taken the screen.
+        holds. Pinned to the top instead, the card would leave a band of empty
+        page under it for the whole time the section is held, which reads as the
+        page having stopped rather than as the section having taken the screen.
       */}
       <div className="flex flex-col justify-center gap-8 lg:sticky lg:top-20 lg:min-h-[calc(100dvh-5rem)]">
         <Reveal className="flex flex-col gap-1">

@@ -7,10 +7,10 @@
  *
  * Four write paths in this Dashboard hand a wallet a transaction: authorising a
  * Service to meter, registering a Service, approving the Bond escrow, and
- * paying a Bond deposit. Every one of them returned a hash and did nothing with
- * it, printing it as inert monospace text at best. So the one moment the
- * product is most worth trusting, the moment something is actually on chain,
- * was the moment it said least.
+ * paying a Bond deposit. Each gets a hash back, and the moment something is
+ * actually on chain is the moment the product is most worth trusting, so it is
+ * the moment the page should say the most rather than print the hash as inert
+ * text.
  *
  * A hash the reader cannot open is a hash they have to paste somewhere. The
  * whole argument of this project is that every figure is checkable, and a
@@ -49,8 +49,8 @@ interface Announced extends AnnouncedTransaction {
   readonly id: number;
   /**
    * The explorer of the network the transaction was sent on, fixed when it was
-   * announced, so switching network while the toast is up does not point its
-   * link at the other chain.
+   * announced, so switching between Testnet and Mainnet while the toast is up
+   * does not point its link at the other network's explorer.
    */
   readonly explorerUrl: string;
 }

@@ -30,7 +30,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../componen
 import { Link } from "../../components/ui/link";
 import { cn } from "../../components/ui/cn";
 import { FOCUS_RING } from "../../components/ui/focus-ring";
-import { hubRecipeFor, type HubEntry } from "../../src/dashboard/hub";
+import { hubProviderLogo, hubRecipeFor, type HubEntry } from "../../src/dashboard/hub";
 
 type Tab = "terms" | "connect";
 
@@ -52,7 +52,13 @@ export function HubRunDialog({
       <DialogContent className="w-full max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
-            <span aria-hidden="true" className="size-6 shrink-0 rounded-full border border-border/60 bg-background" />
+            <img
+              src={hubProviderLogo(entry.provider)}
+              alt=""
+              width={24}
+              height={24}
+              className="size-6 shrink-0 rounded-full bg-white/90 object-contain p-0.5"
+            />
             <span className="font-mono text-base">{entry.name}</span>
             <span className="rounded bg-status-notice/15 px-2 py-0.5 font-mono text-[10px] font-medium tracking-wider text-status-notice uppercase">
               Fronted

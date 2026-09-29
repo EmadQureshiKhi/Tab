@@ -39,15 +39,14 @@ const badgeVariants = cva(
          * Unfilled: the page's own ground inside a boundary of the tone, with the
          * label and its glyph in the tone.
          *
-         * This went from a flat fill, to a tint, to nothing. A flat fill put a
-         * block of saturated colour beside every amount in a table of settled
-         * rows and pulled the eye off the figures, which are what the page is for.
-         * The tint was quieter but still drew a coloured rectangle per row. Letting
-         * the page ground through leaves the three channels the badge actually
-         * relies on - the word, the silhouette, and the colour of the label -
-         * without adding a fourth that competes. The label-on-surface pair is the
-         * one the muted variant has always used, so the contrast gate already
-         * measures it.
+         * No fill, on purpose. A flat fill would put a block of saturated colour
+         * beside every amount in a table of settled rows and pull the eye off the
+         * figures, which are what the page is for, and even a tint draws a
+         * coloured rectangle per row. Letting the page ground through leaves the
+         * three channels the badge actually relies on - the word, the silhouette,
+         * and the colour of the label - without adding a fourth that competes.
+         * The label-on-surface pair is the one the muted variant uses, so the
+         * contrast gate already measures it.
          */
         solid: "",
         /** Transparent, bordered and labelled in the tone colour. */

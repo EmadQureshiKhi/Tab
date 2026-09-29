@@ -31,7 +31,6 @@
 import type { HubFetch } from "@tabai/sdk/hub";
 
 import { CatalogueView } from "./_catalogue";
-import { SHOWCASE } from "../../src/dashboard/showcase";
 import { EmptyChain } from "../../components/views/empty-chain";
 import { toCatalogue, type PublishedService } from "../../src/dashboard/catalogue";
 import { toHubEntries, type HubManifestOutcome } from "../../src/dashboard/hub";
@@ -61,8 +60,9 @@ async function hubManifests(
     the `tab.config` discovery, which walks the filesystem, and a bundler that
     traces that walk pulls the whole repository into the server output. The
     entry point holds only the pure manifest reader, so it bundles and traces
-    like any other module; an import hidden from the bundler was hidden from
-    the deployment's file tracing too, and the page failed where it was hosted.
+    like any other module. The import stays visible to the bundler on purpose:
+    the deployment's file tracing follows the same imports, so a module hidden
+    from one is missing from the other when the page is hosted.
   */
   const { fetchHubManifest } = await import("@tabai/sdk/hub");
   const timed: HubFetch = (url, init) => fetch(url, { ...init, signal: AbortSignal.timeout(HUB_MANIFEST_TIMEOUT_MS) });
@@ -100,16 +100,16 @@ export default async function BrowsePage() {
       {/*
         Centred, and the widest type on the site. The catalogue is the one page a
         reader can arrive at cold and act on, so it opens like a front door rather
-        than like the seventh tab of a dashboard.
+        than like one more tab of a dashboard.
       */}
       <div className="px-4 pt-12 pb-14 text-center sm:pt-20">
-        <h1 className="font-host text-3xl leading-[1.1] font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-          The best tools
-          <br />
-          for autonomous agents
+        {/* The break is for wide screens only; on a phone the heading is balanced instead. */}
+        <h1 className="font-host text-3xl leading-[1.1] font-bold tracking-tight text-balance text-foreground sm:text-5xl lg:text-6xl">
+          Tools an agent can call now <br className="hidden sm:block" />
+          and pay for later
         </h1>
-        <p className="mx-auto mt-5 max-w-lg text-sm leading-relaxed text-muted-foreground sm:text-base">
-          No subscriptions, no credits and no API keys. Nothing is prepaid: the work is delivered
+        <p className="mx-auto mt-5 max-w-xl text-sm text-balance leading-relaxed text-muted-foreground sm:text-base">
+          No subscriptions and no API keys. Nothing has to be paid up front: the work is delivered
           first and the charge lands on an Open Tab you can read on chain.
         </p>
       </div>
@@ -128,7 +128,6 @@ export default async function BrowsePage() {
           }))}
           hub={hub.entries}
           hubNotes={hub.notes}
-          showcase={SHOWCASE}
           indexedBlock={services.value.index.lastBlock}
           networkName={context.network.name}
           networkKind={context.network.network}

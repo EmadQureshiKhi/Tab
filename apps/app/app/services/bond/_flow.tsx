@@ -358,9 +358,9 @@ export function BondFlow({
         <p className="text-sm leading-relaxed text-muted-foreground">
           Both transactions are on {chainName}, and a block there is about a second. Once the
           deposit is included, <code className="font-mono">Bond.freeOf</code> reports the new stake and <code className="font-mono">TabBook</code> reads it the next
-          time it computes a Credit Limit for an Agent that has settled with this Service. Nothing
-          waits on another chain and nothing has to be proved: the escrow is the contract&apos;s own
-          balance.
+          time it computes a Credit Limit for an Agent that has settled with this Service. The
+          escrow is the contract&apos;s own balance, so the stake counts from the block the
+          deposit lands in.
         </p>
         <p className="text-sm leading-relaxed text-muted-foreground">
           The directory shows the credited stake once the index has read the block. A hash on this

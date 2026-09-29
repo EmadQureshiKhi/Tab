@@ -70,8 +70,8 @@ import { SettlementTable } from "../components/views/settlement-table";
 const APP_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 /** The Testnet mock token, registered the way `_lib/context.ts` registers it at startup. */
-const TESTNET_USDC = "0x5d519a1e8cf4edd7067fd631047e6869e9a7e4fe";
-registerAsset(TESTNET_USDC, { symbol: "USDC", decimals: 6 });
+const TESTNET_MUSDC = "0x480209747417f5c830fda188a9b9acfa70bc4083";
+registerAsset(TESTNET_MUSDC, { symbol: "mUSDC", decimals: 6 });
 
 /* ------------------------------------------------------------------ network */
 
@@ -126,7 +126,9 @@ test("an unknown Asset is shown by its address rather than assumed to be USDC", 
   assert.deepEqual(assetUnitFor("0x754704Bc059F8C67012fEd69BC8A327a5aafb603"), { symbol: "USDC", decimals: 6 });
   assert.deepEqual(assetUnitFor("0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a"), { symbol: "AUSD", decimals: 6 });
   // The Testnet token is deployment output, so it is registered rather than listed.
-  assert.deepEqual(assetUnitFor(TESTNET_USDC.toUpperCase().replace("0X", "0x")), { symbol: "USDC", decimals: 6 });
+  assert.deepEqual(assetUnitFor(TESTNET_MUSDC.toUpperCase().replace("0X", "0x")), { symbol: "mUSDC", decimals: 6 });
+  // Circle's Testnet USDC is a network constant, so it is listed.
+  assert.deepEqual(assetUnitFor("0x534b2f3A21130d7a60830c2Df862319e593943A3"), { symbol: "USDC", decimals: 6 });
   const unknown = assetUnitFor("0x1111111111111111111111111111111111111111");
   assert.notEqual(unknown.symbol, "USDC");
   // Zero decimals, so the figure shown is the exact base-unit integer and is not
@@ -146,19 +148,19 @@ test("a bytes32 serviceId decodes to its name, and refuses when it is not one", 
 /** One row as the read API serves it: the Settlement and the transaction that paid it. */
 const LIVE_ROW = {
   settlementId: "0x9e4c1a7b2d3f4e5a6b7c8d9e0f1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c",
-  agent: "0x1f6f797edc2eecb02bd54009b805fb2e99f80542",
+  agent: "0xa9e1000000000000000000000000000000007c30",
   serviceId: "0x7461622e64656d6f2d7365727669636500000000000000000000000000000000",
-  asset: TESTNET_USDC,
+  asset: TESTNET_MUSDC,
   amount: "101000",
   applied: "0",
   toPrepaid: "101000",
-  collection: "0x952acc70e6f54ce87dca963193a5957bcb27729e",
+  collection: "0xc011ec7000000000000000000000000000000001",
   openAfter: "0",
   monad: {
-    blockNumber: 64_486_402,
-    blockHash: "0x0593fd509c314356066491ddd01a84ce5b4dd5309fd67895a8d62a99da7fd9da",
+    blockNumber: 66_724_016,
+    blockHash: "0xb10c000000000000000000000000000000000000000000000000000000000001",
     logIndex: 7,
-    txHash: "0x81aad88d0fef865b7b52efa3d01abccaf16acb4027e0c656330f2a4caa15de32",
+    txHash: "0x7e57a11ed0000000000000000000000000000000000000000000000000000001",
     txIndex: 2,
     blockTime: "2026-09-21T15:46:30.000Z",
   },
@@ -170,14 +172,14 @@ test("a Settlement decodes with its id, its transaction and both applied figures
   if (view === undefined) return;
   assert.equal(view.settlementId, LIVE_ROW.settlementId);
   assert.equal(view.txHash, LIVE_ROW.monad.txHash);
-  assert.equal(view.blockNumber, 64_486_402);
+  assert.equal(view.blockNumber, 66_724_016);
   assert.equal(view.logIndex, 7);
   assert.equal(view.amountBaseUnits, 101_000n);
   assert.equal(view.appliedBaseUnits, 0n);
   assert.equal(view.prepaidBaseUnits, 101_000n);
   assert.equal(view.openAfterBaseUnits, 0n);
   assert.equal(view.serviceName, "tab.demo-service");
-  assert.equal(view.asset.symbol, "USDC");
+  assert.equal(view.asset.symbol, "mUSDC");
   assert.equal(view.collection, LIVE_ROW.collection);
   assert.equal(view.tier, "permissionless", "an unresolved Service takes the tier every Service holds on registration");
 });
@@ -269,7 +271,7 @@ test("an empty page is a 200 carrying an empty list, not an error", async () => 
   const registry = createRegistryClient({
     baseUrl: "http://registry.test",
     fetchImpl: async () =>
-      respondWith(200, { index: { lastBlock: 64_486_633 }, settlements: [], nextCursor: null }),
+      respondWith(200, { index: { lastBlock: 66_742_071 }, settlements: [], nextCursor: null }),
   });
   const result = await serveSettlements({ registry }, new URLSearchParams(""));
   assert.equal(result.status, 200);
@@ -277,7 +279,7 @@ test("an empty page is a 200 carrying an empty list, not an error", async () => 
   assert.deepEqual(body.settlements, []);
   // The horizon shows the index looked, which is what separates "nothing has
   // settled" from "we could not read".
-  assert.equal(body.index.lastBlock, 64_486_633);
+  assert.equal(body.index.lastBlock, 66_742_071);
 });
 
 test("the feed is never cached, because a stale ticker is a wrong ticker", async () => {
@@ -320,11 +322,11 @@ test("every view renders in a process with no provider and no account", () => {
   const empty = renderToStaticMarkup(
     createElement(EmptyChain, {
       message: networkOptionFor(10143).emptyMeans,
-      indexedBlock: 64_486_633,
+      indexedBlock: 66_742_071,
     }),
   );
   assert.match(empty, /Nothing has settled on Monad Testnet yet/);
-  assert.match(empty, /64,486,633/);
+  assert.match(empty, /66,742,071/);
 
   const table = renderToStaticMarkup(
     createElement(SettlementTable, {
@@ -338,15 +340,15 @@ test("every view renders in a process with no provider and no account", () => {
   // with both full words kept in `title` so a reader can check them.
   assert.match(table, new RegExp(`href="/explorer/${LIVE_ROW.settlementId}"`));
   assert.match(table, new RegExp(`title="${LIVE_ROW.settlementId}"`));
-  assert.match(table, /monadvision\.com\/tx\/0x81aad88d/);
-  assert.match(table, /64,486,402/);
+  assert.match(table, /monadvision\.com\/tx\/0x7e57a11e/);
+  assert.match(table, /66,724,016/);
   // The amount renders as decimal units with the symbol in its own element, and
   // carries the exact base-unit integer in `title`. Asserting the title is the
   // stronger claim: it is the figure that must not have been scaled by a guess.
   assert.match(table, /0\.101 /);
-  assert.match(table, /title="101000 base units \(USDC, 6 decimals\)"/);
+  assert.match(table, /title="101000 base units \(mUSDC, 6 decimals\)"/);
   // Applied and prepaid are both on the row, so a reader sees where the money went.
-  assert.match(table, /title="0 base units \(USDC, 6 decimals\)"/);
+  assert.match(table, /title="0 base units \(mUSDC, 6 decimals\)"/);
 });
 
 test("an empty feed renders as a sentence rather than as nothing at all", () => {
@@ -370,7 +372,7 @@ const IDENTITY_REGISTRY = "0x8004a1b2c3d4e5f60718293a4b5c6d7e8f901234";
 /** One agent as the registry serves it, with a card, a wallet and a live reputation read. */
 const AGENT_ROW: IdentityAgentRow = {
   agentId: "7",
-  owner: "0x1f6f797edc2eecb02bd54009b805fb2e99f80542",
+  owner: "0xa9e1000000000000000000000000000000007c30",
   agentWallet: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd",
   matchedBy: ["owner"],
   agentURI: "https://agents.example.org/.well-known/agent-registration/tab-demo-agent.json",
@@ -672,11 +674,11 @@ test("the explorer says where an x402 payment goes, and that it is not a Settlem
 
 const SERVICE_ROW: ServiceRow = {
   serviceId: "0x7461622e64656d6f000000000000000000000000000000000000000000000000",
-  operator: "0x952acc70e6f54ce87dca963193a5957bcb27729e",
+  operator: "0xc011ec7000000000000000000000000000000001",
   tier: { value: 0, name: "permissionless", creditWeight: "0", source: { appliedBy: "registration", monad: LIVE_ROW.monad } },
   settlementWindowSeconds: { value: 3600, source: { appliedBy: "registration", monad: LIVE_ROW.monad } },
-  acceptedAssets: [{ asset: TESTNET_USDC, collection: "0x952acc70e6f54ce87dca963193a5957bcb27729e" }],
-  prices: [{ asset: TESTNET_USDC, tool: "0x71756f74652e67656e657261746500000000000000000000000000000000000000".slice(0, 66), baseUnits: "101000" }],
+  acceptedAssets: [{ asset: TESTNET_MUSDC, collection: "0xc011ec7000000000000000000000000000000001" }],
+  prices: [{ asset: TESTNET_MUSDC, tool: "0x71756f74652e67656e657261746500000000000000000000000000000000000000".slice(0, 66), baseUnits: "101000" }],
   bond: [],
   pendingChanges: [],
   registeredAt: LIVE_ROW.monad,
@@ -692,7 +694,7 @@ test("a tool priced in an Asset the Service never staked in shows a free Bond of
       {
         serviceId: SERVICE_ROW.serviceId,
         party: `0x${"ab".repeat(32)}`,
-        asset: TESTNET_USDC,
+        asset: TESTNET_MUSDC,
         staked: "50000000",
         withdrawn: "0",
         free: "50000000",
@@ -701,7 +703,7 @@ test("a tool priced in an Asset the Service never staked in shows a free Bond of
     ],
   } as ServiceRow;
   const entries = toCatalogue([priced], [], 10143);
-  const inUsdc = entries.find((entry) => entry.assetAddress.toLowerCase() === TESTNET_USDC.toLowerCase());
+  const inUsdc = entries.find((entry) => entry.assetAddress.toLowerCase() === TESTNET_MUSDC.toLowerCase());
   const inOther = entries.find((entry) => entry.assetAddress.toLowerCase() === otherAsset);
   // The ledger the index refused is absent: the page must not print a figure
   // the chain disagreed with. The Asset with no ledger at all is zero: nothing
@@ -863,7 +865,7 @@ test("Hub entries carry both prices, the hub path and the tool, and sort after t
   if (protocols === undefined) throw new Error("expected /protocols");
   assert.equal(protocols.upstreamUsd, "0.01");
   assert.equal(protocols.tabPriceBaseUnits, "10500");
-  assert.equal(protocols.asset.symbol, "USDC", "priced in the Asset the Service accepts");
+  assert.equal(protocols.asset.symbol, "mUSDC", "priced in the Asset the Service accepts");
   assert.equal(protocols.hubPath, "/hub/apihub/run");
   assert.equal(protocols.tool, "apihub.run");
   assert.equal(protocols.serviceName, "tab.demo");
@@ -894,7 +896,7 @@ test("Hub entries carry both prices, the hub path and the tool, and sort after t
   assert.match(recipe.call, /tool: {6}apihub\.run/);
   assert.match(recipe.call, /path: {6}\/hub\/apihub\/run/);
   assert.match(recipe.call, /"endpoint":"\/protocols"/);
-  assert.match(recipe.call, new RegExp(`asset: {5}10143:${TESTNET_USDC}`));
+  assert.match(recipe.call, new RegExp(`asset: {5}10143:${TESTNET_MUSDC}`));
   assert.match(recipe.http, /^POST http:\/\/localhost:8788\/hub\/apihub\/run/);
 });
 

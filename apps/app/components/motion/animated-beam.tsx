@@ -14,8 +14,8 @@
  *
  * The path, the resting stroke and the gradient are all rendered in every case.
  * When motion is reduced the gradient simply does not travel. Reading the
- * preference to decide markup is what produced three separate hydration
- * mismatches on this site, and `test/motion.test.mjs` now refuses it.
+ * preference to decide markup would be a hydration mismatch, because the server
+ * has no preference to read, and `test/motion.test.mjs` refuses it.
  */
 
 import { type RefObject, useCallback, useEffect, useId, useState } from "react";
@@ -102,9 +102,8 @@ export function AnimatedBeam({
     const b = centreOf(toBox, box, endYOffset);
 
     // Both ends stop at the mark's boundary rather than at its centre. The marks
-    // are painted over this SVG, so a path drawn to the centre puts its arrowhead
-    // underneath the very node it points at, which is where the heads went the
-    // first time and why none of them could be seen.
+    // are painted over this SVG, so a path drawn to the centre would put its
+    // arrowhead underneath the very node it points at, out of sight.
     const dx = b.x - a.x;
     const dy = b.y - a.y;
     const length = Math.hypot(dx, dy) || 1;

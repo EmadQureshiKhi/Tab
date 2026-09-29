@@ -27,9 +27,9 @@ const linkVariants = cva(
     // `inline-flex` keeps the external-link glyph on the same line as the label and
     // stops it wrapping alone onto the next. What it also does is refuse to break
     // the label, and this product's labels include 66-character transaction hashes:
-    // at 390px one of those ran the settlement page 198px past the viewport and
-    // scrolled the whole document sideways. `min-w-0` with `break-all` lets the
-    // hash wrap inside the link while the glyph still travels with it.
+    // on a phone one of those would run the page past the viewport and scroll the
+    // whole document sideways. `min-w-0` with `break-all` lets the hash wrap inside
+    // the link while the glyph still travels with it.
     "inline-flex min-w-0 items-center gap-1 rounded-[2px] break-all underline decoration-1 underline-offset-4",
     "transition-[color,text-decoration-thickness] duration-[var(--tab-motion-fast)]",
     "hover:decoration-2",
@@ -42,11 +42,11 @@ const linkVariants = cva(
          * A link is the page's own text with an underline, and it goes teal only
          * under the pointer.
          *
-         * It was teal at rest, and on a table of transaction hashes that made forty
-         * bright strings the first thing the eye landed on, ahead of the amounts and
-         * the states beside them. Colour at rest is a claim about importance, and a
-         * hash is not the most important thing in its row. The underline is what
-         * says it is a link, which is what an underline is for.
+         * Teal at rest would make every hash in a table of transactions the first
+         * thing the eye landed on, ahead of the amounts and the states beside them.
+         * Colour at rest is a claim about importance, and a hash is not the most
+         * important thing in its row. The underline is what says it is a link,
+         * which is what an underline is for.
          */
         default:
           "text-foreground decoration-muted-foreground/50 hover:text-teal-700 hover:decoration-teal-600 dark:hover:text-teal-300 dark:hover:decoration-teal-400",

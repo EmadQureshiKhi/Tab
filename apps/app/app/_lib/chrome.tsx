@@ -47,10 +47,10 @@ export function Chrome({ children, docsUrl, explorerUrl, chainId, networkKind }:
         `overflow-x-clip`, and deliberately not `overflow-x-hidden`.
 
         Sections whose halves arrive from opposite edges start their entrance
-        outside the page. At 390 that pushed a FAQ answer 19px past the viewport
-        and let the whole document scroll sideways until the reveal finished.
-        Clipping the axis makes that impossible for any entrance, present or
-        future, rather than asking every one of them to be measured.
+        outside the page. Unclipped, a phone-width page would scroll sideways
+        until the reveal finished. Clipping the axis makes that impossible for
+        any entrance, present or future, rather than asking every one of them to
+        be measured.
 
         `hidden` would clip the same and would also break the settlement
         walkthrough: `overflow-x: hidden` forces the other axis to `auto`, which

@@ -51,6 +51,7 @@ export interface SettlementTableProps {
 }
 
 const MONO = "font-mono text-xs";
+const NO_WRAP = "break-normal whitespace-nowrap";
 
 /** Middle-truncated, with the full value in `title` so nothing is lost. */
 function short(value: string): string {
@@ -86,19 +87,25 @@ export function SettlementTable({
         {rows.map((row) => (
           <TableRow key={row.settlementId}>
             <TableCell>
-              <Link href={hrefFor(row.settlementId)} mono title={row.settlementId}>
+              {/*
+                Kept on one line. The identifiers are already truncated to a
+                fixed length, and the table scrolls sideways inside its own
+                region on a narrow screen, so wrapping one only makes the row
+                taller and the hash harder to read.
+              */}
+              <Link href={hrefFor(row.settlementId)} mono title={row.settlementId} className={NO_WRAP}>
                 {short(row.settlementId)}
               </Link>
             </TableCell>
             <TableCell>
-              <Link href={explorerHrefFor(row.txHash)} external mono title={row.txHash}>
+              <Link href={explorerHrefFor(row.txHash)} external mono title={row.txHash} className={NO_WRAP}>
                 {short(row.txHash)}
               </Link>
             </TableCell>
             <TableCell className={`${MONO} tabular-nums`}>
               {row.blockNumber.toLocaleString("en-US")}
             </TableCell>
-            <TableCell className={MONO} title={row.agent}>
+            <TableCell className={`${MONO} whitespace-nowrap`} title={row.agent}>
               {short(row.agent)}
             </TableCell>
             <TableCell className={MONO} title={row.serviceId}>

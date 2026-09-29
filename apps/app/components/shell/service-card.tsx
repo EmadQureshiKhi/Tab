@@ -3,12 +3,12 @@
 /**
  * One Service, as a card rather than a list of terms.
  *
- * The old shape was a definition list of eight rows, which put the operator
- * address, the Settlement Window, the Assets and the prices at the same visual
- * weight and made a reader scan all eight to find any one. The four figures that
- * decide whether to use a Service are tiles now, the identity sits in the header
- * with the tier, and the Bond keeps its own panel because it is the only thing
- * here that is money at risk.
+ * A definition list of eight rows would put the operator address, the
+ * Settlement Window, the Assets and the prices at the same visual weight and
+ * make a reader scan all eight to find any one. So the four figures that decide
+ * whether to use a Service are tiles, the identity sits in the header with the
+ * tier, and the Bond keeps its own panel because it is the only thing here that
+ * is money at risk.
  *
  * The queued change is drawn as a notice rather than as another row. It is the one
  * fact on the card that is about the future, and a reader who misses it will be

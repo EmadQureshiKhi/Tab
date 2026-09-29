@@ -19,8 +19,7 @@ import { RevealGroup, RevealItem } from "../motion/reveal";
  *
  * Every file here carries real fills rather than `currentColor`. A mark drawn in
  * `currentColor` inherits nothing inside an `<img>`, so it resolves to black and
- * the greyscale treatment below leaves it invisible on a dark page, which is
- * exactly what happened to two of these before they were swapped out.
+ * the greyscale treatment below would leave it invisible on a dark page.
  */
 const CLIENTS = [
   { name: "Claude", href: "https://claude.ai", icon: "/logos/clients/claude.svg" },

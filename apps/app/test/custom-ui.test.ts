@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Tests for the composites in `components/custom-ui`.
  *
  * Two kinds of assertion, because the composites carry two kinds of rule.
@@ -50,9 +50,9 @@ const DIRECTORY = join(dirname(fileURLToPath(import.meta.url)), "..", "component
 
 const USDC = { symbol: "USDC", decimals: 6 } as const;
 
-/** The colour names the Tailwind namespace is rebuilt from in `styles/`. */
-/*
- * Every colour name a composite may reach for.
+/**
+ * Every colour name a composite may reach for, as the Tailwind namespace is
+ * rebuilt from it in `styles/`.
  *
  * Two layers, and the same rule over both: a colour in a class must have been
  * declared somewhere a reader can find it. The generated set is what the contrast

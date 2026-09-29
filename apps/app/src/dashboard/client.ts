@@ -241,10 +241,10 @@ export interface AgentDetail {
   readonly assets: readonly AgentAssetRow[];
   /**
    * The Agent's ERC-8004 identity, `null` where the registry is not configured.
-   * Absent altogether from a registry older than the identity read.
+   * Absent altogether from a registry that does not serve the identity read.
    */
   readonly identity?: IdentityRow | null | undefined;
-  /** Nansen labels, or the stated reason there are none. Absent from an older registry. */
+  /** Nansen labels, or the stated reason there are none. Absent from a registry that does not serve them. */
   readonly labels?: LabelsRow | undefined;
 }
 
@@ -400,7 +400,10 @@ export interface AdoptionMetrics {
   readonly externalSettlementCount: number;
   readonly internalSettlementCount: number;
   readonly volumeByAsset: readonly AdoptionVolumeRow[];
-  /** Lower bounds, not totals: `DeliveryRecorded` is not indexed. */
+  /**
+   * Lower bounds, not totals: the registry counts these from `PrepaidConsumed`,
+   * which fires only on a delivery that draws on prepaid credit.
+   */
   readonly externalDeliveryLowerBound: number;
   readonly internalDeliveryLowerBound: number;
   /** How each figure above was arrived at, in the registry's own words. */
@@ -535,9 +538,9 @@ export function createRegistryClient(options: RegistryClientOptions): RegistryCl
       );
       if (!body.ok) return body;
       // The registry serves identity beside the row; the row is the unit every
-      // view takes, so it is folded on here and nowhere else. An older registry
-      // that serves no block at all leaves it absent, which the view model
-      // states as "not served" rather than as "none registered".
+      // view takes, so it is folded on here and nowhere else. A registry that
+      // serves no identity block leaves it absent, which the view model states
+      // as "not served" rather than as "none registered".
       const { identity, ...detail } = body.value;
       return ok({
         index: detail.index,

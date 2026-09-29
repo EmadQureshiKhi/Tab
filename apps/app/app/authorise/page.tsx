@@ -1,9 +1,10 @@
 /**
  * `/authorise` - let a Service put charges on your tab.
  *
- * The one read-only exception on this Dashboard: everything else here renders
- * without a wallet, and this cannot, because an authorisation is a transaction
- * the Agent must sign as itself. `TabBook.recordDelivery` refuses to meter an
+ * One of the four routes on this Dashboard that sign, beside `/services/new`,
+ * `/services/bond` and `/keys`: every read renders without a wallet, and this
+ * cannot act without one, because an authorisation is a transaction the Agent
+ * must sign as itself. `TabBook.recordDelivery` refuses to meter an
  * Agent that has not authorised the Service, refuses once the cumulative charge
  * would pass the ceiling the Agent set, and refuses once the expiry has lapsed.
  * Nothing in Tab can raise that ceiling on the Agent's behalf.

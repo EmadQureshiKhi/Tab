@@ -11,14 +11,14 @@
  * RPC endpoint answers, and asking the registry whether the chain is up would
  * report the registry's opinion rather than the endpoint's.
  *
- * The second is the overdue-tab list, and the reason is worth stating because
- * it looks like a shortcut and is the opposite of one. `markDelinquent` is
+ * The second is the verdict on an overdue tab. `markDelinquent` is
  * permissionless so that delinquency liveness never depends on the Service that
- * metered the tab. A view whose whole purpose is letting an outsider act without
- * trusting us must not itself require our indexer to be up and honest. Reading
- * the tabs straight from the chain makes the page verifiable by the person using
- * it: every figure on it came from a node, and the reader can point this at any
- * node they like.
+ * metered the tab, and a view whose whole purpose is letting an outsider act
+ * without trusting us must not depend on our indexer being honest either. The
+ * index may say which tabs exist, but whether one is overdue is read here, from
+ * `tabOf` and the Settlement Window at one named block, and the same logs the
+ * index reads can be scanned straight off a node. Every figure the verdict rests
+ * on came from a node, and the reader can point this at any node they like.
  *
  * ## No library, and no key
  *
