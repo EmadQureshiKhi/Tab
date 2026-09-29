@@ -642,10 +642,10 @@ The verification is a `view` run and reverts on the first wired slot that disagr
 3. HTTP 402 Payment Required, as defined by the HTTP semantics specification.
 4. Model Context Protocol, the interface `tab_discover`, `tab_call`, `tab_status` and `tab_settle` are served over.
 5. Web Content Accessibility Guidelines (WCAG) 2.1, the contrast floor every interface colour pair is linted against.
-6. Tab source, documentation and deployment record. This repository, MIT licensed.
+6. Tab source, documentation and deployment record. This repository, source-available under its LICENSE.
 
 ---
 
 <p align="center">
-  <sub>Tab · Emad Qureshi · MIT</sub>
+  <sub>Tab · Emad Qureshi · Source-available</sub>
 </p>

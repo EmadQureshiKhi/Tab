@@ -398,4 +398,4 @@ Until then, `tab_discover` and `tab_status` need a Tab registry you point `regis
 
 ## Built by
 
-Emad Qureshi. MIT licensed.
+Emad Qureshi. Source-available: free to read, run and evaluate, and any other use needs permission. Versions up to 0.2.0 were published under MIT and stay under it. See LICENSE.

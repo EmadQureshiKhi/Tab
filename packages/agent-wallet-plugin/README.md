@@ -221,4 +221,4 @@ pnpm --filter @tabai/agent-wallet-plugin test
 The contract addresses this plugin defaults to are the ones recorded in the repository's `deployments.json`, and a test fails when the two disagree.
 MetaMask's gas service knows Mainnet and not Testnet, so `--broadcast` goes through on Mainnet only; reads and dry runs work on both.
 
-MIT licensed.
+Source-available: free to read, run and evaluate, and any other use needs permission. Versions up to 0.1.1 were published under MIT and stay under it. See LICENSE.

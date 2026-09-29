@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "description": "Metering and post-paid wrapper service, including the 402 challenge headers.",
-  "license": "MIT",
+  "license": "UNLICENSED",
   "scripts": {
     "build": "tsc -b",
     "typecheck": "tsc -b",

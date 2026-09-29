@@ -11,7 +11,7 @@
   <img alt="Settlement: same chain, one transaction" src="https://img.shields.io/badge/settlement-one%20transaction-0D7676">
   <img alt="164 contract tests passing" src="https://img.shields.io/badge/contract%20tests-164%20passing-2f8132">
   <img alt="Deployed on Monad Testnet" src="https://img.shields.io/badge/status-deployed%20%26%20live-2f8132">
-  <a href="./LICENSE"><img alt="MIT licensed" src="https://img.shields.io/badge/license-MIT-444"></a>
+  <a href="./LICENSE"><img alt="Source-available licence" src="https://img.shields.io/badge/license-source--available-444"></a>
 </p>
 
 # Tab
@@ -28,7 +28,7 @@ The chain applies the payment.
 Tab sits on the rest of Monad's agent stack rather than beside it: an Agent that runs out of credit is offered the same charge over x402, the API Hub's pay-per-request services are fronted on credit, Agents and Services carry ERC-8004 identities, and a Settlement can be signed with a Permit2 witness so the Agent never needs gas.
 The section [On Monad, end to end](#on-monad-end-to-end) lists every piece.
 
-Built by **Emad Qureshi**. MIT licensed.
+Built by **Emad Qureshi**. Source-available: free to read, run and evaluate, and any other use needs permission.
 Live on Monad Mainnet and on Monad Testnet.
 
 ---
@@ -332,4 +332,7 @@ The same contracts and the same deployment sequence carry to Monad Mainnet with 
 
 ## License
 
-MIT. See [LICENSE](./LICENSE).
+Source-available, all rights reserved.
+You may read, run and evaluate Tab, including judging and auditing it, and any other use needs written permission first.
+The Solidity sources deployed on Monad stay under MIT, because their published source must match what is on chain.
+See [LICENSE](./LICENSE) for the exact terms.

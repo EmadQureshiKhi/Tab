@@ -150,4 +150,4 @@ A commit message says what changed and why, in prose, and never carries a machin
 
 ## License
 
-By contributing you agree that your contributions are licensed under the [MIT License](./LICENSE).
+By contributing you agree to the contribution terms in [LICENSE](./LICENSE): the copyright holder may use, modify and license your contribution under any terms.
