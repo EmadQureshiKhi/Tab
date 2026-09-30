@@ -5,7 +5,9 @@
  * Open Tab a call is metered to, where a Service can be reached, and a key to
  * sign a Settlement with. The first two are here. The third is never here: the
  * strategy is built with a signer read from the environment at load, so no key
- * is written to a file that is tracked.
+ * is written to a file that is tracked. With `PRIVY_WALLET_ID` set, the key is
+ * not in the environment either: it stays in a Privy server wallet whose
+ * policy bounds what it signs.
  *
  * ## Why the endpoint is in a config file and not on chain
  *
@@ -23,7 +25,13 @@
 
 import { Wallet, JsonRpcProvider } from "ethers";
 
-import { agentSignedMetering, createMonadStrategy, createRelayedMonadStrategy } from "@tabai/sdk";
+import {
+  agentSignedMetering,
+  createMonadStrategy,
+  createPrivyAgentSigner,
+  createRelayedMonadStrategy,
+  stderrLogger,
+} from "@tabai/sdk";
 
 /** Testnet unless the environment says otherwise. */
 const CHAIN_ID = BigInt(process.env.MONAD_CHAIN_ID ?? "10143");
@@ -58,11 +66,46 @@ const ASSETS = {
 };
 
 /**
- * A signer from the Agent's key, or nothing. Shared by the settlement
- * strategy and the x402 factory below, and called by neither until something
- * has to sign: `doctor`, `tab_discover` and `tab_status` never reach it.
+ * The Agent's key in a Privy server wallet, when `PRIVY_WALLET_ID` names one.
+ *
+ * Built once at load, with no network call: the first signature reads the
+ * wallet's address from Privy and every later one reuses it. Privy's policy
+ * on the wallet decides what it signs, so the key and the limits on it both
+ * live outside this process. A wallet named here that cannot be built is
+ * reported and gives no signer at all, never a fall back to a raw key.
+ */
+const privyAgent = (() => {
+  const walletId = process.env.PRIVY_WALLET_ID;
+  if (walletId === undefined || walletId.trim().length === 0) return undefined;
+  const authorizationKey = process.env.PRIVY_AUTHORIZATION_KEY;
+  const apiUrl = process.env.PRIVY_API_URL;
+  const built = createPrivyAgentSigner({
+    appId: process.env.PRIVY_APP_ID ?? "",
+    appSecret: process.env.PRIVY_APP_SECRET ?? "",
+    walletId: walletId.trim(),
+    chainId: CHAIN_ID,
+    provider: new JsonRpcProvider(RPC_URL, Number(CHAIN_ID), { staticNetwork: true }),
+    ...(authorizationKey === undefined || authorizationKey.trim().length === 0 ? {} : { authorizationKey }),
+    ...(apiUrl === undefined || apiUrl.trim().length === 0 ? {} : { apiUrl: apiUrl.trim() }),
+    // stderr, never stdout: stdout carries the MCP protocol when the server runs on stdio.
+    logger: stderrLogger,
+  });
+  if (!built.ok) {
+    process.stderr.write(`tab.config: PRIVY_WALLET_ID is set and the Privy signer cannot be built: ${built.error.message}\n`);
+    return null;
+  }
+  return built.value;
+})();
+
+/**
+ * A signer for the Agent, or nothing: the Privy wallet when one is named,
+ * otherwise a wallet over `AGENT_PRIVATE_KEY`. Shared by the settlement
+ * strategies, the metering header and the x402 factory below, and called by
+ * none of them until something has to sign: `doctor`, `tab_discover` and
+ * `tab_status` never reach it.
  */
 const agentSigner = () => {
+  if (privyAgent !== undefined) return privyAgent ?? undefined;
   const key = process.env.AGENT_PRIVATE_KEY;
   if (key === undefined || key.trim().length === 0 || key.startsWith("0xREPLACE")) return undefined;
   return new Wallet(key.trim(), new JsonRpcProvider(RPC_URL, Number(CHAIN_ID), { staticNetwork: true }));
