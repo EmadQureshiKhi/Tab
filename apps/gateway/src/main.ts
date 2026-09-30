@@ -24,6 +24,7 @@ import { createTabBookClient } from "./tab-book.js";
 import { createSettlementRelay } from "./relay.js";
 import { createApp, type GatewayAsset, type GatewayHubOptions, type GatewayX402Options } from "./server.js";
 import { loadX402Config, readCollectionAddress, readEip712Domain } from "./x402.js";
+import { createFeedbackDocuments, createReputationWriter, loadReputationConfig, processReputationEnv } from "./reputation.js";
 
 /**
  * Every read is pinned to `latest`. Monad finalises a block within a second, and
@@ -272,6 +273,49 @@ async function main(): Promise<number> {
       : undefined;
   if (relay === undefined) console.error("gateway: the settlement relay is off (set TAB_SETTLEMENT_ADDRESS, and GATEWAY_RELAY_ENABLED unless false)");
 
+  /*
+    ERC-8004 reputation, off unless GATEWAY_REPUTATION_ENABLED=true. After a
+    Settlement to this Service, the writer gives the paying Agent one feedback
+    entry on the Reputation registry, from the operator key, pointing at a
+    document this gateway serves at /reputation/:settlementId. It is a derived
+    signal and the Credit Limit never reads it; see `reputation.ts`. The
+    documents are served whenever the registry is configured, so an entry
+    written earlier still resolves after the writer is switched off.
+  */
+  const reputationConfig = loadReputationConfig(processReputationEnv(), config.value.chainId);
+  if (!reputationConfig.ok) {
+    console.error(`gateway: ${reputationConfig.error.code}: ${reputationConfig.error.message}`);
+    return 2;
+  }
+  const feedbackDocuments =
+    registryUrl === undefined || registryUrl.length === 0
+      ? undefined
+      : createFeedbackDocuments({ provider, chainId: config.value.chainId, serviceId, registryUrl });
+  let startReputation: (() => void) | undefined;
+  if (reputationConfig.value.enabled) {
+    if (feedbackDocuments === undefined || registryUrl === undefined) {
+      console.error("gateway: GATEWAY_REPUTATION_ENABLED=true needs NEXT_PUBLIC_REGISTRY_API_URL, which is where Settlements and identities are read from");
+      return 2;
+    }
+    const settings = reputationConfig.value;
+    const writer = createReputationWriter({
+      provider,
+      signer,
+      documents: feedbackDocuments,
+      reputationRegistry: settings.reputationRegistry,
+      serviceId,
+      registryUrl,
+      publicUrl: settings.publicUrl,
+      logger: { info: (message) => console.error(`gateway: ${message}`), warn: (message) => console.error(`gateway: ${message}`) },
+    });
+    startReputation = () => {
+      writer.start(settings.intervalMs);
+      console.error(`gateway: ERC-8004 feedback is written to ${settings.reputationRegistry} after each Settlement, checked every ${settings.intervalMs / 1000}s, documents at ${settings.publicUrl}/reputation/:settlementId`);
+    };
+  } else {
+    console.error("gateway: ERC-8004 reputation feedback is off (set GATEWAY_REPUTATION_ENABLED=true and GATEWAY_PUBLIC_URL to write it)");
+  }
+
   const app = createApp({
     serviceId: serviceId.toLowerCase() as `0x${string}`,
     asset,
@@ -282,11 +326,14 @@ async function main(): Promise<number> {
     ...(x402 === undefined ? {} : { x402 }),
     ...(hub === undefined ? {} : { hub }),
     ...(relay === undefined ? {} : { relay }),
+    ...(feedbackDocuments === undefined ? {} : { feedbackDocuments }),
   });
 
   const port = Number(process.env.GATEWAY_PORT ?? "8788");
   serve({ fetch: app.fetch, port });
   console.error(`gateway: metering ${serviceId} on port ${port}, operator ${await signer.getAddress()}`);
+  // Started after the server, on its own timer: nothing a request does waits on it.
+  startReputation?.();
   return 0;
 }
 
