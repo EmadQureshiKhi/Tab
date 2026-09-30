@@ -5,7 +5,7 @@ It lives in its own file so the README stays something a reader can finish.
 
 ## Prerequisites
 
-- Node `>= 20.10.0`
+- Node `>= 20.10.0`, and `>= 22.18` to run the MetaMask Agent Wallet CLI (`mm`) against the plugin
 - pnpm `9.15.3`, pinned through the root `packageManager` field.
   Never npm.
 - Foundry (`forge`, `cast`, `anvil`) for the Solidity work
@@ -92,6 +92,10 @@ pnpm --filter @tabai/app build:site           # next build, deliberately outside
 node --env-file=.env scripts/agent-loop.mjs   # one Agent through authorise, tab_call, tab_status and tab_settle; --broadcast settles
 node --env-file=.env scripts/x402-prepaid.mjs # the other door: one call paid up front over x402, never metered
 node --env-file=.env scripts/nansen-x402.mjs  # one Nansen call paid per request in Mainnet USDC, no API credits
+node --env-file=.env scripts/privy-agent.mjs --loop   # the same loop with the Agent's key in a Privy server wallet; --create makes one
+node --env-file=.env scripts/credit-growth.mjs status # a Credit Limit growing with three Curated Testnet Services; prepare and grow send with --broadcast
+node --env-file=.env scripts/reputation-backfill.mjs  # ERC-8004 entries for Settlements made before reputation was on; --broadcast writes them
+pnpm --filter @tabai/keeper once              # the overdue tabs the keeper would mark; --broadcast marks them
 ```
 
 The registry's route tests need a PostgreSQL server and run against a database of their own, `<database>_test` beside the one `DATABASE_URL` names, created on first run; `REGISTRY_TEST_DATABASE_URL` overrides it.
@@ -122,6 +126,8 @@ Without a server they skip and say so.
 - **One Service has one operator key, fixed at registration.**
   There is no operator setter and no `Operator` change kind, so every process of the same Service must hold the same key.
   A keyless simulation passes with the operator as `from` and the broadcast reverts only after spending gas, so neither cheap check catches a wrong key; `checkOperatorKey` in `apps/gateway/src/witness.ts` refuses at startup and names both addresses.
+- **The gateway sends every operator transaction from one queue that counts its own nonces.**
+  Metering, the relay and the reputation writer all share the operator key, so a script sending from that key while the gateway runs moves the nonce under the count; the gateway retries a nonce refusal once with a fresh read and returns any other failure unchanged.
 - `IServiceRegistry.Service` has no leading `serviceId`.
   An off-by-one struct read is silent.
 - A Metered Delivery spends `tab.prepaid` **before** it raises the Open Tab, and the Credit Limit is tested against the shortfall only, because prepaid credit is already paid for and borrows nothing.

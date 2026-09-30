@@ -14,6 +14,7 @@ A deployment of Tab lives on one chain, and a Settlement is a transfer on that c
 An Agent on Monad pays a Service on Monad, in an Asset on Monad, and nothing in the contracts can observe or accept a payment made anywhere else.
 That is the bound and it is also the reason the design holds.
 `TabSettlement` can weld the transfer and the ledger entry into one transaction only because both happen on the same ledger, and the moment a payment lived elsewhere something would have to be trusted to report it.
+An Agent whose USDC is on another chain can fill its Monad balance first with the `intents-funded` strategy, but that funding step only brings the Agent's own USDC to its own Monad address, before the Settlement; the contracts never see it, and the Settlement after it is still one Monad transaction.
 Mainnet and Testnet are separate deployments, with separate addresses, and a figure read from one says nothing about the other.
 The Dashboard shows both, one at a time: the switch on its masthead picks the network, and every figure on the page is read from that one.
 
@@ -132,6 +133,7 @@ A relay that is down is an inconvenience and not a loss, because the same signat
 The ERC-8004 identities and the Nansen labels on an Agent's page are read and shown, and read by nothing else.
 No contract in Tab consults either, the Credit Limit is computed without them, and a Service meters against an address, not an identity.
 An Agent with no identity is a full participant; an identity with no Settlements has no credit.
+The reputation entries a Service writes after each Settlement are the same kind of thing: they restate Settlements already on chain, and the Credit Limit never reads them.
 
 ### What is in scope today
 

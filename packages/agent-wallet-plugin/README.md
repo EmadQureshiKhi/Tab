@@ -57,9 +57,31 @@ A tarball from `pnpm pack` installs like the published package, because pnpm rew
 
 Run `mm plugins uninstall @tabai/agent-wallet-plugin` between iterations.
 
+### End to end on Monad Mainnet
+
+The whole loop has run on Monad Mainnet from a MetaMask server wallet, `0xf5674626bcc16939dc678538c8099adfc6592a7b`, against the hosted `tab.demo`:
+
+| Step | Command | Transaction |
+| --- | --- | --- |
+| Register a metering delegate | `mm tab delegate --broadcast` | `0x9fa194a03534f82f07d20cec91fa54f1cf09787ea489706dfdf002483a7ad0f3` |
+| Authorise `tab.demo` | `mm tab authorise` | `0x18234fb932a313ceebff047c1bf6af97b2572393807157a0e810a024cfd80149` |
+| One metered call on credit | `mm tab call` | none from the wallet: 0.01 USDC metered to its Open Tab, the claim signed by the delegate |
+| Approve and settle | `mm tab settle --broadcast` | approval `0x78a13daf0822df1d4d2af61c58e39874fd23b6e7e425349fd90a5b74819ade64`, Settlement `0x7d39cb340abb5b7003aa310541a220cd9865f229bb20e05e10a503ff099b9abb` in block `109352198` |
+
+Each wallet transaction was approved through MetaMask's email MFA before the wallet submitted it.
+The call needed no approval at all, because the delegate signed its metering claim and the hosted gateway checked that delegate on chain.
+
+Three practical notes from that run:
+
+- Run `mm` under Node `>= 22.18`; the CLI refuses anything older.
+- Run `mm tab` from a directory with no `tab.config.mjs` in it or above it.
+  The plugin reads the nearest one, and inside this repository that is the development config, which points `tab.demo` at a gateway on `localhost`.
+- With 0.1.3, answer `n` if `mm tab delegate` asks whether to withdraw the delegate.
+  The fix that stops any option from prompting is in this repository and ships in the next release.
+
 ### What the host will and will not do on Monad Testnet
 
-`discover`, `status` and the dry runs of `settle` and `authorise` work: they read the chain and the registry and build the calldata.
+`discover`, `status` and the dry runs of `settle`, `authorise` and `delegate` work: they read the chain and the registry and build the calldata.
 
 A **broadcast does not**, and the reason is the host's infrastructure rather than this plugin or the chain.
 `mm chains list` carries Monad Mainnet (`eip155:143`) and not Monad Testnet, and on 10143 the wallet's own fee estimation fails after this plugin has handed over a correct transaction and its intent:
@@ -69,17 +91,8 @@ Intent: Authorise Service 0x7461622e…0000 to meter up to 5000000 mUSDC base un
 Error: Gas fee/price estimation failed … data: { error: 'Invalid chainId' }
 ```
 
-The same command on chain 143 gets as far as submission:
-
-```
-Error [SUBMISSION_FAILED]: … Insufficient native balance on 0xc8e3…a3dd:
-have 0 wei, need 4444977000000000 wei (value=0, gas=42495 * feePerGas=104600000000)
-```
-
-That is the wallet estimating, building and submitting on chain 143; it stopped only at the account's MON balance.
-So the wallet-signing half of these commands is demonstrable on Monad Mainnet, and the gap on Testnet is a chain MetaMask's services do not cover yet.
 There is nothing to configure around it: the CLI has no add-network command and no RPC override, and the endpoints it uses are resolved from the chain id inside the binary.
-Everything up to the signature is exercised on either chain, and the dry runs print the exact two transactions a broadcast would submit.
+Everything up to the signature is exercised on Testnet, and the dry runs print the exact transactions a broadcast would submit.
 
 ### Why the wallet cannot sign `tab call`, in one line of the host's own code
 
@@ -135,7 +148,7 @@ It signs metering claims and nothing else.
 It cannot move funds: no Settlement path reads `MeteringDelegates`, and `settle` still goes through the wallet.
 Every charge it causes still passes `TabBook.recordDelivery`, which holds it to the ceiling and expiry this wallet set with `mm tab authorise` for that Service and Asset, and to the Credit Limit.
 So a leaked delegate key costs at most metered calls at the listed price, within those ceilings, until the delegate's expiry or its revocation, whichever comes first.
-`mm tab delegate --revoke --broadcast` revokes it in one transaction, effective from that block; a gateway may keep a positive answer for up to a minute, and never past the expiry.
+`mm tab delegate --revoke --broadcast` revokes it in one transaction, effective from that block: the hosted gateways read `MeteringDelegates` on every delegate-signed call, so the next call after the revocation is refused.
 
 The key lives in `~/.config/tab/delegates/<chainId>-<agent>.json`, written `0600` in a `0700` directory, one per wallet per network.
 Only its address is ever printed; a key file other users can read is refused until it is restricted again.
@@ -144,9 +157,9 @@ The dry run writes the key when there is none, so the transaction it prints is t
 `mm tab call` without a registered delegate behaves as it always has: the call goes unsigned, and a Service that requires a signature refuses it with `METERING_SIGNATURE_ABSENT`, now followed by what to do about it.
 This repository's gateway run with `GATEWAY_REQUIRE_SIGNATURE=false` still accepts unsigned calls, which is the setting for a gateway on a machine nobody else can reach.
 
-Two things this depends on, stated plainly.
-The network must have `MeteringDelegates` deployed and known to the plugin, either in its recorded defaults or through `METERING_DELEGATES_ADDRESS`; where it is not, `mm tab delegate` refuses with `METERING_DELEGATES_UNDEPLOYED` and `tab call` stays unsigned.
-And the Service's gateway must read the same contract (`METERING_DELEGATES_ADDRESS` on its side); one that does not answers `METERING_DELEGATE_UNSUPPORTED`.
+Two things this depends on, stated plainly, and both hold for the hosted `tab.demo` on either network.
+The network must have `MeteringDelegates` deployed and known to the plugin, either in its recorded defaults or through `METERING_DELEGATES_ADDRESS`; it is deployed on Mainnet and Testnet and recorded in both defaults, and where it is not, `mm tab delegate` refuses with `METERING_DELEGATES_UNDEPLOYED` and `tab call` stays unsigned.
+And the Service's gateway must read the same contract (`METERING_DELEGATES_ADDRESS` on its side); both hosted gateways do, and one that does not answers `METERING_DELEGATE_UNSUPPORTED`.
 
 **Amounts are always base units.**
 USDC has six decimals, so `47000` is 0.047 USDC.
@@ -255,7 +268,7 @@ pnpm --filter @tabai/agent-wallet-plugin test
 | `MeteringDelegates` | `0xD287900EE0D4415CE4d362Fe8b6a4D4d6413A1a9` | `0x32f04C3e19d6a39f1B8A513ad86Bd8d5c6486F98` |
 
 The contract addresses this plugin defaults to are the ones recorded in the repository's `deployments.json`, and a test fails when the two disagree.
-MetaMask's gas service knows Mainnet and not Testnet, so `--broadcast` goes through on Mainnet only; reads and dry runs work on both.
+MetaMask's gas service knows Mainnet and not Testnet, so `--broadcast` goes through on Mainnet only, where the whole loop has run; reads and dry runs work on both.
 That includes `mm tab delegate --broadcast`: on Testnet the registration is the dry run's printed transaction, which the same wallet has to submit by other means before `tab call` can sign.
 
 Source-available: free to read, run and evaluate, and any other use needs permission. Versions up to 0.1.1 were published under MIT and stay under it. See LICENSE.
