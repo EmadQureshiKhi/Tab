@@ -51,6 +51,7 @@ const inputs = {
     flag: "broadcast",
     message: "Hand the transactions to the wallet. Without this, print them and stop",
     default: false,
+    prompt: false,
   },
 } satisfies InputSchema;
 

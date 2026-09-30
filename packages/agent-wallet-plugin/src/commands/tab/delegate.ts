@@ -30,12 +30,14 @@ const inputs = {
     flag: "revoke",
     message: "Withdraw the stored delegate instead of registering it",
     default: false,
+    prompt: false,
   },
   broadcast: {
     type: InputFieldType.Boolean,
     flag: "broadcast",
     message: "Hand the transaction to the wallet. Without this, print it and stop",
     default: false,
+    prompt: false,
   },
 } satisfies InputSchema;
 

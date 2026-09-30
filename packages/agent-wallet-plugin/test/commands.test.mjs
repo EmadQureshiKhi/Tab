@@ -225,3 +225,16 @@ test("the delegate command's success hint names the delegate, never its key", ()
   assert.equal(command.successHint({ ...report, broadcast: false }), "n");
   assert.deepEqual(command.analyticsOutcome(report), { tx_hash: "0x01" });
 });
+
+test("no option in any command prompts, so a flag left off means its default and never an interactive question", () => {
+  const dir = resolve(root, "src", "commands", "tab");
+  for (const name of ["authorise", "call", "delegate", "discover", "settle", "status"]) {
+    const source = readFileSync(resolve(dir, `${name}.ts`), "utf8");
+    const block = source.slice(source.indexOf("const inputs = {"), source.indexOf("} satisfies InputSchema"));
+    const entries = block.split(/\n  (?=[a-z"-]+: \{)/).slice(1);
+    assert.ok(entries.length > 0, `${name} declares its inputs`);
+    for (const entry of entries) {
+      assert.match(entry, /prompt: false/, `${name}: ${entry.split(":")[0]} must set prompt: false`);
+    }
+  }
+});
