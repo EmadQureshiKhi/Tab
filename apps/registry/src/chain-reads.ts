@@ -32,7 +32,12 @@
 import { Interface, type JsonRpcProvider } from "ethers";
 
 import type { LimitWitness } from "./credit.js";
-import { ERC8004_IDENTITY_READ_ABI, ERC8004_REPUTATION_READ_ABI, type ReputationSummary } from "./erc8004.js";
+import {
+  ERC8004_IDENTITY_READ_ABI,
+  ERC8004_REPUTATION_READ_ABI,
+  type ReputationFilter,
+  type ReputationSummary,
+} from "./erc8004.js";
 
 /** The two stored figures of one Bond ledger, as `Bond.ledgerOf` returns them. */
 export interface LedgerFigures {
@@ -207,8 +212,12 @@ export class EthersCreditChainReader implements CreditChainReader {
 export interface Erc8004ChainReader {
   /** `IdentityRegistry.tokenURI`, for an agent the index knows but whose URI it never saw. */
   tokenURI(agentId: bigint): Promise<string>;
-  /** `ReputationRegistry.getClients` then `getSummary` over all of them, or `null` when no Reputation registry is configured. */
-  reputationSummary(agentId: bigint): Promise<ReputationSummary | null>;
+  /**
+   * `ReputationRegistry.getClients` then `getSummary` over all of them, or over
+   * those the filter names with its tags, or `null` when no Reputation registry
+   * is configured.
+   */
+  reputationSummary(agentId: bigint, filter?: ReputationFilter): Promise<ReputationSummary | null>;
 }
 
 /** The live implementation, sharing the process's one provider. */
@@ -237,24 +246,81 @@ export class EthersErc8004ChainReader implements Erc8004ChainReader {
     return String(uri);
   }
 
-  async reputationSummary(agentId: bigint): Promise<ReputationSummary | null> {
+  async reputationSummary(agentId: bigint, filter?: ReputationFilter): Promise<ReputationSummary | null> {
     if (this.reputationAddress === null) return null;
     const [clientsRaw] = await this.call(this.reputation, this.reputationAddress, "getClients", [agentId]);
-    const clients = ((clientsRaw as { toArray?: () => unknown[] }).toArray?.() ?? (clientsRaw as unknown[])).map(String);
+    const all = ((clientsRaw as { toArray?: () => unknown[] }).toArray?.() ?? (clientsRaw as unknown[])).map((client) =>
+      String(client).toLowerCase(),
+    );
+    const wanted = filter === undefined ? undefined : new Set(filter.clients.map((client) => client.toLowerCase()));
+    const clients = wanted === undefined ? all : all.filter((client) => wanted.has(client));
     // `getSummary` reverts on an empty client list, and no clients is no feedback,
     // so the empty summary is stated here rather than asked for.
-    if (clients.length === 0) return { clientCount: 0, count: 0, summaryValue: 0n, summaryValueDecimals: 0 };
+    if (clients.length === 0) return { clientCount: 0, clients: [], count: 0, summaryValue: 0n, summaryValueDecimals: 0 };
     const [count, summaryValue, summaryValueDecimals] = await this.call(
       this.reputation,
       this.reputationAddress,
       "getSummary",
-      [agentId, clients, "", ""],
+      [agentId, clients, filter?.tag1 ?? "", filter?.tag2 ?? ""],
     );
     return {
       clientCount: clients.length,
+      clients,
       count: Number(count),
       summaryValue: BigInt(summaryValue as bigint),
       summaryValueDecimals: Number(summaryValueDecimals),
     };
   }
+}
+
+/** How long a reputation read is served from memory, and how long a failed one is. */
+export const REPUTATION_CACHE_TTL_MS = 30_000;
+export const REPUTATION_FAILURE_TTL_MS = 10_000;
+
+export interface CachedErc8004Options {
+  readonly ttlMs?: number;
+  readonly failureTtlMs?: number;
+  readonly now?: () => number;
+}
+
+/**
+ * The reader with its reputation reads held briefly in memory.
+ *
+ * An Agent page is read far more often than feedback is written, and each
+ * summary is two `eth_call`s, so a summary is served from memory for thirty
+ * seconds and a failed read is repeated as a failure for ten, so an RPC outage
+ * is not multiplied by page views. Concurrent reads of the same summary share
+ * one request. `tokenURI` passes straight through.
+ */
+export function cachedErc8004Reader(inner: Erc8004ChainReader, options: CachedErc8004Options = {}): Erc8004ChainReader {
+  const ttlMs = options.ttlMs ?? REPUTATION_CACHE_TTL_MS;
+  const failureTtlMs = options.failureTtlMs ?? REPUTATION_FAILURE_TTL_MS;
+  const now = options.now ?? (() => Date.now());
+  const held = new Map<string, { readonly until: number; readonly outcome: Promise<ReputationSummary | null> }>();
+
+  const keyOf = (agentId: bigint, filter: ReputationFilter | undefined): string =>
+    filter === undefined
+      ? `${agentId}`
+      : `${agentId}|${[...filter.clients].map((client) => client.toLowerCase()).sort().join(",")}|${filter.tag1}|${filter.tag2}`;
+
+  return {
+    tokenURI: (agentId) => inner.tokenURI(agentId),
+    reputationSummary(agentId, filter) {
+      const key = keyOf(agentId, filter);
+      const cached = held.get(key);
+      if (cached !== undefined && cached.until > now()) return cached.outcome;
+      const outcome = inner.reputationSummary(agentId, filter);
+      // Held from the moment it is asked, so a second reader in flight shares it.
+      held.set(key, { until: Number.POSITIVE_INFINITY, outcome });
+      outcome.then(
+        () => held.set(key, { until: now() + ttlMs, outcome }),
+        () => held.set(key, { until: now() + failureTtlMs, outcome }),
+      );
+      // Bounded: a page view per Agent is the only producer of keys.
+      if (held.size > 5_000) {
+        for (const [stale, entry] of held) if (entry.until <= now()) held.delete(stale);
+      }
+      return outcome;
+    },
+  };
 }
