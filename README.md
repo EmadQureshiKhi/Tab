@@ -121,6 +121,7 @@ Everything below was read back off the chain by [`script/02_VerifyDeployment.s.s
 | `MeteringDelegates` | `0x32f04C3e19d6a39f1B8A513ad86Bd8d5c6486F98` |
 
 The Assets are the canonical USDC and AUSD, and no token was shipped.
+Every contract on both networks is source-verified through Monad's Sourcify, so MonadVision shows the code in this repository and a full bytecode match on Mainnet.
 The curation role is held by a 2-of-3 `CurationMultisig` (see [the one privileged role](#the-one-privileged-role)).
 The demo Service is registered with a 1 USDC Bond and holds ERC-8004 identity `10254`; the demo Agent holds `10255`.
 It accepts USDC and AUSD and prices `quote.generate` at 0.01 in each, plus the two fronted tools `apihub.run` and `nansen.query` at one base unit a unit, all applied on 2026-09-25 after the registry's 48-hour hold.
