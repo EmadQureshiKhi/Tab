@@ -327,6 +327,15 @@ Contributor detail lives in [`CONTRIBUTING.md`](./CONTRIBUTING.md): the coverage
 
 ---
 
+## Security
+
+The deployed contracts have been through Slither static analysis, and every result is triaged in [`packages/contracts/audit/slither.md`](./packages/contracts/audit/slither.md), with the raw output beside it.
+Slither reports 56 results and none is an exploitable vulnerability: one is a gas optimization, 29 are false positives with the reason cited, and 26 are accepted by design.
+The same review records one liveness limit found by hand: an Agent that settles more than 512 times in one Asset can no longer be metered in that Asset.
+`pnpm --filter @tabai/contracts audit:slither` re-runs the analysis once Slither is installed.
+
+---
+
 ## Status
 
 **Live on Monad Mainnet and on Monad Testnet.**
