@@ -99,6 +99,22 @@
       ],
       "role": "MetaMask Agent Wallet account",
       "why": "the wallet this project drives through the mm tab plugin"
+    },
+    {
+      "address": "0x2f117EFA472ba981cC2d89767CA5c9427cab0532",
+      "chainIds": [
+        10143
+      ],
+      "role": "operator of tab.demo.b on Testnet",
+      "why": "a second demo Service registered on 2026-09-30 for the credit-growth demonstration, operated and bonded by this project"
+    },
+    {
+      "address": "0x4f4E011a140f5ebd90db133f153a98A41165E7EF",
+      "chainIds": [
+        10143
+      ],
+      "role": "operator of tab.demo.c on Testnet",
+      "why": "a second demo Service registered on 2026-09-30 for the credit-growth demonstration, operated and bonded by this project"
     }
   ],
   "networks": [

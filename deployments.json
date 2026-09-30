@@ -148,8 +148,65 @@
             "0x9240b469b0c0a3030309ce958a8ad7875657b3265af05ac65ce2562f87185d8a",
             "0x8e09d931bef3549d2046e6a07a8b12ff85a1a52e268231fb2e23ed3ce10eb3df"
           ]
+        },
+        "curation": {
+          "changeIds": [
+            "0xab1fc52a04151078365fd83f438906294485256047f6f26704615c772ee73586"
+          ],
+          "queuedIn": "0x64839684582d5385282dbd423c3169004b6513829783c5e37212a8eb2a6ceb26",
+          "eta": "2026-10-02T02:44:06Z",
+          "note": "The Tier change to Curated, queued 2026-09-30 by the curation authority. The id is from the RegistryChangeQueued event in the transaction's receipt."
         }
-      }
+      },
+      "demoServices": [
+        {
+          "serviceId": "0x7461622e64656d6f2e6200000000000000000000000000000000000000000000",
+          "serviceIdText": "tab.demo.b",
+          "operator": "0x2f117EFA472ba981cC2d89767CA5c9427cab0532",
+          "assets": [
+            "0x534b2f3A21130d7a60830c2Df862319e593943A3",
+            "0x480209747417f5c830fDA188a9b9AcFa70Bc4083"
+          ],
+          "collection": "0x2f117EFA472ba981cC2d89767CA5c9427cab0532",
+          "tool": "quote.generate",
+          "priceBaseUnits": "10000",
+          "settlementWindowSeconds": 21600,
+          "bond": {
+            "mUSDC": "50000000"
+          },
+          "curation": {
+            "changeIds": [
+              "0x50011cebb7213dfdda8d19a777a59a9d2236498c3542c46ca171019b90b84ddf"
+            ],
+            "queuedIn": "0xbe701062a4d1bfbd9f652dcb49a993f13e6aa4e3f34dc47db170a76e140c7357",
+            "eta": "2026-10-02T02:44:06Z"
+          }
+        },
+        {
+          "serviceId": "0x7461622e64656d6f2e6300000000000000000000000000000000000000000000",
+          "serviceIdText": "tab.demo.c",
+          "operator": "0x4f4E011a140f5ebd90db133f153a98A41165E7EF",
+          "assets": [
+            "0x534b2f3A21130d7a60830c2Df862319e593943A3",
+            "0x480209747417f5c830fDA188a9b9AcFa70Bc4083"
+          ],
+          "collection": "0x4f4E011a140f5ebd90db133f153a98A41165E7EF",
+          "tool": "quote.generate",
+          "priceBaseUnits": "10000",
+          "settlementWindowSeconds": 21600,
+          "bond": {
+            "mUSDC": "50000000"
+          },
+          "curation": {
+            "changeIds": [
+              "0x29536574e712c6b21786f9925efe47fc39603c9e9ecaeca9e5cf3a0e55483fb3"
+            ],
+            "queuedIn": "0x8edfbfe654f630154a1cc82e604475a9fa3c8e86e76adcce4417dc9a0e98dd8c",
+            "eta": "2026-10-02T02:44:06Z"
+          }
+        }
+      ],
+      "demoServicesNote": "Two more Services the project operates on Testnet, registered by script/04_RegisterDemoService.s.sol with GATEWAY_SERVICE_ID set, so an Agent can settle with three Curated, bonded counterparties and show its Credit Limit grow above the baseline. Their operators meter directly with TabBook.recordDelivery; only tab.demo has a hosted gateway."
     },
     "143": {
       "network": "Monad Mainnet",
