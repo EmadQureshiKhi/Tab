@@ -38,7 +38,7 @@ Built by **Emad Qureshi**.
 | Dashboard | [trytabai.vercel.app](https://trytabai.vercel.app). The switch in the header picks Mainnet or Testnet, and every page, figure, link and the Try it button follow it |
 | Documentation | [trytabai-docs.vercel.app](https://trytabai-docs.vercel.app) |
 | SDK, CLI and MCP server | [`@tabai/sdk`](https://www.npmjs.com/package/@tabai/sdk) on npm: `npx -y @tabai/sdk connect` |
-| MetaMask Agent Wallet plugin | [`@tabai/agent-wallet-plugin`](https://www.npmjs.com/package/@tabai/agent-wallet-plugin): `mm plugins install @tabai/agent-wallet-plugin` |
+| MetaMask Agent Wallet plugin | [`@tabai/agent-wallet-plugin`](https://www.npmjs.com/package/@tabai/agent-wallet-plugin): `mm plugins install @tabai/agent-wallet-plugin` (a first install on CLI 7.0.0: see [its README](packages/agent-wallet-plugin/README.md#install)) |
 | Registry read API | Mainnet `https://registry-mainnet-production.up.railway.app`, Testnet `https://registry-testnet-production.up.railway.app` |
 | Metering gateway (demo Service `tab.demo`) | Mainnet `https://gateway-mainnet-production.up.railway.app`, Testnet `https://gateway-testnet-production-a657.up.railway.app` |
 | Delinquency keeper | Mainnet `https://keeper-mainnet-production-0f50.up.railway.app`, Testnet `https://keeper-testnet-production-e820.up.railway.app` |

@@ -124,7 +124,7 @@ Tab is built by Emad Qureshi.
 | Metering gateway for the demo Service `tab.demo` | Mainnet `https://gateway-mainnet-production.up.railway.app`, Testnet `https://gateway-testnet-production-a657.up.railway.app` |
 | Delinquency keeper | Mainnet `https://keeper-mainnet-production-0f50.up.railway.app`, Testnet `https://keeper-testnet-production-e820.up.railway.app` |
 | SDK, CLI and MCP server | [`@tabai/sdk`](https://www.npmjs.com/package/@tabai/sdk) on npm. With nothing configured it reads the hosted registry and knows `tab.demo` on the chosen network, and with `AGENT_ADDRESS` and `AGENT_PRIVATE_KEY` set it calls `tab.demo`, signing each call |
-| MetaMask Agent Wallet plugin | [`@tabai/agent-wallet-plugin`](https://www.npmjs.com/package/@tabai/agent-wallet-plugin) on npm, installed with `mm plugins install @tabai/agent-wallet-plugin` |
+| MetaMask Agent Wallet plugin | [`@tabai/agent-wallet-plugin`](https://www.npmjs.com/package/@tabai/agent-wallet-plugin) on npm, installed with `mm plugins install @tabai/agent-wallet-plugin`; a first install on CLI 7.0.0 needs the [two-line workaround](https://github.com/EmadQureshiKhi/Tab/blob/main/packages/agent-wallet-plugin/README.md#install) |
 
 Testnet is the free playground, where `tab.demo` also prices in a mintable test token.
 On Mainnet the Assets are real USDC and AUSD, so the Dashboard rate-limits Mainnet trial calls, each of which spends real gas.

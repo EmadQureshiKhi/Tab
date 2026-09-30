@@ -121,6 +121,7 @@ The [Dashboard page](/dashboard#keys-from-a-passkey) walks through it.
 
 `@tabai/agent-wallet-plugin` registers `mm tab` with the MetaMask Agent Wallet CLI.
 It installs from npm with `mm plugins install @tabai/agent-wallet-plugin` and defaults to the recorded deployment on both networks.
+On CLI 7.0.0 a first install from npm is removed again by the host's post-install check, for every plugin; the [plugin's README](https://github.com/EmadQureshiKhi/Tab/blob/main/packages/agent-wallet-plugin/README.md#install) has the two-line install that avoids it.
 Its wallet-backed commands need `mm login`, and on Testnet only its reads and dry runs work, because the wallet's gas service does not know chain 10143.
 On Mainnet it has run end to end from a MetaMask server wallet: `mm tab delegate --broadcast`, `mm tab authorise`, an `mm tab call` of 0.01 USDC signed by the delegate with no wallet approval, and `mm tab settle --broadcast`, whose Settlement landed in block `109352198`.
 Each wallet transaction was approved through MetaMask's email MFA, and the transaction hashes are in the [plugin's README](https://github.com/EmadQureshiKhi/Tab/blob/main/packages/agent-wallet-plugin/README.md).

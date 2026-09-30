@@ -19,6 +19,19 @@ mm config set experimentalPlugins true
 mm plugins install @tabai/agent-wallet-plugin
 ```
 
+On CLI 7.0.0 that last line installs the plugin and then removes it again, with no error unless `DEBUG` is set.
+It happens to every plugin installed from npm for the first time, not to this one alone: the host's post-install check looks for the new plugin in the configuration it started with, while the install command adds it to a fresh copy, so the check finds nothing and uninstalls it as if it had shipped no `oclif.manifest.json`.
+An upgrade passes, because the plugin was already in the starting configuration.
+So on a first install, install the published tarball as a local source, which takes a different path through the same check:
+
+```bash
+mm config set experimentalAllowUnverifiedInstalls true
+mm plugins install "file:$PWD/$(npm pack @tabai/agent-wallet-plugin --silent)"
+```
+
+After that, `mm plugins install @tabai/agent-wallet-plugin@<version>` upgrades from npm as documented.
+Both steps were verified from an empty home directory on CLI 7.0.0, followed by `mm tab discover` against Mainnet.
+
 The consent screen lists the six commands, what each reads, and which capabilities each asks for.
 `tab discover` asks for none.
 `tab status` and `tab call` ask for `wallet-read`, which is the address.
