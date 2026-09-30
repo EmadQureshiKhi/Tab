@@ -19,6 +19,9 @@ import { createApp, ISSUED_AT_HEADER, SIGNATURE_HEADER } from "../dist/server.js
 import { METERING_HEADER, SIGNATURE_WINDOW_MS, meteringDigest } from "../dist/authorisation.js";
 import { DELEGATE_CACHE_MS, createMeteringDelegateReader } from "../dist/delegates.js";
 
+/** The window the cache tests opt into; the default holds nothing. */
+const WINDOW_MS = 60_000;
+
 const OPERATOR = new Wallet(`0x${"11".repeat(32)}`);
 const AGENT_KEY = new Wallet(`0x${"44".repeat(32)}`);
 const AGENT = AGENT_KEY.address.toLowerCase();
@@ -255,14 +258,25 @@ test("the root page says which signers this gateway accepts", async () => {
 
 // ---------------------------------------------------------------- the reader's cache
 
-test("a positive answer is held for the cache window and read again after it", async () => {
+test("by default nothing is held, so a revoked key is refused on the very next call", async () => {
+  const entries = registered(NOW_S + 86_400n);
+  const registry = fakeRegistry(entries, () => NOW);
+  const reader = createMeteringDelegateReader({ address: REGISTRY, call: registry.call, now: () => NOW });
+  assert.equal(DELEGATE_CACHE_MS, 0);
+  assert.equal((await reader.isDelegate(AGENT, DELEGATE.address)).value, true);
+  entries.clear();
+  assert.equal((await reader.isDelegate(AGENT, DELEGATE.address)).value, false, "revoked, and refused at once");
+  assert.equal(registry.reads.length, 4, "each answer came from the chain");
+});
+
+test("with a cache window, a positive answer is held for it and read again after it", async () => {
   let clock = NOW;
   const registry = fakeRegistry(registered(NOW_S + 86_400n), () => clock);
-  const reader = createMeteringDelegateReader({ address: REGISTRY, call: registry.call, now: () => clock });
+  const reader = createMeteringDelegateReader({ address: REGISTRY, call: registry.call, now: () => clock, cacheMs: WINDOW_MS });
 
   assert.deepEqual(await reader.isDelegate(AGENT, DELEGATE.address), { ok: true, value: true });
   assert.equal(registry.reads.length, 2);
-  clock += DELEGATE_CACHE_MS - 1;
+  clock += WINDOW_MS - 1;
   assert.deepEqual(await reader.isDelegate(AGENT.toUpperCase().replace("0X", "0x"), DELEGATE.address.toLowerCase()), { ok: true, value: true });
   assert.equal(registry.reads.length, 2, "held, whatever the address casing");
   clock += 1;
@@ -274,7 +288,7 @@ test("a positive answer is never held past the delegation's own expiry", async (
   let clock = NOW;
   const expiry = NOW_S + 10n;
   const registry = fakeRegistry(registered(expiry), () => clock);
-  const reader = createMeteringDelegateReader({ address: REGISTRY, call: registry.call, now: () => clock });
+  const reader = createMeteringDelegateReader({ address: REGISTRY, call: registry.call, now: () => clock, cacheMs: WINDOW_MS });
 
   assert.equal((await reader.isDelegate(AGENT, DELEGATE.address)).value, true);
   clock = NOW + 9_999;

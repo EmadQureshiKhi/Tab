@@ -18,21 +18,24 @@
  *
  * ## The cache
  *
- * A positive answer is held for at most {@link DELEGATE_CACHE_MS}, and never
- * past the delegation's own expiry, so a key that lapses stops counting at its
- * expiry to the second and a revoked one stops within that window. A negative
- * answer is never held: a key registered a moment ago is accepted on the next
- * call, and a stranger's key costs one read per call, the same as the
- * signature recovery in front of it. Only registered keys are held, so the
- * cache is bounded by what Agents have registered, not by what callers send.
+ * By default nothing is held: every call reads the chain, so an Agent that
+ * revokes a key it suspects was taken is refused on the very next call, which
+ * is what revoking is for. The read is two `eth_call`s beside the witness reads
+ * a metered call already makes. A gateway that would rather trade that for
+ * load may set `cacheMs`: a positive answer is then held for at most that long
+ * and never past the delegation's own expiry, and a revoked key keeps counting
+ * until the window closes. A negative answer is never held, so a key
+ * registered a moment ago is accepted on the next call, and only registered
+ * keys are ever held, so the cache is bounded by what Agents have registered,
+ * not by what callers send.
  */
 
 import { Interface } from "ethers";
 
 import { METERING_DELEGATES_ABI, causeOf, err, ok, type Result } from "@tabai/shared";
 
-/** How long a positive answer is trusted before it is read again. */
-export const DELEGATE_CACHE_MS = 60_000;
+/** How long a positive answer is trusted before it is read again: not at all, by default. */
+export const DELEGATE_CACHE_MS = 0;
 
 /** Past this many held answers, lapsed ones are swept on the next insert. */
 const SWEEP_AT = 10_000;
