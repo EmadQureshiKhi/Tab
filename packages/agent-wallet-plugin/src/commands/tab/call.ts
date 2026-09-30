@@ -2,7 +2,9 @@
  * `mm tab call`: call a priced tool on a Service and be metered for it.
  *
  * The result comes back at once and the charge lands on this wallet's Open
- * Tab, to be settled later with `mm tab settle`. Nothing is signed here. The
+ * Tab, to be settled later with `mm tab settle`. The wallet signs nothing: the
+ * metering claim is signed by the delegate `mm tab delegate` registered, when
+ * there is one, and the call is sent unsigned otherwise. The
  * arguments flag is `--args`, not `--json`: `--json` is the host's own output
  * flag and is inherited by every command.
  */
@@ -55,7 +57,7 @@ const inputs = {
 } satisfies InputSchema;
 
 export default class TabCall extends PluginCommand<TabCallOutput> {
-  static override description = "Call a metered tool on a Service. The result is returned now and the charge lands on this wallet's Open Tab, to be settled later. Nothing is signed.";
+  static override description = "Call a metered tool on a Service. The result is returned now and the charge lands on this wallet's Open Tab, to be settled later. Signed by this wallet's metering delegate when one is registered (`mm tab delegate`); the wallet itself signs nothing.";
 
   static override examples = [
     "<%= config.bin %> tab call 0x7461622e64656d6f000000000000000000000000000000000000000000000000 quote.generate",

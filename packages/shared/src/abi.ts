@@ -6,7 +6,8 @@
  * signatures and the topic hashes derived from them, the Permit2 witness types,
  * and short human-readable fragments for the few functions callers reach
  * directly (the Permit2 settlement path on `TabSettlement`, the slice of
- * Permit2 a signer touches, and the ERC-8004 registries). The fragments are
+ * Permit2 a signer touches, `MeteringDelegates`, and the ERC-8004
+ * registries). The fragments are
  * transcribed by hand, so each carries only the members a caller uses; the
  * `SettlementApplied` topic is pinned by a test against the compiled `TabBook`.
  */
@@ -161,6 +162,27 @@ export const PERMIT2_ABI = [
   "function nonceBitmap(address owner, uint256 wordPosition) view returns (uint256)",
   "function invalidateUnorderedNonces(uint256 wordPos, uint256 mask)",
   "event UnorderedNonceInvalidation(address indexed owner, uint256 word, uint256 mask)",
+] as const;
+
+/**
+ * `MeteringDelegates`: the session keys an Agent has named to sign its
+ * metering claims, each until an expiry. The Agent writes its own entries with
+ * `setDelegate` and `revokeDelegate`; a metering gateway reads `isDelegate`
+ * to decide whether a delegate's signature counts. A delegate signs claims
+ * and nothing else: no Settlement path reads this contract.
+ */
+export const METERING_DELEGATES_ABI = [
+  "function setDelegate(address delegate, uint64 expiry)",
+  "function revokeDelegate(address delegate)",
+  "function expiryOf(address agent, address delegate) view returns (uint64 expiry)",
+  "function isDelegate(address agent, address delegate) view returns (bool)",
+  "function MAX_DELEGATION() view returns (uint64)",
+  "event DelegateSet(address indexed agent, address indexed delegate, uint64 expiry)",
+  "event DelegateRevoked(address indexed agent, address indexed delegate)",
+  "error ZeroAddressDelegate()",
+  "error ExpiryNotInFuture(uint64 expiry, uint64 nowTs)",
+  "error ExpiryTooFar(uint64 expiry, uint64 latest)",
+  "error DelegateNotSet(address agent, address delegate)",
 ] as const;
 
 // ---------------------------------------------------------------------------

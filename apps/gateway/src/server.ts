@@ -46,8 +46,9 @@
  * The gateway holds the Service operator key, so an unauthenticated metering route
  * would let any stranger charge any Agent up to its whole authorisation ceiling.
  * Every metered route requires a signature over a digest that binds the Agent, the
- * tool, and the unit count, given either by the operator or by the Agent being
- * metered, and checked by {@link verifyMeteringRequest}; see `authorisation.ts`.
+ * tool, and the unit count, given by the operator, by the Agent being metered, or
+ * by a delegate that Agent registered in `MeteringDelegates`, and checked by
+ * {@link verifyMeteringRequest}; see `authorisation.ts` and `delegates.ts`.
  * The hub routes require the same signature, because each one also spends the
  * operator's x402 funds.
  */
@@ -77,6 +78,7 @@ import {
 } from "@tabai/sdk";
 
 import { METERING_HEADER, meteringDigest, verifyMeteringRequest, type MeteringRequestClaim } from "./authorisation.js";
+import type { MeteringDelegateReader } from "./delegates.js";
 import { toSdkTabBookClient, type GatewayTabBookClient } from "./tab-book.js";
 import type { SettlementRelay } from "./relay.js";
 
@@ -153,7 +155,27 @@ export interface GatewayOptions {
    * Absent, `POST /relay/settle` answers 404 and an Agent settles with its own gas.
    */
   readonly relay?: SettlementRelay;
+  /**
+   * The `MeteringDelegates` reader, when this gateway accepts a delegate's
+   * signature. Absent, a request signed only by a delegate is refused with
+   * `METERING_DELEGATE_UNSUPPORTED` and the operator and Agent paths are
+   * unchanged.
+   */
+  readonly meteringDelegates?: MeteringDelegateReader;
 }
+
+const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
+
+/** Every header a metering signature travels in, which never goes past this gateway. */
+const METERING_SIGNATURE_HEADERS = [
+  SIGNATURE_HEADER,
+  ISSUED_AT_HEADER,
+  METERING_HEADER.agentSignature,
+  METERING_HEADER.agentIssuedAt,
+  METERING_HEADER.delegate,
+  METERING_HEADER.delegateSignature,
+  METERING_HEADER.delegateIssuedAt,
+];
 
 const fail = (error: TabError): Response =>
   new Response(JSON.stringify({ ok: false, error }), {
@@ -242,6 +264,7 @@ export function createApp(options: GatewayOptions): Hono {
   const now = options.now ?? (() => Date.now());
   const requireSignature = options.requireSignature ?? true;
   const hubUpstreams = options.hub?.upstreams ?? [];
+  const signedBy = options.meteringDelegates === undefined ? "signed by the operator or the Agent" : "signed by the operator, the Agent, or a delegate the Agent registered";
 
   /*
     What this is, for whoever opened the origin in a browser. The origin is the
@@ -260,10 +283,10 @@ export function createApp(options: GatewayOptions): Hono {
       x402: options.x402 === undefined ? "off" : "a 402 on LimitExceeded also offers an x402 payment; PAYMENT-SIGNATURE prepays one call",
       routes: [
         "/healthz",
-        "/meter/:tool (signed by the operator or the Agent)",
+        `/meter/:tool (${signedBy})`,
         ...hubUpstreams.map(
           (upstream) =>
-            `/hub/${upstream.prefix}/* (signed by the operator or the Agent, fronts ${upstream.url}${upstream.payOn === undefined ? "" : `, paid on chain ${upstream.payOn.chainId.toString(10)}`})`,
+            `/hub/${upstream.prefix}/* (${signedBy}, fronts ${upstream.url}${upstream.payOn === undefined ? "" : `, paid on chain ${upstream.payOn.chainId.toString(10)}`})`,
         ),
         ...(options.relay === undefined ? [] : ["/relay/settle (an Agent's Permit2 signature; this gateway pays the gas)"]),
       ],
@@ -296,13 +319,17 @@ export function createApp(options: GatewayOptions): Hono {
    * Authentication runs before metering, so an unsigned request never reaches
    * the chain and never spends the operator's gas or funds.
    *
-   * Either party may sign. The operator's signature is the Service's own front
+   * Three parties may sign. The operator's signature is the Service's own front
    * vouching for a caller it authenticated; the Agent's is the Agent vouching
    * for itself, recovered against the address in `Tab-Agent`, which is what
    * lets a gateway on the open internet take calls from any Agent without
-   * letting anyone charge an Agent that did not ask. When both are present the
-   * operator's is checked, because it is the stronger claim about who is
-   * charging; a request that carries neither is refused naming both.
+   * letting anyone charge an Agent that did not ask. A delegate's is a session
+   * key the Agent named in `MeteringDelegates`: recovered against
+   * `Tab-Delegate`, and then checked on chain as a key that Agent registered
+   * and has not let lapse or revoked. The signature is checked before the
+   * chain is read, so a forged one costs no RPC call. When more than one is
+   * present the operator's is checked, then the Agent's, then the delegate's,
+   * strongest claim first; a request that carries none is refused naming all.
    *
    * A prepaid call is the exception, and it authenticates itself. A request
    * carrying `PAYMENT-SIGNATURE` for a priced route is taken through the
@@ -327,14 +354,31 @@ export function createApp(options: GatewayOptions): Hono {
     const operatorIssuedAt = c.req.header(ISSUED_AT_HEADER);
     const agentSignature = c.req.header(METERING_HEADER.agentSignature);
     const agentIssuedAt = c.req.header(METERING_HEADER.agentIssuedAt);
+    const delegate = c.req.header(METERING_HEADER.delegate);
+    const delegateSignature = c.req.header(METERING_HEADER.delegateSignature);
+    const delegateIssuedAt = c.req.header(METERING_HEADER.delegateIssuedAt);
 
     const byOperator = operatorSignature !== undefined && operatorIssuedAt !== undefined;
     const byAgent = agentSignature !== undefined && agentIssuedAt !== undefined;
-    if (agent === undefined || (!byOperator && !byAgent)) {
+    const byDelegate = delegate !== undefined && delegateSignature !== undefined && delegateIssuedAt !== undefined;
+    if (agent === undefined || (!byOperator && !byAgent && !byDelegate)) {
       c.res = fail({
         category: "AUTHORISATION",
         code: "METERING_SIGNATURE_ABSENT",
-        message: `a metered request must carry Tab-Agent and either ${SIGNATURE_HEADER} with ${ISSUED_AT_HEADER}, or ${METERING_HEADER.agentSignature} with ${METERING_HEADER.agentIssuedAt}`,
+        message: `a metered request must carry Tab-Agent and either ${SIGNATURE_HEADER} with ${ISSUED_AT_HEADER}, ${METERING_HEADER.agentSignature} with ${METERING_HEADER.agentIssuedAt}, or ${METERING_HEADER.delegate} with ${METERING_HEADER.delegateSignature} and ${METERING_HEADER.delegateIssuedAt}`,
+        retryable: false,
+      });
+      return undefined;
+    }
+
+    // Only a delegate signed. Refused before any recovery when this gateway
+    // reads no MeteringDelegates, so the answer names the missing piece.
+    const delegates = options.meteringDelegates;
+    if (!byOperator && !byAgent && delegates === undefined) {
+      c.res = fail({
+        category: "AUTHORISATION",
+        code: "METERING_DELEGATE_UNSUPPORTED",
+        message: `this gateway reads no MeteringDelegates contract, so a request signed only by a delegate cannot be accepted; sign with ${METERING_HEADER.agentSignature} as the Agent, or ask the Service to set METERING_DELEGATES_ADDRESS`,
         retryable: false,
       });
       return undefined;
@@ -347,14 +391,44 @@ export function createApp(options: GatewayOptions): Hono {
       agent,
       tool: toolFor(path),
       units: 1,
-      issuedAt: Number(byOperator ? operatorIssuedAt : agentIssuedAt),
+      issuedAt: Number(byOperator ? operatorIssuedAt : byAgent ? agentIssuedAt : delegateIssuedAt),
     };
     const verified = byOperator
       ? verifyMeteringRequest(claim, operatorSignature, options.operator, now())
-      : verifyMeteringRequest(claim, agentSignature as string, agent, now(), undefined, "agent");
+      : byAgent
+        ? verifyMeteringRequest(claim, agentSignature as string, agent, now(), undefined, "agent")
+        : verifyMeteringRequest(claim, delegateSignature as string, delegate as string, now(), undefined, "delegate");
     if (!verified.ok) {
       c.res = fail(verified.error);
       return undefined;
+    }
+
+    if (!byOperator && !byAgent && delegates !== undefined) {
+      if (!ADDRESS.test(agent)) {
+        c.res = fail({
+          category: "VALIDATION",
+          code: "AGENT_MALFORMED",
+          message: "Tab-Agent must be the Agent's 20-byte 0x address",
+          retryable: false,
+        });
+        return undefined;
+      }
+      const signer = verified.value.signer;
+      const registered = await delegates.isDelegate(agent, signer);
+      if (!registered.ok) {
+        c.res = fail(registered.error);
+        return undefined;
+      }
+      if (!registered.value) {
+        c.res = fail({
+          category: "AUTHORISATION",
+          code: "METERING_DELEGATE_NOT_REGISTERED",
+          message: `${signer} is not a metering delegate of ${agent.toLowerCase()} in MeteringDelegates at ${delegates.address}: never set, lapsed, or revoked; the Agent names one with MeteringDelegates.setDelegate`,
+          retryable: false,
+          details: { agent: agent.toLowerCase(), delegate: signer, meteringDelegates: delegates.address },
+        });
+        return undefined;
+      }
     }
     return next();
   };
@@ -498,7 +572,7 @@ export function createApp(options: GatewayOptions): Hono {
         },
         // Tab's own headers stay on this side of the hop: the upstream is paid
         // by the operator and has no business seeing the Agent or the signature.
-        dropRequestHeaders: ["Tab-Agent", "Tab-Authorisation", SIGNATURE_HEADER, ISSUED_AT_HEADER, METERING_HEADER.agentSignature, METERING_HEADER.agentIssuedAt],
+        dropRequestHeaders: ["Tab-Agent", "Tab-Authorisation", ...METERING_SIGNATURE_HEADERS],
         ...(upstream.maxUpstreamBaseUnits === undefined ? {} : { maxUpstreamAmount: upstream.maxUpstreamBaseUnits }),
         ...(upstream.payOn === undefined ? {} : { upstreamPayment: { chainId: upstream.payOn.chainId, asset: upstream.payOn.asset } }),
         ...(hub.fetchImpl === undefined ? {} : { fetchImpl: hub.fetchImpl }),

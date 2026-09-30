@@ -7,7 +7,8 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { Wallet, encodeBytes32String, verifyMessage } from "ethers";
 
-import { METERING_HEADER, agentSignedMetering, meteringDigest, toolKeyOf } from "../dist/http/index.js";
+import { METERING_HEADER, agentSignedMetering, delegateSignedMetering, meteringDigest, toolKeyOf } from "../dist/http/index.js";
+import { METERING_DELEGATES, METERING_DELEGATES_ABI, meteringDelegatesFor } from "../dist/index.js";
 import { createTabToolset } from "../dist/mcp/index.js";
 
 const AGENT_KEY = new Wallet(`0x${"55".repeat(32)}`);
@@ -101,4 +102,37 @@ test("tab_call carries the Agent's signature when the Service entry names the pr
   assert.equal(seen[0].url, "http://service.test/meter/quote.generate");
   const digest = meteringDigest({ method: "POST", path: "/meter/quote.generate", agent: AGENT, tool: toolKeyOf("quote.generate"), units: 1, issuedAt: NOW });
   assert.equal(verifyMessage(digest, seen[0].headers[METERING_HEADER.agentSignature]).toLowerCase(), AGENT);
+});
+
+const DELEGATE_KEY = new Wallet(`0x${"77".repeat(32)}`);
+
+test("a delegate signs the same digest, naming the Agent, and says which key it is", async () => {
+  const provider = delegateSignedMetering(() => ({ agent: AGENT.toUpperCase().replace("0X", "0x"), signer: DELEGATE_KEY }), { now: () => NOW });
+  const headers = await provider({ method: "POST", url: "http://svc.test/meter/quote.generate", tool: "quote.generate", agent: AGENT, serviceId: SERVICE_ID });
+  assert.equal(headers[METERING_HEADER.delegate], DELEGATE_KEY.address.toLowerCase());
+  assert.equal(headers[METERING_HEADER.delegateIssuedAt], String(NOW));
+  // The digest names the Agent, not the delegate: the charge lands where it always would.
+  const expected = meteringDigest({ method: "POST", path: "/meter/quote.generate", agent: AGENT, tool: toolKeyOf("quote.generate"), units: 1, issuedAt: NOW });
+  assert.equal(verifyMessage(expected, headers[METERING_HEADER.delegateSignature]), DELEGATE_KEY.address);
+  assert.equal(headers[METERING_HEADER.agentSignature], undefined, "no Agent signature is claimed");
+});
+
+test("a delegate signs nothing for another Agent, and nothing when there is no key", async () => {
+  const request = { method: "POST", url: "http://svc.test/meter/q", tool: "q", agent: AGENT, serviceId: SERVICE_ID };
+  const forSomeoneElse = delegateSignedMetering(() => ({ agent: `0x${"12".repeat(20)}`, signer: DELEGATE_KEY }));
+  assert.deepEqual(await forSomeoneElse(request), {});
+  assert.deepEqual(await delegateSignedMetering(() => undefined)(request), {});
+});
+
+test("the delegate headers are distinct from the Agent's and the operator's", () => {
+  const names = Object.values(METERING_HEADER).map((name) => name.toLowerCase());
+  assert.equal(new Set(names).size, names.length);
+  assert.equal(METERING_HEADER.delegate, "Tab-Delegate");
+  assert.equal(METERING_HEADER.delegateSignature, "Tab-Delegate-Signature");
+  assert.equal(METERING_HEADER.delegateIssuedAt, "Tab-Delegate-Issued-At");
+});
+
+test("the SDK carries the MeteringDelegates fragments and each network's address, undefined until deployed", () => {
+  assert.ok(METERING_DELEGATES_ABI.some((fragment) => fragment.startsWith("function isDelegate(")));
+  for (const chainId of [143, 10143]) assert.equal(meteringDelegatesFor(chainId), METERING_DELEGATES[chainId]);
 });

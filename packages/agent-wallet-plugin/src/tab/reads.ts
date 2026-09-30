@@ -6,17 +6,24 @@
  * its manifest entry declares no capability: a plugin that asked for
  * `wallet-read` to list Services would be asking for more than it uses.
  *
+ * `call` signs its metering claim with the wallet's metering delegate when one
+ * is stored and `MeteringDelegates` says it is registered (see `delegate.ts`).
+ * Otherwise it sends the call unsigned, and a Service that requires a
+ * signature refuses it with a message that says how to register one.
+ *
  * The SDK answers every tool call with a schema-valid payload that carries an
  * `error` block on failure instead of throwing. That block is lifted into a
  * `Result` here so the command boundary can treat every failure the same way.
  */
 
 import type { Address, Result, TabError } from "@tabai/sdk";
-import { err, ok } from "@tabai/sdk";
+import { delegateSignedMetering, err, ok } from "@tabai/sdk";
 import { validationError, type TabCallOutput, type TabDiscoverOutput, type TabStatusOutput, type TabToolError } from "@tabai/sdk";
 
+import type { DelegateKeyStore } from "../delegate-key.js";
 import type { Host } from "../host-context.js";
 import type { PluginSettings } from "../settings.js";
+import { delegateForCall } from "./delegate.js";
 import { buildToolset, type BuildToolsetOptions } from "./toolset.js";
 
 export interface ReadDeps {
@@ -25,6 +32,8 @@ export interface ReadDeps {
   readonly cwd?: string | undefined;
   readonly registryFetch?: BuildToolsetOptions["registryFetch"];
   readonly fetchImpl?: BuildToolsetOptions["fetchImpl"];
+  /** Where `call` looks for the metering delegate's key. Defaults to `~/.config/tab/delegates`. */
+  readonly delegateStore?: DelegateKeyStore | undefined;
 }
 
 export interface DiscoverInputs {
@@ -133,7 +142,16 @@ export async function runCall(deps: ReadDeps & { readonly host: Host }, inputs: 
   if (!args.ok) return args;
   const timeoutMs = integerFlag(inputs.timeoutMs, "timeout-ms");
   if (!timeoutMs.ok) return timeoutMs;
-  const { toolset } = await buildToolset({ ...deps, agent: agent.value });
+  // The registered metering delegate signs the call when there is one; with
+  // none, the call goes unsigned as it always has, and the reason is kept for
+  // a Service that refuses an unsigned call.
+  const delegate = await delegateForCall({ host: deps.host, settings: deps.settings, store: deps.delegateStore }, agent.value);
+  const signing = delegate.kind === "signing" ? delegate.key : undefined;
+  const { toolset } = await buildToolset({
+    ...deps,
+    agent: agent.value,
+    ...(signing === undefined ? {} : { meteringHeaders: delegateSignedMetering(() => ({ agent: agent.value, signer: signing.signer })) }),
+  });
   const output = await toolset.call({
     serviceId: inputs.service,
     tool: inputs.tool,
@@ -143,6 +161,15 @@ export async function runCall(deps: ReadDeps & { readonly host: Host }, inputs: 
   // `LIMIT_EXCEEDED` travels as an error with `requiredBaseUnits` and
   // `headroomBaseUnits` in its details, so the command can say how much to
   // settle rather than only that the call was declined.
-  if (output.error !== undefined) return err(liftError(output.error));
+  if (output.error !== undefined) {
+    const lifted = liftError(output.error);
+    if (delegate.kind !== "signing" && SIGNATURE_REFUSALS.has(lifted.code)) {
+      return err({ ...lifted, message: `${lifted.message}. ${delegate.reason}`, details: { ...lifted.details, delegate: delegate.kind } });
+    }
+    return err(lifted);
+  }
   return ok(output);
 }
+
+/** The refusals a Service gives an unsigned or badly signed metered call. */
+const SIGNATURE_REFUSALS = new Set(["METERING_SIGNATURE_ABSENT", "METERING_DELEGATE_UNSUPPORTED", "METERING_DELEGATE_NOT_REGISTERED"]);

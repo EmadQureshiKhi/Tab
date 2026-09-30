@@ -4,7 +4,7 @@
  * Everything under `src/tab/` answers with a `Result` and throws nothing. The
  * host's contract for a failed command is a thrown `CommandError` carrying a
  * code, a message and a hint, rendered by the host and turned into a non-zero
- * exit. So the five command classes are the one place in this package where a
+ * exit. So the six command classes are the one place in this package where a
  * `Result` error is re-raised, exactly as the SDK's Hono adapter re-raises at
  * its own framework boundary. Nothing else in the package does.
  *
@@ -40,6 +40,17 @@ export function hintFor(error: TabError): string {
       return "Run `mm tab discover` to see which Assets the Service accepts.";
     case "AGENT_UNCONFIGURED":
       return "This command takes the Agent from the wallet; make sure a wallet is selected.";
+    case "METERING_SIGNATURE_ABSENT":
+    case "METERING_DELEGATE_NOT_REGISTERED":
+      return "The Service meters only a signed call, and this wallet cannot sign one itself. Run `mm tab delegate --broadcast` once to register a local key that signs for it, then call again.";
+    case "METERING_DELEGATE_UNSUPPORTED":
+      return "This Service's gateway does not read MeteringDelegates, so it cannot accept a delegate's signature. Ask its operator to set METERING_DELEGATES_ADDRESS.";
+    case "METERING_DELEGATES_UNDEPLOYED":
+      return "Set METERING_DELEGATES_ADDRESS to the MeteringDelegates contract on this network, or use a network where it is deployed.";
+    case "DELEGATE_KEY_MISSING":
+      return "Run `mm tab delegate --broadcast` to create and register a delegate first.";
+    case "DELEGATE_KEY_EXPOSED":
+      return "Restrict the key file to your own user with `chmod 600`, then run the command again.";
     default:
       return error.retryable
         ? "This looked transient. Try again, and check MONAD_RPC_URL and NEXT_PUBLIC_REGISTRY_API_URL if it persists."

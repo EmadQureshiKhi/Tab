@@ -8,10 +8,12 @@ import {RegisterIdentity} from "../script/03_RegisterIdentity.s.sol";
 import {RegisterDemoService} from "../script/04_RegisterDemoService.s.sol";
 import {DeployCuration} from "../script/00_DeployCuration.s.sol";
 import {PriceFrontedTools} from "../script/05_PriceFrontedTools.s.sol";
+import {DeployMeteringDelegates} from "../script/06_DeployMeteringDelegates.s.sol";
 import {DeploymentBase} from "../script/DeploymentBase.sol";
 import {Bond} from "../src/Bond.sol";
 import {LimitLib} from "../src/LimitLib.sol";
 import {CurationMultisig} from "../src/CurationMultisig.sol";
+import {MeteringDelegates} from "../src/MeteringDelegates.sol";
 import {IServiceRegistry, ServiceRegistry} from "../src/ServiceRegistry.sol";
 import {ITabBook, TabBook} from "../src/TabBook.sol";
 import {TabSettlement} from "../src/TabSettlement.sol";
@@ -380,6 +382,25 @@ contract DeploymentScriptsTest is Test {
         assertEq(second.alreadyPriced, 2, "both counted as already priced");
     }
 
+    // ------------------------------------------------------------------ 06
+
+    function test_meteringDelegatesDeployAndTheCheckRefusesAnythingElse() public {
+        DeployMeteringDelegates script = new DeployMeteringDelegates();
+        address deployed = script.deploy();
+        assertEq(MeteringDelegates(deployed).MAX_DELEGATION(), 365 days, "the registry");
+        assertEq(script.check(deployed), deployed, "the check accepts it");
+
+        // A recorded address holding some other contract is refused by name, not kept.
+        address other = address(new CurationMultisig(_one(address(0xA11CE)), 1));
+        vm.expectRevert(abi.encodeWithSelector(DeployMeteringDelegates.NotMeteringDelegates.selector, other));
+        script.check(other);
+    }
+
+    function _one(address owner) internal pure returns (address[] memory owners) {
+        owners = new address[](1);
+        owners[0] = owner;
+    }
+
     // ------------------------------------------------------------------ run() entry points
 
     /// @dev One sequential pass over every environment-reading entry point. See the contract note.
@@ -387,6 +408,7 @@ contract DeploymentScriptsTest is Test {
         _runDeploy();
         _runRegisterIdentity();
         _runRegisterDemoService();
+        _runDeployMeteringDelegates();
     }
 
     function _runDeploy() internal {
@@ -529,5 +551,35 @@ contract DeploymentScriptsTest is Test {
         assertEq(registry.serviceOf(DEMO_SERVICE).operator, DEFAULT_SENDER, "operated by the broadcaster");
         assertEq(registry.priceOf(DEMO_SERVICE, address(usdc), DEMO_TOOL), 10_000, "price");
         assertEq(registry.settlementWindowOf(DEMO_SERVICE), 21_600, "window");
+    }
+
+    function _runDeployMeteringDelegates() internal {
+        DeployMeteringDelegates script = new DeployMeteringDelegates();
+        vm.setEnv("MONAD_CHAIN_ID", vm.toString(block.chainid));
+        vm.setEnv("METERING_DELEGATES_ADDRESS", "");
+        (address first, bool deployed) = script.run();
+        assertTrue(deployed, "deployed when nothing is recorded");
+        assertEq(MeteringDelegates(first).MAX_DELEGATION(), 365 days, "the registry");
+
+        // The template's placeholder reads as nothing recorded, the same as empty.
+        vm.setEnv("METERING_DELEGATES_ADDRESS", vm.toString(address(0)));
+        (address placeholder, bool deployedAgain) = script.run();
+        assertTrue(deployedAgain && placeholder != first, "a placeholder deploys a fresh one");
+
+        // Recorded: checked and kept, nothing deployed.
+        vm.setEnv("METERING_DELEGATES_ADDRESS", vm.toString(first));
+        (address kept, bool redeployed) = script.run();
+        assertFalse(redeployed, "not deployed twice");
+        assertEq(kept, first, "the recorded registry is kept");
+
+        // Recorded but holding no code: the record is stale, and the run says so.
+        vm.setEnv("METERING_DELEGATES_ADDRESS", vm.toString(address(0xBEEF)));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                DeploymentBase.NotDeployed.selector, "METERING_DELEGATES_ADDRESS", address(0xBEEF)
+            )
+        );
+        script.run();
+        vm.setEnv("METERING_DELEGATES_ADDRESS", "");
     }
 }

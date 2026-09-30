@@ -53,6 +53,10 @@ export type { Result, TabError, ErrorCategory, Address, Bytes32, Hex } from "@ta
 export { TAB_HOSTED } from "@tabai/shared";
 export type { TabHosted, HostedService } from "@tabai/shared";
 
+// Where an Agent names a metering delegate on each network, `undefined` where
+// none is deployed, and the fragments to call it with.
+export { METERING_DELEGATES, METERING_DELEGATES_ABI, meteringDelegatesFor } from "@tabai/shared";
+
 export * from "./logger.js";
 export * from "./errors.js";
 export * from "./payments/index.js";

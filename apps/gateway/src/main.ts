@@ -22,6 +22,7 @@ import { createHistorySource, headReadFailed } from "./history.js";
 import { buildWitness, checkOperatorKey, createWitnessReader } from "./witness.js";
 import { createTabBookClient } from "./tab-book.js";
 import { createSettlementRelay } from "./relay.js";
+import { createMeteringDelegateReader, type MeteringDelegateReader } from "./delegates.js";
 import { createApp, type GatewayAsset, type GatewayHubOptions, type GatewayX402Options } from "./server.js";
 import { loadX402Config, readCollectionAddress, readEip712Domain } from "./x402.js";
 
@@ -272,6 +273,39 @@ async function main(): Promise<number> {
       : undefined;
   if (relay === undefined) console.error("gateway: the settlement relay is off (set TAB_SETTLEMENT_ADDRESS, and GATEWAY_RELAY_ENABLED unless false)");
 
+  /*
+    Metering delegates. With MeteringDelegates named, a metered call signed by
+    a session key the Agent registered there is accepted, which is how an
+    Agent whose wallet cannot sign a message calls this Service. Unset, a
+    delegate-only request is refused by name and nothing else changes. A
+    value that holds no contract stops the start, because every delegate call
+    would otherwise fail on a read nobody configured on purpose.
+  */
+  const meteringDelegatesAddress = process.env.METERING_DELEGATES_ADDRESS?.trim();
+  let meteringDelegates: MeteringDelegateReader | undefined;
+  if (meteringDelegatesAddress !== undefined && meteringDelegatesAddress.length > 0 && !/^0x0{40}$/i.test(meteringDelegatesAddress)) {
+    if (!/^0x[0-9a-fA-F]{40}$/.test(meteringDelegatesAddress)) {
+      console.error("gateway: METERING_DELEGATES_ADDRESS must be a 20-byte 0x address, or empty to refuse delegate signatures");
+      return 2;
+    }
+    const code = await provider.getCode(meteringDelegatesAddress, BLOCK_TAG).catch(() => undefined);
+    if (code === undefined) {
+      console.error(`gateway: the code at METERING_DELEGATES_ADDRESS ${meteringDelegatesAddress} could not be read`);
+      return 2;
+    }
+    if (code === "0x") {
+      console.error(`gateway: METERING_DELEGATES_ADDRESS ${meteringDelegatesAddress} holds no contract on chain ${config.value.chainId}`);
+      return 2;
+    }
+    meteringDelegates = createMeteringDelegateReader({
+      address: meteringDelegatesAddress,
+      call: (request) => provider.call({ ...request, blockTag: BLOCK_TAG }),
+    });
+    console.error(`gateway: metered calls signed by a delegate registered in MeteringDelegates at ${meteringDelegatesAddress} are accepted`);
+  } else {
+    console.error("gateway: METERING_DELEGATES_ADDRESS is not set, so a metered call signed only by a delegate is refused");
+  }
+
   const app = createApp({
     serviceId: serviceId.toLowerCase() as `0x${string}`,
     asset,
@@ -282,6 +316,7 @@ async function main(): Promise<number> {
     ...(x402 === undefined ? {} : { x402 }),
     ...(hub === undefined ? {} : { hub }),
     ...(relay === undefined ? {} : { relay }),
+    ...(meteringDelegates === undefined ? {} : { meteringDelegates }),
   });
 
   const port = Number(process.env.GATEWAY_PORT ?? "8788");

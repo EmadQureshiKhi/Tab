@@ -9,7 +9,7 @@
 <p align="center">
   <img alt="Networks: Monad Mainnet and Monad Testnet" src="https://img.shields.io/badge/networks-Monad%20Mainnet%20%2B%20Testnet-0D7676">
   <img alt="Settlement: same chain, one transaction" src="https://img.shields.io/badge/settlement-one%20transaction-0D7676">
-  <img alt="165 contract tests passing" src="https://img.shields.io/badge/contract%20tests-165%20passing-2f8132">
+  <img alt="179 contract tests passing" src="https://img.shields.io/badge/contract%20tests-179%20passing-2f8132">
   <img alt="Live on Monad Mainnet and Testnet" src="https://img.shields.io/badge/status-live%20on%20Mainnet%20%26%20Testnet-2f8132">
   <a href="https://www.npmjs.com/package/@tabai/sdk"><img alt="npm @tabai/sdk" src="https://img.shields.io/npm/v/@tabai/sdk?label=%40tabai%2Fsdk&color=0D7676"></a>
   <a href="./LICENSE"><img alt="Source-available licence" src="https://img.shields.io/badge/license-source--available-444"></a>
@@ -162,7 +162,7 @@ Every piece below is in the tree and exercised by tests; the registry, the gatew
 | **Envio HyperSync** | An alternative log source for the indexer: whole block ranges in one request, so a cold start is not bound by the public RPC's 100-block `eth_getLogs` cap | `apps/registry/src/hypersync.ts` |
 | **Nansen** | Address labels served beside an Agent's identity, stated as an offchain signal that changes nothing in the Credit Limit | `apps/registry/src/nansen.ts` |
 | **Mera passkeys** | `/keys` on the Dashboard is a passkey account: a seed from the WebAuthn PRF extension, an owner key that is never shown, and session keys revealed once each for the runtime they will be the Agent for | `apps/app/components/passkey` |
-| **MetaMask Agent Wallet** | `mm tab discover`, `status`, `call`, `settle` and `authorise` as a plugin: each builds the transaction and hands it to the wallet with a one-sentence intent, so the wallet's policy decides what is signed | `packages/agent-wallet-plugin` |
+| **MetaMask Agent Wallet** | `mm tab discover`, `status`, `call`, `settle`, `authorise` and `delegate` as a plugin: each builds the transaction and hands it to the wallet with a one-sentence intent, so the wallet's policy decides what is signed, and `call` is signed by a metering delegate the wallet registered | `packages/agent-wallet-plugin` |
 | **Chainlink CRE** | A cron workflow, compiled to WASM and run under the CRE simulator, that calls the delinquency keeper every ten minutes; the keeper confirms each overdue tab on chain and submits the permissionless `markDelinquent` | `apps/cre-keeper`, `apps/keeper` |
 | **Kuru** | A settlement strategy that reads the Agent's balance of the Asset and, when it is short, swaps the shortfall in from another token through Kuru's router before settling | `packages/sdk/src/payments/kuru.ts` |
 | **NEAR Intents** | Any-chain liquidity for Monad: the `intents-funded` strategy reads the Agent's Monad balance of USDC and, when it is short, brings the shortfall to the Agent's own Monad address from USDC on Base, Arbitrum or another chain through the 1Click API before settling. The funding step only fills the Agent's balance; the Settlement is still one Monad transaction, same-chain and atomic | `packages/sdk/src/payments/intents.ts` |
@@ -274,6 +274,7 @@ The full guide is in [`packages/sdk/README.md`](./packages/sdk/README.md) and [`
 | `packages/contracts/src/TabSettlement.sol` | The one way a tab is paid. Moves the Asset and applies the Settlement in one transaction. Holds nothing |
 | `packages/contracts/src/LimitLib.sol` | Pure credit arithmetic |
 | `packages/contracts/src/CurationMultisig.sol` | The intended curation authority |
+| `packages/contracts/src/MeteringDelegates.sol` | Session keys an Agent names to sign its metering claims. Signs claims only, moves no funds; deployed on its own |
 | `apps/registry` | Indexes every event, ERC-8004 identities included, serves the read API, and serves a Credit Limit only where its own recomputation agrees with the chain |
 | `apps/gateway` | The Service side: rebuilds the witness, simulates, meters delivery after the fact, offers x402 on a refusal, fronts the API Hub and relays Permit2 Settlements |
 | `apps/keeper` | Marks overdue tabs delinquent, once or as a service a scheduler calls |
@@ -314,7 +315,7 @@ Seven gates guard this repository, and CI runs every one of them.
 | Gate | Command | What it refuses to let through |
 | --- | --- | --- |
 | Build, types, lint, tests | `pnpm build && pnpm typecheck && pnpm lint && pnpm test` | the ordinary four |
-| Contract tests | `forge test` in `packages/contracts` | **165 tests**, including property tests and Permit2 signatures against the canonical bytecode |
+| Contract tests | `forge test` in `packages/contracts` | **179 tests**, including property tests and Permit2 signatures against the canonical bytecode |
 | Coverage floors | `pnpm coverage` | 90 % of lines on the money-handling contracts, 75 % on the registry and the multisig |
 | Dependency direction | `pnpm lint:deps` | an import that points the wrong way through the workspace |
 | Environment contract | `pnpm env:check` | a `process.env` read that `.env.example` does not declare |
@@ -347,7 +348,7 @@ The same review records one liveness limit found by hand: an Agent that settles 
 | Hosted rail | A registry and a metering gateway per network on Railway, each registry with its own Postgres and Envio HyperSync; the Dashboard and the docs on Vercel |
 | Dashboard | One deployment serving both networks, chosen in the header, with passkey accounts and a rate-limited Try it on Mainnet |
 | Client tooling | `@tabai/sdk` (SDK, CLI, MCP server with four tools) and `@tabai/agent-wallet-plugin` on npm |
-| Tests | 165 contract tests, including property tests, and 679 across the eight TypeScript packages |
+| Tests | 179 contract tests, including property tests, and 720 across the eight TypeScript packages |
 
 Nothing in the rail is pinned to one network: `deployments.json` holds one entry per chain id, `MONAD_CHAIN_ID` selects it, and the same contracts, scripts and services run on both.
 

@@ -282,16 +282,26 @@ A prepaid request needs no metering signature: it carries its payment, which is 
 
 The metering gateway in this repository is that plugin with two things the SDK cannot know added: which chain to talk to, and who is allowed to ask.
 Every metered route requires a signature over a digest of the method, the path, the Agent, the tool, the unit count and a timestamp, because a gateway that holds an operator key and meters unauthenticated requests would let any stranger charge any Agent up to its whole authorisation ceiling.
-Two parties may give it.
+Three parties may give it, and all three sign the same digest.
 The Service's own front signs with the operator key in `Tab-Operator-Signature`, having authenticated its caller however it likes.
 Or the Agent signs with its own key in `Tab-Agent-Signature`, recovered against `Tab-Agent`, which is the shape a gateway on the open internet takes: the one party that pays for the call is the one that asked for it.
-`agentSignedMetering` in `tab.config` is the Agent's side of that, one line on the Service entry, and it builds the key only when a call is made.
+Or a delegate signs: a session key the Agent registered in `MeteringDelegates` with `setDelegate(delegate, expiry)`, for an Agent whose wallet can submit a transaction but cannot sign a message.
+The call then carries `Tab-Delegate`, `Tab-Delegate-Signature` and `Tab-Delegate-Issued-At`; the gateway recovers the signature against `Tab-Delegate`, then checks `MeteringDelegates.isDelegate(agent, delegate)` on chain, and the claim still names the Agent, so the charge lands on the Agent's Open Tab as it always would.
+The timestamp window is the same five minutes for all three.
+`agentSignedMetering` in `tab.config` is the Agent's side of that, one line on the Service entry, and it builds the key only when a call is made; `delegateSignedMetering` is the same for a registered delegate.
 
 ```js
 import { agentSignedMetering } from "@tabai/sdk";
 
 services: [{ serviceId, endpoint, headers: agentSignedMetering(agentSigner) }]
 ```
+
+A delegate is bounded by construction.
+It signs metering claims and nothing else: no Settlement path reads `MeteringDelegates`, so it can never move the Agent's funds.
+Every charge it causes still passes `TabBook.recordDelivery`, which holds it to the Agent's own `TabBook.authorise` ceiling and expiry for that Service and Asset and to the Credit Limit.
+Its expiry is required and at most a year ahead, and the Agent revokes it with one transaction, `revokeDelegate(delegate)`.
+The gateway keeps a positive answer for at most a minute and never past the expiry, and it accepts delegates only when `METERING_DELEGATES_ADDRESS` names the contract; without it a delegate-only call is refused with `METERING_DELEGATE_UNSUPPORTED` and the other two paths are unchanged.
+The Agent Wallet plugin's `mm tab delegate` is the reference user of this path.
 
 Before it broadcasts, the gateway proves the witness against `TabBook.historyCommitment` and simulates the call, so a delivery that would revert is never paid gas for.
 The history behind that witness is held between calls and read from the registry's `GET /agents/:agent/witness/:asset` on first sight, so a metered call costs one commitment read and not a log scan from the deployment block.
@@ -307,7 +317,7 @@ const result = await client.fetch("/meter/quote.generate");
 
 The client sends `Tab-Agent`, parses the same six headers on a success and on a `402` with the same parser, and keeps a running snapshot per Asset of what it has accrued, what was declined, and the headroom the Service last reported.
 It repeats a request once after a `402`, never more, because a retry loop against a credit decision is the mistake the figures in the body exist to prevent.
-It adds no metering signature, so against a gateway that requires one, such as the hosted `tab.demo`, pass `Tab-Agent-Signature` and `Tab-Agent-Issued-At` in the request headers, or call through `tab_call` with `agentSignedMetering`.
+It adds no metering signature, so against a gateway that requires one, such as the hosted `tab.demo`, pass `Tab-Agent-Signature` and `Tab-Agent-Issued-At` (or a registered delegate's three headers) in the request headers, or call through `tab_call` with `agentSignedMetering`.
 It does not settle on its own.
 A `402` that still stands comes back as a `LIMIT_EXCEEDED` result carrying the two figures, and the decision to settle stays with the Agent.
 
@@ -475,5 +485,5 @@ The rest are the Service's, and where one of them stops a delivery from being me
 pnpm --filter @tabai/contracts test
 ```
 
-runs the 165 contract tests, and the verification script in the contracts package reads every deployed address back from the chain.
+runs the 179 contract tests, and the verification script in the contracts package reads every deployed address back from the chain.
 No private key, no funded account, no write.
