@@ -97,8 +97,8 @@
         143,
         10143
       ],
-      "role": "MetaMask Agent Wallet account",
-      "why": "the wallet this project drives through the mm tab plugin"
+      "role": "the owner's earlier MetaMask server wallet on Mainnet",
+      "why": "funded 2026-09-30 for the plugin demonstration; MetaMask's server could not submit from it, so the owner re-provisioned to a new wallet"
     },
     {
       "address": "0x2f117EFA472ba981cC2d89767CA5c9427cab0532",
@@ -147,6 +147,14 @@
       ],
       "role": "Testnet Agent for the credit-growth demonstration",
       "why": "prepared 2026-09-30 by scripts/credit-growth.mjs to settle with three Curated Services and show its Credit Limit grow"
+    },
+    {
+      "address": "0xF5674626bCc16939dc678538c8099adFC6592a7b",
+      "chainIds": [
+        143
+      ],
+      "role": "MetaMask Agent Wallet that ran the plugin on Mainnet",
+      "why": "the owner's mm server wallet after re-provisioning on 2026-09-30; it registered a metering delegate, authorised tab.demo, made a delegate-signed call and settled it through mm tab"
     }
   ],
   "networks": [
