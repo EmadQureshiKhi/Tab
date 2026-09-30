@@ -65,6 +65,13 @@
           "blockNumber": 64554610,
           "envKey": "MOCK_USDC_ADDRESS",
           "note": "A mintable six-decimal test token with EIP-3009 (transferWithAuthorization, receiveWithAuthorization, cancelAuthorization) under the EIP-712 domain name USDC, version 2, so an x402 facilitator settles it exactly as it settles the canonical USDC. Testnet only; a Mainnet deployment settles in the canonical USDC and AUSD."
+        },
+        "MeteringDelegates": {
+          "address": "0xD287900EE0D4415CE4d362Fe8b6a4D4d6413A1a9",
+          "envKey": "METERING_DELEGATES_ADDRESS",
+          "note": "Where an Agent registers a metering delegate, a session key that may sign metered calls for it until an expiry; deployed 2026-09-30 by script/06_DeployMeteringDelegates.s.sol. A delegate cannot move funds, charges stay under the Agent's TabBook.authorise ceilings, and the Agent revokes it with one transaction. Holds nothing and has no owner.",
+          "txHash": "0x650077cffae80db7598aab3b426c1bcd90de1a7faa6bb1c9f5eb7347a75387bd",
+          "blockNumber": 66860629
         }
       },
       "roles": {
@@ -246,6 +253,13 @@
           "note": "The one way a tab is paid, by the Agent's key or by a Permit2 signature anyone may submit. Holds nothing.",
           "txHash": "0x682b488d2037fb70667b3e28083411cacec38b3653967e870d194ad9bdc9be0c",
           "blockNumber": 107094538
+        },
+        "MeteringDelegates": {
+          "address": "0x32f04C3e19d6a39f1B8A513ad86Bd8d5c6486F98",
+          "envKey": "METERING_DELEGATES_ADDRESS",
+          "note": "Where an Agent registers a metering delegate, a session key that may sign metered calls for it until an expiry; deployed 2026-09-30 by script/06_DeployMeteringDelegates.s.sol. A delegate cannot move funds, charges stay under the Agent's TabBook.authorise ceilings, and the Agent revokes it with one transaction. Holds nothing and has no owner.",
+          "txHash": "0x89b19ae044338b7cff7845b19193575a4a90655a34bbebe91660c10c0680c385",
+          "blockNumber": 109211361
         }
       },
       "permit2": {

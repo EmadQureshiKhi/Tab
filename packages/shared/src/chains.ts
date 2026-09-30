@@ -117,8 +117,8 @@ export const X402_FACILITATOR_URL = "https://x402-facilitator.molandak.org" as c
  * test in `test/chains.test.mjs` fails until the two agree.
  */
 export const METERING_DELEGATES: Readonly<Record<MonadChainId, Address | undefined>> = {
-  [MONAD_MAINNET.chainId]: undefined,
-  [MONAD_TESTNET.chainId]: undefined,
+  [MONAD_MAINNET.chainId]: "0x32f04C3e19d6a39f1B8A513ad86Bd8d5c6486F98",
+  [MONAD_TESTNET.chainId]: "0xD287900EE0D4415CE4d362Fe8b6a4D4d6413A1a9",
 };
 
 /** The `MeteringDelegates` address on a network, or `undefined` where there is none. */

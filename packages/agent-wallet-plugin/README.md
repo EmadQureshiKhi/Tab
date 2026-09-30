@@ -199,7 +199,7 @@ Six variables, each already part of the Tab environment contract, with the deplo
 | `MONAD_CHAIN_ID` | which network the Assets and contracts are on | `10143`, Monad Testnet; `143` is Mainnet |
 | `TAB_BOOK_ADDRESS` | `tab authorise` | that network's `TabBook` from `deployments.json` |
 | `TAB_SETTLEMENT_ADDRESS` | `tab settle` | that network's `TabSettlement` from `deployments.json` |
-| `METERING_DELEGATES_ADDRESS` | `tab delegate`, and signing in `tab call` | that network's `MeteringDelegates` once recorded; none until then |
+| `METERING_DELEGATES_ADDRESS` | `tab delegate`, and signing in `tab call` | that network's recorded `MeteringDelegates` |
 | `MOCK_USDC_ADDRESS` | naming the Testnet test token `mUSDC` | the Testnet `MockUsdc` from `deployments.json`; unused on Mainnet |
 | `NEXT_PUBLIC_REGISTRY_API_URL` | `tab discover`, `tab status`, and the Service check in `tab settle` | the project's hosted registry for that network; `TAB_HOSTED_DEFAULTS=off` turns that off |
 
@@ -252,7 +252,7 @@ pnpm --filter @tabai/agent-wallet-plugin test
 | Explorer | `https://testnet.monadvision.com` | `https://monadvision.com` |
 | `TabBook` | `0x87571030cCe27C84836bAfF85288eB1d85d908a4` | `0x0Dabf8E52280D0F128f546602a99b6DC4fbb80DC` |
 | `TabSettlement` | `0x654Fac48185e4B71779eEc2457B1F24aEdf46717` | `0x32A96bfEABe766B4898b961B333B7B89f079a9a9` |
-| `MeteringDelegates` | not deployed yet | not deployed yet |
+| `MeteringDelegates` | `0xD287900EE0D4415CE4d362Fe8b6a4D4d6413A1a9` | `0x32f04C3e19d6a39f1B8A513ad86Bd8d5c6486F98` |
 
 The contract addresses this plugin defaults to are the ones recorded in the repository's `deployments.json`, and a test fails when the two disagree.
 MetaMask's gas service knows Mainnet and not Testnet, so `--broadcast` goes through on Mainnet only; reads and dry runs work on both.

@@ -118,6 +118,7 @@ Everything below was read back off the chain by [`script/02_VerifyDeployment.s.s
 | `Bond` | `0xbA86C0D053ba88afDECbED8aBa5b2eC3973fb230` |
 | `TabBook` | `0x0Dabf8E52280D0F128f546602a99b6DC4fbb80DC` |
 | `TabSettlement` | `0x32A96bfEABe766B4898b961B333B7B89f079a9a9` |
+| `MeteringDelegates` | `0x32f04C3e19d6a39f1B8A513ad86Bd8d5c6486F98` |
 
 The Assets are the canonical USDC and AUSD, and no token was shipped.
 The curation role is held by a 2-of-3 `CurationMultisig` (see [the one privileged role](#the-one-privileged-role)).
@@ -135,6 +136,7 @@ RPC `https://rpc.monad.xyz`, explorer `https://monadvision.com`.
 | `Bond` | `0x29aDfD90Fc7c9026563Fc60651f696ab089080E7` |
 | `TabBook` | `0x87571030cCe27C84836bAfF85288eB1d85d908a4` |
 | `TabSettlement` | `0x654Fac48185e4B71779eEc2457B1F24aEdf46717` |
+| `MeteringDelegates` | `0xD287900EE0D4415CE4d362Fe8b6a4D4d6413A1a9` |
 | `MockUsdc` | `0x480209747417f5c830fDA188a9b9AcFa70Bc4083` |
 
 `LimitLib` is a pure library, linked at compile time, and holds no address of its own.
