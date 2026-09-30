@@ -23,8 +23,10 @@ import { buildWitness, checkOperatorKey, createWitnessReader } from "./witness.j
 import { createTabBookClient } from "./tab-book.js";
 import { createSettlementRelay } from "./relay.js";
 import { createMeteringDelegateReader, type MeteringDelegateReader } from "./delegates.js";
+import { createSerialSender } from "./sender.js";
 import { createApp, type GatewayAsset, type GatewayHubOptions, type GatewayX402Options } from "./server.js";
 import { loadX402Config, readCollectionAddress, readEip712Domain } from "./x402.js";
+import { createFeedbackDocuments, createReputationWriter, loadReputationConfig, processReputationEnv } from "./reputation.js";
 
 /**
  * Every read is pinned to `latest`. Monad finalises a block within a second, and
@@ -77,6 +79,8 @@ async function main(): Promise<number> {
     staticNetwork: true,
   });
   const signer = new Wallet(key.value, provider);
+  // Every transaction the operator key sends goes through one queue; see sender.ts.
+  const sender = createSerialSender(signer);
 
   const chainReader = createWitnessReader(
     provider,
@@ -140,7 +144,7 @@ async function main(): Promise<number> {
     provider,
     tabBook: config.value.tabBook,
     blockTag: BLOCK_TAG,
-    signer,
+    signer: sender,
     ...(receiptWaitMs === undefined ? {} : { receiptWaitMs }),
     // Rebuilt per call rather than cached: every Settlement advances the
     // commitment, so a witness held across one would be refused on chain.
@@ -266,7 +270,7 @@ async function main(): Promise<number> {
     relayEnabled && tabSettlementAddress !== undefined && /^0x[0-9a-fA-F]{40}$/.test(tabSettlementAddress) && !/^0x0{40}$/i.test(tabSettlementAddress)
       ? createSettlementRelay({
           provider,
-          signer,
+          signer: sender,
           tabSettlement: tabSettlementAddress.toLowerCase() as `0x${string}`,
           chainId: BigInt(config.value.chainId),
         })
@@ -306,6 +310,49 @@ async function main(): Promise<number> {
     console.error("gateway: METERING_DELEGATES_ADDRESS is not set, so a metered call signed only by a delegate is refused");
   }
 
+  /*
+    ERC-8004 reputation, off unless GATEWAY_REPUTATION_ENABLED=true. After a
+    Settlement to this Service, the writer gives the paying Agent one feedback
+    entry on the Reputation registry, from the operator key, pointing at a
+    document this gateway serves at /reputation/:settlementId. It is a derived
+    signal and the Credit Limit never reads it; see `reputation.ts`. The
+    documents are served whenever the registry is configured, so an entry
+    written earlier still resolves after the writer is switched off.
+  */
+  const reputationConfig = loadReputationConfig(processReputationEnv(), config.value.chainId);
+  if (!reputationConfig.ok) {
+    console.error(`gateway: ${reputationConfig.error.code}: ${reputationConfig.error.message}`);
+    return 2;
+  }
+  const feedbackDocuments =
+    registryUrl === undefined || registryUrl.length === 0
+      ? undefined
+      : createFeedbackDocuments({ provider, chainId: config.value.chainId, serviceId, registryUrl });
+  let startReputation: (() => void) | undefined;
+  if (reputationConfig.value.enabled) {
+    if (feedbackDocuments === undefined || registryUrl === undefined) {
+      console.error("gateway: GATEWAY_REPUTATION_ENABLED=true needs NEXT_PUBLIC_REGISTRY_API_URL, which is where Settlements and identities are read from");
+      return 2;
+    }
+    const settings = reputationConfig.value;
+    const writer = createReputationWriter({
+      provider,
+      signer: sender,
+      documents: feedbackDocuments,
+      reputationRegistry: settings.reputationRegistry,
+      serviceId,
+      registryUrl,
+      publicUrl: settings.publicUrl,
+      logger: { info: (message) => console.error(`gateway: ${message}`), warn: (message) => console.error(`gateway: ${message}`) },
+    });
+    startReputation = () => {
+      writer.start(settings.intervalMs);
+      console.error(`gateway: ERC-8004 feedback is written to ${settings.reputationRegistry} after each Settlement, checked every ${settings.intervalMs / 1000}s, documents at ${settings.publicUrl}/reputation/:settlementId`);
+    };
+  } else {
+    console.error("gateway: ERC-8004 reputation feedback is off (set GATEWAY_REPUTATION_ENABLED=true and GATEWAY_PUBLIC_URL to write it)");
+  }
+
   const app = createApp({
     serviceId: serviceId.toLowerCase() as `0x${string}`,
     asset,
@@ -317,11 +364,14 @@ async function main(): Promise<number> {
     ...(hub === undefined ? {} : { hub }),
     ...(relay === undefined ? {} : { relay }),
     ...(meteringDelegates === undefined ? {} : { meteringDelegates }),
+    ...(feedbackDocuments === undefined ? {} : { feedbackDocuments }),
   });
 
   const port = Number(process.env.GATEWAY_PORT ?? "8788");
   serve({ fetch: app.fetch, port });
   console.error(`gateway: metering ${serviceId} on port ${port}, operator ${await signer.getAddress()}`);
+  // Started after the server, on its own timer: nothing a request does waits on it.
+  startReputation?.();
   return 0;
 }
 

@@ -81,6 +81,7 @@ import { METERING_HEADER, meteringDigest, verifyMeteringRequest, type MeteringRe
 import type { MeteringDelegateReader } from "./delegates.js";
 import { toSdkTabBookClient, type GatewayTabBookClient } from "./tab-book.js";
 import type { SettlementRelay } from "./relay.js";
+import type { FeedbackDocuments } from "./reputation.js";
 
 /** The x402 header a prepaid caller carries its payment in. */
 const X402_PAYMENT_SIGNATURE_HEADER = "PAYMENT-SIGNATURE";
@@ -162,6 +163,12 @@ export interface GatewayOptions {
    * unchanged.
    */
   readonly meteringDelegates?: MeteringDelegateReader;
+  /**
+   * The ERC-8004 feedback documents, when the registry read API is configured.
+   * `GET /reputation/:settlementId` serves the exact bytes an entry's
+   * `feedbackHash` commits to. Absent, the route answers 404.
+   */
+  readonly feedbackDocuments?: FeedbackDocuments;
 }
 
 const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
@@ -289,11 +296,30 @@ export function createApp(options: GatewayOptions): Hono {
             `/hub/${upstream.prefix}/* (${signedBy}, fronts ${upstream.url}${upstream.payOn === undefined ? "" : `, paid on chain ${upstream.payOn.chainId.toString(10)}`})`,
         ),
         ...(options.relay === undefined ? [] : ["/relay/settle (an Agent's Permit2 signature; this gateway pays the gas)"]),
+        ...(options.feedbackDocuments === undefined ? [] : ["/reputation/:settlementId (the document an ERC-8004 feedback entry about a Settlement points at)"]),
       ],
     }),
   );
 
   app.get("/healthz", (c) => c.json({ status: "ok", serviceId: options.serviceId }));
+
+  /*
+    The feedback documents. Public, unmetered and unsigned: each restates a
+    Settlement already on chain, and its bytes are what the feedbackHash in
+    the Reputation registry's NewFeedback event commits to, so they are served
+    exactly as built and never reformatted.
+  */
+  if (options.feedbackDocuments !== undefined) {
+    const documents = options.feedbackDocuments;
+    app.get("/reputation/:settlementId", async (c) => {
+      const document = await documents.document(c.req.param("settlementId"));
+      if (!document.ok) return fail(document.error);
+      return new Response(document.value, {
+        status: 200,
+        headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "public, max-age=300" },
+      });
+    });
+  }
 
   /*
     The settlement relay. No operator signature: the permit in the body is the

@@ -20,6 +20,7 @@ import {
   MAINNET_ASSETS,
   METERING_DELEGATES,
   METERING_DELEGATES_ABI,
+  TAB_SETTLEMENT_FEEDBACK,
   MONAD_MAINNET,
   MONAD_TESTNET,
   TESTNET_ASSETS,
@@ -27,6 +28,7 @@ import {
   erc8004RegistriesFor,
   meteringDelegatesFor,
   isAddress,
+  keccak256Ascii,
 } from "../dist/index.js";
 
 test("the testnet USDC is Circle's, six decimals, beside the mainnet Assets", () => {
@@ -122,4 +124,23 @@ test("the MeteringDelegates fragments carry what the gateway and the plugin call
     assert.match(fragment, /^(function|event|error) [A-Za-z0-9_]+\(/);
     assert.equal(fragment.split("(").length, fragment.split(")").length);
   }
+});
+
+test("the Reputation calls Tab makes are the selectors the deployed 2.0.0 implementation dispatches", () => {
+  // Read off the implementation behind both canonical proxies (EIP-1967 slot
+  // 0x360894...382bbc -> 0x16e0fa7f7c56b9a767e34b192b51f921be31da34, the same
+  // runtime bytecode on Monad Mainnet, Monad Testnet and Ethereum, where it is
+  // verified). Each selector below appears as a PUSH4 in that bytecode.
+  const selector = (signature) => keccak256Ascii(signature).slice(0, 10);
+  assert.equal(selector("giveFeedback(uint256,int128,uint8,string,string,string,string,bytes32)"), "0x3c036a7e");
+  assert.equal(selector("getSummary(uint256,address[],string,string)"), "0x81bbba58");
+  assert.equal(selector("readAllFeedback(uint256,address[],string,string,bool)"), "0xd9d84224");
+  assert.equal(selector("getClients(uint256)"), "0x42dd519c");
+});
+
+test("the settlement feedback is one fixed positive value under two short tags", () => {
+  assert.equal(TAB_SETTLEMENT_FEEDBACK.value, 100n);
+  assert.equal(TAB_SETTLEMENT_FEEDBACK.valueDecimals, 0);
+  assert.equal(TAB_SETTLEMENT_FEEDBACK.tag1, "tab");
+  assert.equal(TAB_SETTLEMENT_FEEDBACK.tag2, "settled");
 });

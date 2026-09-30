@@ -18,7 +18,7 @@ import { serve } from "@hono/node-server";
 
 import { createCardFetcher } from "./agent-card.js";
 import { loadConfig, readProcessEnvironment, watchedAddresses, type RegistryConfig } from "./config.js";
-import { EthersCreditChainReader, EthersErc8004ChainReader } from "./chain-reads.js";
+import { EthersCreditChainReader, EthersErc8004ChainReader, cachedErc8004Reader } from "./chain-reads.js";
 import { EthersLogSource, createProvider, requireChainId } from "./chain.js";
 import { HyperSyncLogSource, createCatchUpSource, createHyperSyncClient } from "./hypersync.js";
 import type { LogSource } from "./indexer.js";
@@ -137,7 +137,9 @@ async function main(): Promise<void> {
       : {
           registries: { identity: config.erc8004.identityRegistry, reputation: config.erc8004.reputationRegistry },
           cards: createCardFetcher(),
-          chain: new EthersErc8004ChainReader(provider, config.erc8004.identityRegistry, config.erc8004.reputationRegistry),
+          chain: cachedErc8004Reader(
+            new EthersErc8004ChainReader(provider, config.erc8004.identityRegistry, config.erc8004.reputationRegistry),
+          ),
         };
   const labels = config.nansen === null ? undefined : createNansenLabels(config.nansen);
 

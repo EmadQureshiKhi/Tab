@@ -22,15 +22,17 @@
  *   or `null`, and `cardUnavailable` says why when it is `null`, so a missing card
  *   is never mistaken for an empty one.
  * - **Reputation.** `ReputationRegistry.getSummary` over every client that gave
- *   feedback, read live. Withheld and named so when no Reputation registry or no
- *   chain reader is configured, or when the read fails.
+ *   feedback, and again over the operators of registered Tab Services under
+ *   Tab's two tags, read live and held for thirty seconds. Withheld and named so
+ *   when no Reputation registry or no chain reader is configured, or when the
+ *   read fails. Neither figure feeds the Credit Limit.
  *
  * An agent the index knows only through a `Transfer`, because it was minted before
  * the index's start block, has no URI in the index; when a chain reader is wired
  * in, `tokenURI` is read live for it and the source is stated.
  */
 
-import { causeOf } from "@tabai/shared";
+import { TAB_SETTLEMENT_FEEDBACK, causeOf } from "@tabai/shared";
 
 import type { CardFetcher, CardUnavailable } from "./agent-card.js";
 import type { Erc8004ChainReader } from "./chain-reads.js";
@@ -50,12 +52,32 @@ export interface IdentityDependencies {
 
 export interface IdentityReads {
   agentIdentities(address: string): Promise<readonly AgentIdentityRow[]>;
+  /** The operators of every registered Service: the clients whose feedback counts as Tab's. */
+  serviceOperators(): Promise<readonly string[]>;
 }
 
 export type ReputationUnavailableCode =
   | "REPUTATION_REGISTRY_UNCONFIGURED"
   | "CHAIN_READER_UNCONFIGURED"
   | "CHAIN_READ_FAILED";
+
+/**
+ * What Tab Services said: the same registry, asked over the Service operators
+ * only and under Tab's two tags. Every entry is one Settlement a Service
+ * received from this Agent, written by that Service afterwards.
+ */
+export interface TabReputationView {
+  readonly tag1: string;
+  readonly tag2: string;
+  /** Feedback entries from Tab Services under the two tags, not revoked. */
+  readonly count: number | null;
+  /** The Service operators among the agent's clients. */
+  readonly clients: readonly string[] | null;
+  readonly summaryValue: string | null;
+  readonly summaryValueDecimals: number | null;
+  readonly basis: string;
+  readonly unavailable: { readonly code: ReputationUnavailableCode; readonly message: string } | null;
+}
 
 export interface ReputationView {
   readonly registry: string | null;
@@ -68,6 +90,8 @@ export interface ReputationView {
   readonly summaryValueDecimals: number | null;
   readonly basis: string;
   readonly unavailable: { readonly code: ReputationUnavailableCode; readonly message: string } | null;
+  /** The part of it Tab Services wrote. */
+  readonly fromTab: TabReputationView;
 }
 
 export interface AgentIdentityView {
@@ -103,6 +127,19 @@ const IDENTITY_BASIS =
 const REPUTATION_BASIS =
   "ReputationRegistry.getSummary over every client returned by getClients, read live with no tag filter; summaryValue is a fixed-point mean with summaryValueDecimals decimals";
 
+const TAB_REPUTATION_BASIS = `ReputationRegistry.getSummary over the clients that operate a registered Tab Service, with tag1 "${TAB_SETTLEMENT_FEEDBACK.tag1}" and tag2 "${TAB_SETTLEMENT_FEEDBACK.tag2}", read live; a Service writes one entry of ${TAB_SETTLEMENT_FEEDBACK.value.toString()} after each Settlement it receives, so the count is the signal and the mean is fixed, and each entry's feedbackURI names the Settlement to check against its Settled event; derived from Settlements and never read by the Credit Limit`;
+
+const tabWithheld = (code: ReputationUnavailableCode, message: string): TabReputationView => ({
+  tag1: TAB_SETTLEMENT_FEEDBACK.tag1,
+  tag2: TAB_SETTLEMENT_FEEDBACK.tag2,
+  count: null,
+  clients: null,
+  summaryValue: null,
+  summaryValueDecimals: null,
+  basis: TAB_REPUTATION_BASIS,
+  unavailable: { code, message },
+});
+
 const reputationWithheld = (
   registry: string | null,
   code: ReputationUnavailableCode,
@@ -115,9 +152,40 @@ const reputationWithheld = (
   summaryValueDecimals: null,
   basis: REPUTATION_BASIS,
   unavailable: { code, message },
+  fromTab: tabWithheld(code, message),
 });
 
-async function reputationOf(deps: IdentityDependencies, agentId: bigint): Promise<ReputationView> {
+/** The Tab-only summary, or its own stated reason. A failure here leaves the whole-registry figure standing. */
+async function tabReputationOf(chain: Erc8004ChainReader, operators: readonly string[], agentId: bigint): Promise<TabReputationView> {
+  try {
+    const summary = await chain.reputationSummary(agentId, {
+      clients: operators,
+      tag1: TAB_SETTLEMENT_FEEDBACK.tag1,
+      tag2: TAB_SETTLEMENT_FEEDBACK.tag2,
+    });
+    if (summary === null) {
+      return tabWithheld("REPUTATION_REGISTRY_UNCONFIGURED", "the chain reader has no Reputation registry address, so no summary can be read");
+    }
+    return {
+      tag1: TAB_SETTLEMENT_FEEDBACK.tag1,
+      tag2: TAB_SETTLEMENT_FEEDBACK.tag2,
+      count: summary.count,
+      clients: summary.clients,
+      summaryValue: summary.summaryValue.toString(),
+      summaryValueDecimals: summary.summaryValueDecimals,
+      basis: TAB_REPUTATION_BASIS,
+      unavailable: null,
+    };
+  } catch (error) {
+    return tabWithheld("CHAIN_READ_FAILED", `ReputationRegistry could not be read: ${causeOf(error).message}`);
+  }
+}
+
+async function reputationOf(
+  deps: IdentityDependencies,
+  operators: () => Promise<readonly string[]>,
+  agentId: bigint,
+): Promise<ReputationView> {
   const registry = deps.registries.reputation;
   if (registry === null) {
     return reputationWithheld(
@@ -133,8 +201,16 @@ async function reputationOf(deps: IdentityDependencies, agentId: bigint): Promis
       "this process has no Monad endpoint wired in, so ReputationRegistry.getSummary cannot be read",
     );
   }
+  const chain = deps.chain;
   try {
-    const summary = await deps.chain.reputationSummary(agentId);
+    const [summary, fromTab] = await Promise.all([
+      chain.reputationSummary(agentId),
+      operators().then(
+        (list) => tabReputationOf(chain, list, agentId),
+        (error: unknown) =>
+          tabWithheld("CHAIN_READ_FAILED", `the Service operators could not be read from the index: ${causeOf(error).message}`),
+      ),
+    ]);
     if (summary === null) {
       return reputationWithheld(
         registry,
@@ -150,6 +226,7 @@ async function reputationOf(deps: IdentityDependencies, agentId: bigint): Promis
       summaryValueDecimals: summary.summaryValueDecimals,
       basis: REPUTATION_BASIS,
       unavailable: null,
+      fromTab,
     };
   } catch (error) {
     return reputationWithheld(
@@ -158,6 +235,19 @@ async function reputationOf(deps: IdentityDependencies, agentId: bigint): Promis
       `ReputationRegistry could not be read: ${causeOf(error).message}`,
     );
   }
+}
+
+function matchedByOf(address: string, row: AgentIdentityRow): readonly ("owner" | "agentWallet")[] {
+  const matchedBy: ("owner" | "agentWallet")[] = [];
+  if (row.owner === address) matchedBy.push("owner");
+  if (row.agentWallet === address) matchedBy.push("agentWallet");
+  return matchedBy;
+}
+
+/** One read of the operator list per request, however many agents the address holds. */
+function operatorsOnce(reads: IdentityReads): () => Promise<readonly string[]> {
+  let pending: Promise<readonly string[]> | undefined;
+  return () => (pending ??= reads.serviceOperators());
 }
 
 async function uriOf(
@@ -173,9 +263,14 @@ async function uriOf(
   }
 }
 
-async function toAgentView(deps: IdentityDependencies, address: string, row: AgentIdentityRow): Promise<AgentIdentityView> {
+async function toAgentView(
+  deps: IdentityDependencies,
+  operators: () => Promise<readonly string[]>,
+  address: string,
+  row: AgentIdentityRow,
+): Promise<AgentIdentityView> {
   const agentId = BigInt(row.agentId);
-  const [{ uri, source }, reputation] = await Promise.all([uriOf(deps, row), reputationOf(deps, agentId)]);
+  const [{ uri, source }, reputation] = await Promise.all([uriOf(deps, row), reputationOf(deps, operators, agentId)]);
   // An empty URI is what the URI-less `register()` leaves behind: nothing to
   // fetch, and stated as such rather than handed to the fetcher as an address.
   const card =
@@ -188,14 +283,11 @@ async function toAgentView(deps: IdentityDependencies, address: string, row: Age
           },
         }
       : await deps.cards.fetch(uri);
-  const matchedBy: ("owner" | "agentWallet")[] = [];
-  if (row.owner === address) matchedBy.push("owner");
-  if (row.agentWallet === address) matchedBy.push("agentWallet");
   return {
     agentId: row.agentId,
     owner: row.owner,
     agentWallet: row.agentWallet,
-    matchedBy,
+    matchedBy: matchedByOf(address, row),
     agentURI: uri,
     agentURISource: source,
     card: card.ok ? card.value : null,
@@ -223,6 +315,55 @@ export async function identityOf(
 ): Promise<IdentityView | null> {
   if (deps === undefined) return null;
   const rows = await reads.agentIdentities(address);
-  const agents = await Promise.all(rows.map((row) => toAgentView(deps, address, row)));
+  const operators = operatorsOnce(reads);
+  const agents = await Promise.all(rows.map((row) => toAgentView(deps, operators, address, row)));
   return { registry: deps.registries.identity, basis: IDENTITY_BASIS, agents };
+}
+
+/** One agent on the reputation read: who it is and what the Reputation registry holds about it. */
+export interface AgentReputationView {
+  readonly agentId: string;
+  readonly owner: string;
+  readonly agentWallet: string | null;
+  readonly matchedBy: readonly ("owner" | "agentWallet")[];
+  readonly reputation: ReputationView;
+}
+
+export interface ReputationOfAddressView {
+  readonly identityRegistry: string;
+  readonly reputationRegistry: string | null;
+  readonly basis: string;
+  readonly agents: readonly AgentReputationView[];
+}
+
+/**
+ * The reputation of every ERC-8004 agent an address holds, without the
+ * registration file: the light read a Service makes to find the agentId it
+ * writes feedback against, and that a reader makes to check what was written.
+ * `null` when identity is not configured, `{ agents: [] }` when the address
+ * holds no agent.
+ */
+export async function reputationOfAddress(
+  reads: IdentityReads,
+  deps: IdentityDependencies | undefined,
+  address: string,
+): Promise<ReputationOfAddressView | null> {
+  if (deps === undefined) return null;
+  const rows = await reads.agentIdentities(address);
+  const operators = operatorsOnce(reads);
+  const agents = await Promise.all(
+    rows.map(async (row) => ({
+      agentId: row.agentId,
+      owner: row.owner,
+      agentWallet: row.agentWallet,
+      matchedBy: matchedByOf(address, row),
+      reputation: await reputationOf(deps, operators, BigInt(row.agentId)),
+    })),
+  );
+  return {
+    identityRegistry: deps.registries.identity,
+    reputationRegistry: deps.registries.reputation,
+    basis: IDENTITY_BASIS,
+    agents,
+  };
 }

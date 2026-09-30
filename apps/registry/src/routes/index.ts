@@ -19,6 +19,7 @@
  * | `GET /services/:serviceId` | one Service, with any pending change and its ETA, and the operator's ERC-8004 identity |
  * | `GET /agents` | cursor-paginated Agents by most recent Settlement |
  * | `GET /agents/:agent` | Credit Limit, Open Tab, headroom, delinquency, prepaid credit, ERC-8004 identity, Nansen labels |
+ * | `GET /agents/:agent/reputation` | the ERC-8004 reputation of each agent the address holds, overall and from Tab Services |
  * | `GET /agents/:agent/witness/:asset` | the `LimitWitness` a metering Service passes to `recordDelivery` |
  *
  * `server.ts` mounts `GET /adoption` beside these when the allowlist loaded.

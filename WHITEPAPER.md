@@ -187,7 +187,7 @@ Tab plugs into the services Monad already offers agents rather than rebuilding t
 | x402 V2, through Monad's facilitator | A credit refusal carries an x402 offer for the same charge, so an Agent out of headroom can prepay that one call; a request that arrives prepaid is verified, settled and delivered without touching the Open Tab |
 | Monad API Hub and Nansen | Fronted on credit: the Service pays the upstream's x402 price with its own key and meters the Agent's Open Tab for that price plus a published margin, so pay-per-request data becomes buy now, pay later |
 | Permit2 | `settleWithPermit2` lets an Agent that holds no MON settle by signature (Section 5.2) |
-| ERC-8004 | Services and Agents hold identities on Monad's Identity Registry; the registry indexes them and serves each identity beside its tab |
+| ERC-8004 | Services and Agents hold identities on Monad's Identity Registry; the registry indexes them and serves each identity beside its tab. A Service may write one Reputation Registry entry about the paying Agent after each Settlement it receives, restating the Settlement where any ERC-8004 reader finds it; the Credit Limit never reads it |
 | Envio HyperSync | The indexer's log source for catch-up, so a cold start is not bound by the public RPC's 100-block log window |
 | Chainlink CRE | The scheduler for the delinquency keeper |
 | Mera passkeys | The Dashboard's account: a passkey-derived owner key that is never shown, and session keys an Agent runtime can hold |

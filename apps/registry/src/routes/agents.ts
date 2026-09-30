@@ -71,7 +71,7 @@ import { httpStatusOf, type TabError } from "@tabai/shared";
 
 import { parseCursor, parsePageSize, toPage } from "../cursor.js";
 import type { CreditChainReader } from "../chain-reads.js";
-import { identityOf, type IdentityDependencies } from "../identity-service.js";
+import { identityOf, reputationOfAddress, type IdentityDependencies } from "../identity-service.js";
 import { NANSEN_KEY_MISSING, type LabelSource } from "../nansen.js";
 import {
   computeAgentCredit,
@@ -334,6 +334,35 @@ export function createAgentRoutes(reads: RegistryReads, options: AgentRouteOptio
       identity,
       labels: addressLabels,
     });
+  });
+
+  /**
+   * The ERC-8004 reputation of every agent the address holds, without the
+   * credit picture or the registration file.
+   *
+   * This is the read a Service makes after a Settlement to find the agentId it
+   * writes feedback against, and the read anyone makes to see what Tab
+   * Services wrote: per agent, the whole-registry summary and the summary over
+   * Service operators under Tab's tags. `reputation` is `null` when identity is
+   * off for this deployment, and `agents` is empty for an address that holds
+   * no agent. Nothing here feeds the Credit Limit.
+   */
+  app.get("/agents/:agent/reputation", async (c) => {
+    const agent = c.req.param("agent").toLowerCase();
+    if (!isHexAddress(agent)) {
+      return fail(c, {
+        category: "VALIDATION",
+        code: "PARAMETER_MALFORMED",
+        message: "agent must be a 20-byte hex address",
+        retryable: false,
+        details: { field: "agent" },
+      });
+    }
+    const [index, reputation] = await Promise.all([
+      reads.horizon(DEFAULT_STREAM),
+      reputationOfAddress(reads, options.identity, agent),
+    ]);
+    return c.json({ index, agent, reputation });
   });
 
   /**

@@ -28,6 +28,7 @@ import type {
   IdentityAgentRow,
   IdentityRow,
   LabelsRow,
+  ReputationRow,
   SettlementRow,
 } from "./client.js";
 
@@ -458,6 +459,110 @@ export function toIdentitySummary(view: IdentityView): IdentitySummary {
   return {
     text: first.name === undefined ? `${label}${more}` : `${label} (ERC-8004 agent #${first.agentId})${more}`,
     named: true,
+  };
+}
+
+/* ------------------------------------------------------ ERC-8004 reputation */
+
+/** One figure on the reputation section: a sentence of counts and average, or why there is none. */
+export interface ReputationFigureView {
+  readonly text: string;
+  /** True where entries were read and there is at least one. */
+  readonly hasFeedback: boolean;
+}
+
+/** One agent's reputation, shaped for `ReputationSection`. */
+export interface ReputationAgentView {
+  readonly agentId: string;
+  /** What Tab Services wrote: one entry per Settlement they received. */
+  readonly fromTab: ReputationFigureView;
+  /** What every client wrote, Tab Services included. */
+  readonly fromAll: ReputationFigureView;
+  /** The Reputation registry the figures were read from. */
+  readonly registry: string | undefined;
+}
+
+/**
+ * The reputation section of an Agent.
+ *
+ * Feedback is written against an agentId, so an address with no ERC-8004
+ * identity has no reputation to read, and `statement` says so in words. Where
+ * there are agents, each carries its own two figures.
+ */
+export interface ReputationSectionView {
+  readonly agents: readonly ReputationAgentView[];
+  /** The sentence to show where `agents` is empty. */
+  readonly statement: string;
+  /** How the Tab figure was read, as the registry states it. */
+  readonly basis: string | undefined;
+}
+
+/** What the Tab figure is and is not. Exported so the page and the test share one wording. */
+export const REPUTATION_DERIVED_STATEMENT =
+  "A Tab Service writes one entry after each Settlement it receives, so the count from Tab Services is the number of Settlements by this Agent they have recorded. It is derived from those Settlements, and the Credit Limit never reads it.";
+
+export const REPUTATION_NO_IDENTITY_STATEMENT =
+  "No ERC-8004 identity is registered for this address, so there is no reputation to read: feedback is written against an agentId.";
+
+export const REPUTATION_UNCONFIGURED_STATEMENT =
+  "No ERC-8004 Identity registry is configured on this deployment, so no reputation could be looked up.";
+
+export const REPUTATION_NOT_SERVED_STATEMENT =
+  "The registry served no identity block for this address, so no reputation could be looked up.";
+
+const plural = (count: number, one: string, many: string): string => `${count.toLocaleString("en-US")} ${count === 1 ? one : many}`;
+
+/** Counts and a mean as one sentence, or the reason they are absent. */
+function figureOf(
+  row: {
+    readonly count: number | null;
+    readonly summaryValue: string | null;
+    readonly summaryValueDecimals: number | null;
+    readonly unavailable: { readonly message: string } | null;
+  },
+  clients: number | null,
+  clientWord: readonly [string, string],
+  none: string,
+): ReputationFigureView {
+  if (row.unavailable !== null) return { text: `Not read: ${row.unavailable.message}`, hasFeedback: false };
+  if (row.count === null) return { text: "Not served by this registry.", hasFeedback: false };
+  if (row.count === 0) return { text: none, hasFeedback: false };
+  const mean =
+    row.summaryValue === null || row.summaryValueDecimals === null
+      ? undefined
+      : fixedPointText(row.summaryValue, row.summaryValueDecimals);
+  const parts = [plural(row.count, "entry", "entries")];
+  if (clients !== null) parts.push(`from ${plural(clients, clientWord[0], clientWord[1])}`);
+  return { text: `${parts.join(" ")}${mean === undefined ? "" : `, average ${mean}`}`, hasFeedback: true };
+}
+
+function toReputationAgentView(agentId: string, row: ReputationRow): ReputationAgentView {
+  const fromTab =
+    row.fromTab === undefined
+      ? { text: "Not served by this registry.", hasFeedback: false }
+      : figureOf(row.fromTab, row.fromTab.clients?.length ?? null, ["Tab Service", "Tab Services"], "No feedback yet from Tab Services.");
+  return {
+    agentId,
+    fromTab,
+    fromAll: figureOf(row, row.clientCount, ["client", "clients"], "No feedback yet."),
+    registry: row.registry ?? undefined,
+  };
+}
+
+/**
+ * Decodes the reputation of an Agent from its identity block.
+ *
+ * The reputation rides on each agent of the identity read, so the four
+ * identity answers carry through: not served, not configured, no agent, and
+ * agents with their figures.
+ */
+export function toReputationSectionView(row: IdentityRow | null | undefined): ReputationSectionView {
+  if (row === undefined) return { agents: [], statement: REPUTATION_NOT_SERVED_STATEMENT, basis: undefined };
+  if (row === null) return { agents: [], statement: REPUTATION_UNCONFIGURED_STATEMENT, basis: undefined };
+  return {
+    agents: row.agents.map((agent) => toReputationAgentView(agent.agentId, agent.reputation)),
+    statement: REPUTATION_NO_IDENTITY_STATEMENT,
+    basis: row.agents.map((agent) => agent.reputation.fromTab?.basis).find((basis) => basis !== undefined),
   };
 }
 

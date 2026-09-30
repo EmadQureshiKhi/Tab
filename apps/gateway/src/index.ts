@@ -42,3 +42,4 @@ export * from "./authorisation.js";
 export * from "./delegates.js";
 export * from "./asset.js";
 export * from "./x402.js";
+export * from "./reputation.js";

@@ -19,10 +19,12 @@
  *
  * ## Identity and labels are context, and drawn as context
  *
- * Two more blocks describe the address rather than its credit. The ERC-8004
+ * More blocks describe the address rather than its credit. The ERC-8004
  * identity is what the Identity registry's own events say about who owns or
- * runs this address as an agent, with the registration file and the reputation
- * summary fetched beside it and each carrying its own status. The Nansen labels
+ * runs this address as an agent, with the registration file fetched beside it.
+ * The reputation is the Reputation registry's summary for that agent, read
+ * live: what Tab Services wrote after each Settlement they received, and what
+ * every client wrote, kept apart. The Nansen labels
  * are an off-chain overlay with a named source and a fetch time. Neither feeds
  * the gauge above them, and the labels strip says so in one sentence on every
  * render. A deployment with no Identity registry or no Nansen key is told so in
@@ -35,12 +37,15 @@ import { LabelsStrip } from "../../../components/custom-ui/labels-strip";
 import { Link } from "../../../components/ui/link";
 import { EmptyChain } from "../../../components/views/empty-chain";
 import { IdentitySection } from "../../../components/views/identity-section";
+import { ReputationSection } from "../../../components/views/reputation-section";
 import { SettlementTable } from "../../../components/views/settlement-table";
 import {
   LABELS_OFFCHAIN_STATEMENT,
+  REPUTATION_DERIVED_STATEMENT,
   toCreditView,
   toIdentityView,
   toLabelsView,
+  toReputationSectionView,
   toSettlementViews,
 } from "../../../src/dashboard/views";
 import { routeContext } from "../../_lib/context";
@@ -71,6 +76,7 @@ export default async function AgentDetailPage({
   }
 
   const identity = toIdentityView(detail.value.identity);
+  const reputation = toReputationSectionView(detail.value.identity);
   const labels = toLabelsView(detail.value.labels);
 
   return (
@@ -88,7 +94,18 @@ export default async function AgentDetailPage({
         <h2 className="font-mono text-xs tracking-wider text-muted-foreground uppercase">
           Identity, from the ERC-8004 registry
         </h2>
-        <IdentitySection identity={identity} explorerAddressHrefFor={context.explorerAddressHrefFor} />
+        <IdentitySection identity={identity} explorerAddressHrefFor={context.explorerAddressHrefFor} hideReputation />
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <h2 className="font-mono text-xs tracking-wider text-muted-foreground uppercase">
+          Reputation, from the ERC-8004 registry
+        </h2>
+        <ReputationSection
+          reputation={reputation}
+          derivedStatement={REPUTATION_DERIVED_STATEMENT}
+          explorerAddressHrefFor={context.explorerAddressHrefFor}
+        />
       </div>
 
       <div className="flex flex-col gap-3">

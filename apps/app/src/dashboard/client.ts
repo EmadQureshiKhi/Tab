@@ -164,6 +164,25 @@ export interface ReputationRow {
   readonly summaryValueDecimals: number | null;
   readonly basis: string;
   readonly unavailable: UnavailableReason | null;
+  /** The part Tab Services wrote. Absent from a registry that predates it. */
+  readonly fromTab?: TabReputationRow | undefined;
+}
+
+/**
+ * What Tab Services wrote about the agent: the same registry asked over the
+ * Service operators only, under Tab's two tags. Each entry is one Settlement
+ * a Service received, written by that Service afterwards.
+ */
+export interface TabReputationRow {
+  readonly tag1: string;
+  readonly tag2: string;
+  readonly count: number | null;
+  /** The Service operators among the agent's clients. */
+  readonly clients: readonly string[] | null;
+  readonly summaryValue: string | null;
+  readonly summaryValueDecimals: number | null;
+  readonly basis: string;
+  readonly unavailable: UnavailableReason | null;
 }
 
 /**

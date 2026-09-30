@@ -43,6 +43,10 @@ import {
   LABELS_OFFCHAIN_STATEMENT,
   LABELS_UNCONFIGURED_STATEMENT,
   NO_IDENTITY_STATEMENT,
+  REPUTATION_DERIVED_STATEMENT,
+  REPUTATION_NOT_SERVED_STATEMENT,
+  REPUTATION_NO_IDENTITY_STATEMENT,
+  REPUTATION_UNCONFIGURED_STATEMENT,
   assetUnitFor,
   fixedPointText,
   registerAsset,
@@ -52,6 +56,7 @@ import {
   toIdentitySummary,
   toIdentityView,
   toLabelsView,
+  toReputationSectionView,
   toSettlementView,
   toSettlementViews,
   type SettlementView,
@@ -65,6 +70,7 @@ import { NetworkSwitchView } from "../components/shell/network-switch";
 import { LabelsStrip } from "../components/custom-ui/labels-strip";
 import { EmptyChain } from "../components/views/empty-chain";
 import { IdentitySection } from "../components/views/identity-section";
+import { ReputationSection } from "../components/views/reputation-section";
 import { ServiceOperatorStrip, X402_STRIP_COPY } from "../components/views/service-operator-strip";
 import { SettlementTable } from "../components/views/settlement-table";
 
@@ -630,6 +636,138 @@ test("the identity and labels sections state their facts in a process with no wa
   assert.match(served, /fetched 2026-09-22 09:05 UTC/);
   assert.match(served, /Example Fund/);
   assert.ok(served.includes(LABELS_OFFCHAIN_STATEMENT));
+});
+
+/* ------------------------------------------------------ ERC-8004 reputation */
+
+/** The same agent, with what Tab Services wrote beside what everyone wrote. */
+const TAB_REPUTATION: IdentityAgentRow["reputation"] = {
+  ...AGENT_ROW.reputation,
+  fromTab: {
+    tag1: "tab",
+    tag2: "settled",
+    count: 9,
+    clients: ["0xa9e1000000000000000000000000000000007c30", "0x2f117efa472ba981cc2d89767ca5c9427cab0532"],
+    summaryValue: "100",
+    summaryValueDecimals: 0,
+    basis: "getSummary over the Service operators with tag1 tab and tag2 settled; never read by the Credit Limit",
+    unavailable: null,
+  },
+};
+
+test("reputation keeps four answers apart: not served, not configured, no identity, and figures", () => {
+  assert.equal(toReputationSectionView(undefined).statement, REPUTATION_NOT_SERVED_STATEMENT);
+  assert.equal(toReputationSectionView(null).statement, REPUTATION_UNCONFIGURED_STATEMENT);
+  const none = toReputationSectionView({ ...IDENTITY, agents: [] });
+  assert.equal(none.statement, REPUTATION_NO_IDENTITY_STATEMENT);
+  assert.deepEqual(none.agents, []);
+
+  const view = toReputationSectionView({ ...IDENTITY, agents: [{ ...AGENT_ROW, reputation: TAB_REPUTATION }] });
+  assert.deepEqual(view.agents, [
+    {
+      agentId: "7",
+      fromTab: { text: "9 entries from 2 Tab Services, average 100", hasFeedback: true },
+      fromAll: { text: "12 entries from 3 clients, average 4.567", hasFeedback: true },
+      registry: AGENT_ROW.reputation.registry,
+    },
+  ]);
+  assert.equal(view.basis, TAB_REPUTATION.fromTab?.basis);
+});
+
+test("an agent with no feedback says so, and a figure that was not read says why", () => {
+  const empty = toReputationSectionView({
+    ...IDENTITY,
+    agents: [
+      {
+        ...AGENT_ROW,
+        reputation: {
+          ...TAB_REPUTATION,
+          count: 0,
+          clientCount: 0,
+          summaryValue: "0",
+          fromTab: { ...TAB_REPUTATION.fromTab!, count: 0, clients: [], summaryValue: "0" },
+        },
+      },
+    ],
+  });
+  assert.deepEqual(empty.agents[0]?.fromTab, { text: "No feedback yet from Tab Services.", hasFeedback: false });
+  assert.deepEqual(empty.agents[0]?.fromAll, { text: "No feedback yet.", hasFeedback: false });
+
+  const withheld = toReputationSectionView({
+    ...IDENTITY,
+    agents: [
+      {
+        ...AGENT_ROW,
+        reputation: {
+          ...TAB_REPUTATION,
+          fromTab: { ...TAB_REPUTATION.fromTab!, count: null, unavailable: { code: "CHAIN_READ_FAILED", message: "ReputationRegistry could not be read" } },
+        },
+      },
+    ],
+  });
+  assert.equal(withheld.agents[0]?.fromTab.text, "Not read: ReputationRegistry could not be read");
+
+  // A registry from before the Tab figure existed serves no `fromTab` at all.
+  const older = toReputationSectionView(IDENTITY);
+  assert.equal(older.agents[0]?.fromTab.text, "Not served by this registry.");
+  assert.equal(older.agents[0]?.fromAll.hasFeedback, true);
+
+  // One entry and one client read in the singular.
+  const single = toReputationSectionView({
+    ...IDENTITY,
+    agents: [{ ...AGENT_ROW, reputation: { ...TAB_REPUTATION, fromTab: { ...TAB_REPUTATION.fromTab!, count: 1, clients: ["0xa9e1000000000000000000000000000000007c30"] } } }],
+  });
+  assert.equal(single.agents[0]?.fromTab.text, "1 entry from 1 Tab Service, average 100");
+});
+
+test("the reputation section renders each state in a process with no wallet", () => {
+  const explorer = (address: string) => explorerAddressUrl(address, "https://testnet.monadvision.com");
+  const render = (identity: IdentityRow | null | undefined) =>
+    renderToStaticMarkup(
+      createElement(ReputationSection, {
+        reputation: toReputationSectionView(identity),
+        derivedStatement: REPUTATION_DERIVED_STATEMENT,
+        explorerAddressHrefFor: explorer,
+      }),
+    );
+
+  const noIdentity = render({ ...IDENTITY, agents: [] });
+  assert.ok(noIdentity.includes(REPUTATION_NO_IDENTITY_STATEMENT));
+  assert.equal(noIdentity.includes(REPUTATION_DERIVED_STATEMENT), false, "no figure, so nothing to qualify");
+  assert.ok(render(null).includes(REPUTATION_UNCONFIGURED_STATEMENT));
+
+  const served = render({ ...IDENTITY, agents: [{ ...AGENT_ROW, reputation: TAB_REPUTATION }] });
+  assert.match(served, /ERC-8004 agent #7/);
+  assert.match(served, /From Tab Services/);
+  assert.match(served, /9 entries from 2 Tab Services, average 100/);
+  assert.match(served, /From all clients/);
+  assert.match(served, /12 entries from 3 clients, average 4\.567/);
+  assert.match(served, new RegExp(`monadvision\\.com/address/${AGENT_ROW.reputation.registry}`));
+  assert.ok(served.includes(REPUTATION_DERIVED_STATEMENT));
+  assert.match(served, /Basis/);
+  assert.match(REPUTATION_DERIVED_STATEMENT, /Credit Limit never reads it/);
+
+  const quiet = render({
+    ...IDENTITY,
+    agents: [{ ...AGENT_ROW, reputation: { ...TAB_REPUTATION, count: 0, clientCount: 0, fromTab: { ...TAB_REPUTATION.fromTab!, count: 0, clients: [] } } }],
+  });
+  assert.match(quiet, /No feedback yet from Tab Services\./);
+  assert.match(quiet, /No feedback yet\./);
+  assert.equal(quiet.includes("status-danger"), false, "no feedback is not a fault");
+});
+
+test("the agent page gives reputation its own section, so the identity card leaves its line out", () => {
+  const source = readFileSync(join(APP_ROOT, "app", "agents", "[agent]", "page.tsx"), "utf8");
+  assert.match(source, /Reputation, from the ERC-8004 registry/);
+  assert.match(source, /<ReputationSection\s+reputation=\{reputation\}\s+derivedStatement=\{REPUTATION_DERIVED_STATEMENT\}/);
+  assert.match(source, /<IdentitySection identity=\{identity\} explorerAddressHrefFor=\{context\.explorerAddressHrefFor\} hideReputation \/>/);
+  // The section sits directly under the identity section.
+  assert.ok(source.indexOf("Identity, from the ERC-8004 registry") < source.indexOf("Reputation, from the ERC-8004 registry"));
+  assert.ok(source.indexOf("Reputation, from the ERC-8004 registry") < source.indexOf("Credit, per Asset"));
+
+  const hidden = renderToStaticMarkup(createElement(IdentitySection, { identity: toIdentityView(IDENTITY), hideReputation: true }));
+  assert.equal(/mean 4\.567/.test(hidden), false);
+  assert.match(renderToStaticMarkup(createElement(IdentitySection, { identity: toIdentityView(IDENTITY) })), /mean 4\.567/);
 });
 
 test("the agent page places both sections and the strip says what a label is not", () => {

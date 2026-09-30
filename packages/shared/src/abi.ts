@@ -240,6 +240,31 @@ export const ERC8004_REPUTATION_REGISTRY_ABI = [
   "event ResponseAppended(uint256 indexed agentId, address indexed clientAddress, uint64 feedbackIndex, address indexed responder, string responseURI, bytes32 responseHash)",
 ] as const;
 
+/**
+ * The feedback a Tab Service writes about an Agent after each Settlement it
+ * receives, and the filter a reader sums it under.
+ *
+ * One entry per Settlement applied on chain to that Service, always the same
+ * value: `100` at zero decimals means "this Agent paid this Service, and the
+ * payment is a `Settled` event anyone can read". The value does not vary, so
+ * the mean says nothing and the count is the signal: how many Settlements an
+ * Agent has made to Tab Services, portable to anyone who reads ERC-8004.
+ *
+ * The registry keeps `tag1` and `tag2` and filters on them, so they are the
+ * key a reader passes to `getSummary`, together with the Service operators as
+ * `clientAddresses`, since anyone can write the same tags. The `feedbackURI`
+ * and `feedbackHash` exist only in the `NewFeedback` event.
+ *
+ * This is a derived signal. It plays no part in the Credit Limit, which is a
+ * pure function of the Settlements themselves.
+ */
+export const TAB_SETTLEMENT_FEEDBACK = {
+  value: 100n,
+  valueDecimals: 0,
+  tag1: "tab",
+  tag2: "settled",
+} as const;
+
 /** Canonical ERC-8004 event signatures, for topic filters. */
 export const ERC8004_EVENT_SIGNATURES = {
   Registered: "Registered(uint256,string,address)",

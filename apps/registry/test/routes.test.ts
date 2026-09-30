@@ -42,6 +42,7 @@ import { PostgresReads } from "../src/queries.js";
 import { PostgresSink } from "../src/postgres-sink.js";
 import { toTypedInsert } from "../src/rows.js";
 import type { CreditChainReader, Erc8004ChainReader } from "../src/chain-reads.js";
+import type { ReputationFilter } from "../src/erc8004.js";
 import type { CardFetcher } from "../src/agent-card.js";
 import { createApp } from "../src/server.js";
 import { DEFAULT_STREAM, type EventWrite, type WriteBatch } from "../src/sink.js";
@@ -188,13 +189,25 @@ const fixtureCards: CardFetcher = {
   },
 };
 
-/** A Reputation registry holding two feedback entries for agent 7 and none for anyone else. */
+/** Every reputation read the fixture chain was asked, so a test can see the filter the route built. */
+const reputationAsked: { readonly agentId: bigint; readonly filter: ReputationFilter | undefined }[] = [];
+
+/**
+ * A Reputation registry holding two feedback entries for agent 7 and none for
+ * anyone else. Both are from the fixture Service's operator: one of 100 under
+ * Tab's tags, written after a Settlement, and one of 70 under other tags, so
+ * the whole-registry mean is 85 and the Tab-only one is 100 over one entry.
+ */
 const REPUTATION_CHAIN: Erc8004ChainReader = {
   tokenURI: async (agentId) => `chain://${agentId}`,
-  reputationSummary: async (agentId) =>
-    agentId === 7n
-      ? { clientCount: 1, count: 2, summaryValue: 85n, summaryValueDecimals: 0 }
-      : { clientCount: 0, count: 0, summaryValue: 0n, summaryValueDecimals: 0 },
+  reputationSummary: async (agentId, filter) => {
+    reputationAsked.push({ agentId, filter });
+    const none = { clientCount: 0, clients: [], count: 0, summaryValue: 0n, summaryValueDecimals: 0 };
+    if (agentId !== 7n) return none;
+    if (filter === undefined) return { clientCount: 1, clients: [OPERATOR], count: 2, summaryValue: 85n, summaryValueDecimals: 0 };
+    const asksTab = filter.clients.includes(OPERATOR) && filter.tag1 === "tab" && filter.tag2 === "settled";
+    return asksTab ? { clientCount: 1, clients: [OPERATOR], count: 1, summaryValue: 100n, summaryValueDecimals: 0 } : none;
+  },
 };
 
 const identityApp =
@@ -793,6 +806,16 @@ interface IdentityBody {
         readonly summaryValue: string | null;
         readonly summaryValueDecimals: number | null;
         readonly unavailable: { readonly code: string } | null;
+        readonly fromTab: {
+          readonly tag1: string;
+          readonly tag2: string;
+          readonly count: number | null;
+          readonly clients: readonly string[] | null;
+          readonly summaryValue: string | null;
+          readonly summaryValueDecimals: number | null;
+          readonly basis: string;
+          readonly unavailable: { readonly code: string } | null;
+        };
       };
       readonly blocks: { readonly registered: number | null; readonly owner: number; readonly uri: number | null; readonly wallet: number | null };
     }[];
@@ -841,6 +864,20 @@ test("the Agent read folds the identity events to owner, wallet and URI, and mat
   assert.equal(seven.reputation.summaryValue, "85");
   assert.equal(seven.reputation.summaryValueDecimals, 0);
   assert.equal(seven.reputation.unavailable, null);
+  // And the part Tab Services wrote, asked over the Service operators under Tab's tags.
+  assert.deepEqual(seven.reputation.fromTab, {
+    tag1: "tab",
+    tag2: "settled",
+    count: 1,
+    clients: [OPERATOR],
+    summaryValue: "100",
+    summaryValueDecimals: 0,
+    basis: seven.reputation.fromTab.basis,
+    unavailable: null,
+  });
+  assert.match(seven.reputation.fromTab.basis, /never read by the Credit Limit/);
+  const asked = reputationAsked.find((entry) => entry.agentId === 7n && entry.filter !== undefined);
+  assert.ok(asked?.filter?.clients.includes(OPERATOR), "the operators of registered Services are the client list");
 
   const nine = body.identity.agents[1]!;
   assert.equal(nine.owner, AGENT_A);
@@ -887,6 +924,50 @@ test("the Service read carries the operator's identity the same way", { skip }, 
   // And the plain app, with identity off, serves null rather than nothing.
   const plain = (await (await request(`/services/${SERVICE_ID}`)).json()) as IdentityBody;
   assert.equal(plain.identity, null);
+});
+
+interface ReputationBody {
+  readonly agent: string;
+  readonly reputation: {
+    readonly identityRegistry: string;
+    readonly reputationRegistry: string | null;
+    readonly agents: readonly {
+      readonly agentId: string;
+      readonly owner: string;
+      readonly agentWallet: string | null;
+      readonly matchedBy: readonly string[];
+      readonly reputation: NonNullable<IdentityBody["identity"]>["agents"][number]["reputation"];
+    }[];
+  } | null;
+}
+
+test("the reputation read names each agent an address holds and what Tab Services wrote about it", { skip }, async () => {
+  if (identityApp === null) throw new Error("test: no app");
+  const response = await identityApp.request(`/agents/${AGENT_A.toUpperCase().replace("0X", "0x")}/reputation`);
+  assert.equal(response.status, 200);
+  const body = (await response.json()) as ReputationBody;
+  assert.equal(body.agent, AGENT_A);
+  assert.notEqual(body.reputation, null);
+  if (body.reputation === null) return;
+  assert.equal(body.reputation.identityRegistry, IDENTITY_REGISTRY);
+  assert.equal(body.reputation.reputationRegistry, REPUTATION_REGISTRY);
+  assert.deepEqual(
+    body.reputation.agents.map((agent) => [agent.agentId, agent.matchedBy, agent.reputation.count, agent.reputation.fromTab.count]),
+    [
+      ["7", ["agentWallet"], 2, 1],
+      ["9", ["owner"], 0, 0],
+    ],
+  );
+  // No registration file on this read: it is the light one a Service polls.
+  assert.equal("card" in (body.reputation.agents[0] as object), false);
+
+  const stranger = (await (await identityApp.request(`/agents/${`0x${"99".repeat(20)}`}/reputation`)).json()) as ReputationBody;
+  assert.deepEqual(stranger.reputation?.agents, []);
+
+  // Identity off is `null`, and a malformed address is refused.
+  const plain = (await (await request(`/agents/${AGENT_A}/reputation`)).json()) as ReputationBody;
+  assert.equal(plain.reputation, null);
+  assert.equal((await request("/agents/0x1234/reputation")).status, 400);
 });
 
 test("a stranger's address has an empty identity under the stated basis", { skip }, async () => {

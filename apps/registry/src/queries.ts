@@ -497,6 +497,13 @@ export interface RegistryReads {
    * agent may sign Settlements with.
    */
   agentIdentities(address: string): Promise<readonly AgentIdentityRow[]>;
+  /**
+   * Every address that operates a registered Service, lowercase and sorted. A
+   * Service's operator cannot be reassigned, so this only ever grows. It is the
+   * client list a reader passes to the Reputation registry to ask what Tab
+   * Services said about an Agent, as opposed to what anyone said.
+   */
+  serviceOperators(): Promise<readonly string[]>;
   ping(): Promise<boolean>;
   close(): Promise<void>;
 }
@@ -1115,6 +1122,14 @@ export class PostgresReads implements RegistryReads {
        WHERE owner = ${address} OR agent_wallet = ${address}
        ORDER BY agent_id ASC`;
     return rows.map(agentIdentityRow);
+  }
+
+  async serviceOperators(): Promise<readonly string[]> {
+    const rows = await this.client<RawRow[]>`
+      SELECT DISTINCT lower(operator) AS operator
+        FROM registry.service_registered
+       ORDER BY 1`;
+    return rows.map((row) => text(row, "operator"));
   }
 
   async prepaidTotals(agent: string): Promise<readonly PrepaidTotalsRow[]> {

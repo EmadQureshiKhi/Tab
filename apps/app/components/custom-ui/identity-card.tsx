@@ -66,6 +66,8 @@ export interface IdentityCardProps {
   readonly registry: string;
   /** The explorer link for that contract, built by the route from its context helpers. */
   readonly registryHref?: string | undefined;
+  /** Leaves the reputation line out, for a page that gives reputation a section of its own. */
+  readonly hideReputation?: boolean | undefined;
   readonly className?: string | undefined;
 }
 
@@ -98,7 +100,7 @@ function reputationText(reputation: IdentityCardReputation): string {
   return parts.length === 0 ? "no summary was served" : parts.join(" ");
 }
 
-export function IdentityCard({ agent, registry, registryHref, className }: IdentityCardProps) {
+export function IdentityCard({ agent, registry, registryHref, hideReputation, className }: IdentityCardProps) {
   const headingId = `identity-${agent.agentId}`;
   const title = agent.name ?? `ERC-8004 agent #${agent.agentId}`;
 
@@ -166,10 +168,12 @@ export function IdentityCard({ agent, registry, registryHref, className }: Ident
             )}
           </dd>
         </div>
-        <div className={cn(ROW, "border-t border-border/40")}>
-          <dt className={LABEL}>Reputation</dt>
-          <dd className={VALUE}>{reputationText(agent.reputation)}</dd>
-        </div>
+        {hideReputation === true ? null : (
+          <div className={cn(ROW, "border-t border-border/40")}>
+            <dt className={LABEL}>Reputation</dt>
+            <dd className={VALUE}>{reputationText(agent.reputation)}</dd>
+          </div>
+        )}
         <div className={cn(ROW, "border-t border-border/40")}>
           <dt className={LABEL}>Registered</dt>
           <dd className={VALUE}>

@@ -285,7 +285,7 @@ export interface TabBookClientOptions {
   /** Supplies the witness for an Agent and Asset, already proven against the chain. */
   readonly witnessFor: (agent: string, asset: string) => Promise<Result<LimitWitness>>;
   /** Absent on a read-only run, which is the default. */
-  readonly signer?: Signer;
+  readonly signer?: Pick<Signer, "getAddress" | "sendTransaction">;
   /**
    * The address a simulation should present as `msg.sender`.
    *

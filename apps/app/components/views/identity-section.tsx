@@ -29,10 +29,12 @@ export interface IdentitySectionProps {
   readonly identity: IdentitySectionView;
   /** Builds the explorer link for an address, from the route's context. */
   readonly explorerAddressHrefFor?: ((address: string) => string) | undefined;
+  /** Leaves each card's reputation line out, where the page shows reputation in its own section. */
+  readonly hideReputation?: boolean | undefined;
   readonly className?: string | undefined;
 }
 
-export function IdentitySection({ identity, explorerAddressHrefFor, className }: IdentitySectionProps) {
+export function IdentitySection({ identity, explorerAddressHrefFor, hideReputation, className }: IdentitySectionProps) {
   if (identity.agents.length === 0 || identity.registry === undefined) {
     return (
       <div className={className}>
@@ -59,6 +61,7 @@ export function IdentitySection({ identity, explorerAddressHrefFor, className }:
             agent={agent}
             registry={registry}
             registryHref={explorerAddressHrefFor?.(registry)}
+            hideReputation={hideReputation}
           />
         ))}
       </div>

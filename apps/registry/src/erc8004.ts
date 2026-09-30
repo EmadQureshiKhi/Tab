@@ -93,13 +93,29 @@ export const ERC8004_IDENTITY_READ_ABI = SHARED_IDENTITY_ABI;
 /** The Reputation registry fragments, from the shared package; the route reads `getClients` and `getSummary`. */
 export const ERC8004_REPUTATION_READ_ABI = SHARED_REPUTATION_ABI;
 
-/** What `getSummary` returns, with the count of clients the summary spans. */
+/** What `getSummary` returns, with the clients the summary spans. */
 export interface ReputationSummary {
   readonly clientCount: number;
+  /** The clients the summary was asked over, lowercase: every client, or those of them the filter named. */
+  readonly clients: readonly string[];
   readonly count: number;
   /** A fixed-point figure; `summaryValueDecimals` says where the point sits. */
   readonly summaryValue: bigint;
   readonly summaryValueDecimals: number;
+}
+
+/**
+ * Narrows a summary to some clients and tags.
+ *
+ * `clients` is intersected with `getClients(agentId)` before `getSummary` is
+ * asked, because the registry refuses an empty list and a client that never
+ * wrote anything adds nothing. An empty tag matches every tag, as the registry
+ * defines it.
+ */
+export interface ReputationFilter {
+  readonly clients: readonly string[];
+  readonly tag1: string;
+  readonly tag2: string;
 }
 
 /**
