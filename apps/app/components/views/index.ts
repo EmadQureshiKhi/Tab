@@ -11,6 +11,7 @@ export { CurationAuthority, type CurationAuthorityProps } from "./curation-autho
 export { EmptyChain, type EmptyChainProps } from "./empty-chain";
 export { IdentitySection, type IdentitySectionProps, type IdentitySectionView } from "./identity-section";
 export { OverdueTabs, type OverdueTabRowView, type OverdueTabsProps } from "./overdue-tabs";
+export { ReputationSection, type ReputationSectionProps, type ReputationSectionView } from "./reputation-section";
 export {
   ServiceOperatorStrip,
   X402_STRIP_COPY,
