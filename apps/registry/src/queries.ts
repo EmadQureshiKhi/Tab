@@ -296,6 +296,11 @@ const tabObservationRow = (row: RawRow): TabObservationRow => ({
   monad: provenance(row),
 });
 
+export interface DeliveredTabRow {
+  readonly serviceId: string;
+  readonly asset: string;
+}
+
 export interface PrepaidObservationRow {
   readonly agent: string;
   readonly serviceId: string;
@@ -482,6 +487,8 @@ export interface RegistryReads {
   agents(pageSize: number, after: LogPosition | null): Promise<readonly AgentSummaryRow[]>;
   agentAssetTotals(agent: string): Promise<readonly AgentAssetTotalsRow[]>;
   tabObservations(agent: string): Promise<readonly TabObservationRow[]>;
+  /** Every Service and Asset the Agent has had a delivery metered to, settled or not. */
+  deliveredTabs(agent: string): Promise<readonly DeliveredTabRow[]>;
   prepaidObservations(agent: string): Promise<readonly PrepaidObservationRow[]>;
   prepaidTotals(agent: string): Promise<readonly PrepaidTotalsRow[]>;
   delinquencies(agent: string): Promise<readonly DelinquencyRow[]>;
@@ -1028,6 +1035,15 @@ export class PostgresReads implements RegistryReads {
        GROUP BY s.agent, s.asset
        ORDER BY s.asset`;
     return rows.map(agentAssetTotalsRow);
+  }
+
+  async deliveredTabs(agent: string): Promise<readonly DeliveredTabRow[]> {
+    const rows = await this.client<RawRow[]>`
+      SELECT DISTINCT d.service_id, d.asset
+        FROM registry.delivery_recorded d
+       WHERE d.agent = ${agent}
+       ORDER BY d.service_id, d.asset`;
+    return rows.map((row) => ({ serviceId: text(row, "service_id"), asset: text(row, "asset") }));
   }
 
   async tabObservations(agent: string): Promise<readonly TabObservationRow[]> {

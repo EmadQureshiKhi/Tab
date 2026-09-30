@@ -384,7 +384,7 @@ const PER_ASSET_SCHEMA: JsonSchema = {
           },
           serviceId: word("The Service the tab is with."),
           openBaseUnits: baseUnits(
-            "The Open Tab last observed on this tab. A lower bound: a Metered Delivery raises a tab without an indexed event, so the per-Asset figure above is the one to trust.",
+            "The Open Tab on this tab, read from TabBook.tabOf at the index horizon. Where the registry serves no live read, the Open Tab left by the tab's last Settlement, which is a lower bound because a Metered Delivery raises a tab without an indexed total.",
           ),
           dueIso: nullableString("When this tab's Settlement Window closes."),
         },
@@ -469,6 +469,10 @@ export const TAB_SETTLE_OUTPUT: JsonObjectSchema = {
     txHash: nullableString("The Monad transaction. Null on a dry run and on failure."),
     chainId: { type: ["integer", "null"] },
     amountBaseUnits: baseUnits("What was paid, echoed from the request."),
+    strategyId: nullableString("The payment strategy that settled, or would settle on a dry run."),
+    note: nullableString(
+      "On a dry run, what the strategy would do: its gas, and for a funded strategy the funding step it would take before the Settlement. Null once sent.",
+    ),
     settlementId: {
       type: ["string", "null"],
       pattern: WORD_PATTERN,

@@ -111,7 +111,17 @@ const AGENT_BODY = {
         observed: "10000",
         basis: "sum of the last observed Open Tab per tab",
         liveRead: "TabBook.assetOpen(agent, asset)",
-        tabs: [{ tabId: `0x${"33".repeat(32)}`, agent: AGENT, serviceId: SERVICE_ID, asset: TESTNET_MUSDC, openAfter: "10000", monad: provenance }],
+        tabs: [
+          {
+            tabId: `0x${"33".repeat(32)}`,
+            agent: AGENT,
+            serviceId: SERVICE_ID,
+            asset: TESTNET_MUSDC,
+            openAfter: "0",
+            monad: provenance,
+            live: { open: "10000", prepaid: "0", oldestUnsettledAt: "1790000000", delinquent: false, block: 5441800 },
+          },
+        ],
       },
       delinquency: { delinquent: false, openCount: 0, basis: "TabDelinquent", tabs: [] },
       settlements: {
@@ -330,6 +340,11 @@ test("tab_status maps the Agent read onto its declared output schema", async () 
   assert.deepEqual(output.perAsset[0].openTabBaseUnits, "10000");
   assert.deepEqual(output.perAsset[0].headroomBaseUnits, "4740000");
   assert.equal(output.perAsset[0].delinquent, false);
+  assert.deepEqual(
+    output.perAsset[0].tabs,
+    [{ tabId: `0x${"33".repeat(32)}`, serviceId: SERVICE_ID, openBaseUnits: "10000", dueIso: null }],
+    "a tab reports the live TabBook figure, not the 0 its last Settlement left",
+  );
   assert.deepEqual(output.settlements, [
     {
       settlementId: SETTLEMENT_ID,
@@ -651,6 +666,8 @@ test("tab_settle on a dry run checks the Service accepts the Asset and broadcast
   assert.equal(output.settlementId, null);
   assert.equal(output.chainId, 10143);
   assert.equal(output.amountBaseUnits, "10000");
+  assert.equal(output.strategyId, "stub-usdc", "a dry run names the strategy it would settle through");
+  assert.equal(output.note, "gas is not included", "and passes on the strategy's own account of what it would do");
   assert.deepEqual(strategies.settled, [], "a dry run submits nothing");
 });
 
@@ -675,6 +692,8 @@ test("tab_settle broadcasts through the strategy seam and reports what TabBook a
   assert.equal(output.appliedBaseUnits, "10000");
   assert.equal(output.prepaidBaseUnits, "0");
   assert.equal(output.explorerUrl, `https://testnet.monadvision.com/tx/0x${"ee".repeat(32)}`);
+  assert.equal(output.strategyId, "stub-usdc", "the receipt names the strategy that settled");
+  assert.equal(output.note, null);
   assert.equal(strategies.settled.length, 1);
   assert.equal(strategies.settled[0].amount, 10_000n, "an amount crosses the seam as a bigint, never a number");
   assert.equal(strategies.settled[0].agent, AGENT);

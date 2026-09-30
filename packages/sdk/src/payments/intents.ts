@@ -42,8 +42,11 @@
  *
  * The quote is `EXACT_OUTPUT` for the shortfall, so what reaches Monad is fixed
  * and the slippage tolerance is applied to the input side. The strategy sends
- * the quote's `amountIn`, which carries that tolerance, and the API refunds any
- * excess to the Agent's address on the funding chain. A shortfall below the
+ * the quote's `amountIn`, which carries that tolerance. The tolerance is a cost,
+ * not a deposit held against one: on the live Mainnet run the API kept the whole
+ * deposit, 113481 base units for a delivery of 111320, and refunded nothing.
+ * Only a deposit that fails or passes its deadline is refunded, to the Agent's
+ * address on the funding chain. A shortfall below the
  * smallest delivery the API accepts is raised to that minimum once, and the
  * difference stays in the Agent's Monad balance. `maxFundingAmount` is a
  * ceiling on the input, checked before anything is transferred.
@@ -56,6 +59,7 @@ import { causeOf, ok, wrap, type Address, type Hex, type Result } from "@tabai/s
 import { chainError, upstreamError, validationError } from "../errors.js";
 import { defaultLogger, type Logger } from "../logger.js";
 import { ERC20_ABI } from "./abi.js";
+import { batchSettledBy, extendFeeNote, settledBy } from "./wrapping.js";
 import type { EthersV6CallProvider, EthersV6Signer, EthersV6TransactionResponse } from "./monad.js";
 import {
   assetKey,
@@ -809,6 +813,15 @@ export function createIntentsFundedStrategy(config: IntentsFundedStrategyConfig)
       await sleep(pollIntervalMs);
     }
 
+    logger.info("the shortfall reached Monad through NEAR Intents; settling", {
+      strategyId: id,
+      depositAddress,
+      depositTxHash,
+      deliveryTxHashes: (delivered.value.swapDetails?.destinationChainTxHashes ?? []).map((entry) => entry.hash),
+      amountIn: delivered.value.swapDetails?.amountIn ?? amountIn.toString(10),
+      amountOut: delivered.value.swapDetails?.amountOut ?? amountOut.toString(10),
+      correlationId: quote.correlationId,
+    });
     if (intents.onFunded !== undefined) {
       try {
         intents.onFunded({
@@ -848,15 +861,20 @@ export function createIntentsFundedStrategy(config: IntentsFundedStrategyConfig)
       if (quote === undefined) {
         return ok({
           ...quoted.value,
-          feeNote: `${quoted.value.feeNote}; the Agent already holds ${balanceBefore.toString(10)} base units of ${request.asset.symbol} on Monad, so nothing is brought in first`,
+          feeNote: extendFeeNote(
+            quoted.value.feeNote,
+            `the Agent already holds ${balanceBefore.toString(10)} base units of ${request.asset.symbol} on Monad, so nothing is brought in first`,
+          ),
         });
       }
       return ok({
         ...quoted.value,
-        feeNote:
-          `${quoted.value.feeNote}; the Agent is short ${shortfall.toString(10)} base units of ${request.asset.symbol} on Monad, ` +
-          `so about ${quote.quote.amountIn} base units of ${funding.symbol} on chain ${funding.chainId.toString(10)} are brought to Monad through NEAR Intents first ` +
-          `(about ${quote.quote.timeEstimate} s), and the Settlement is then one Monad transaction as usual`,
+        feeNote: extendFeeNote(
+          quoted.value.feeNote,
+          `the Agent is short ${shortfall.toString(10)} base units of ${request.asset.symbol} on Monad, ` +
+            `so about ${quote.quote.amountIn} base units of ${funding.symbol} on chain ${funding.chainId.toString(10)} are brought to Monad through NEAR Intents first ` +
+            `(about ${quote.quote.timeEstimate} s), and the Settlement is then one Monad transaction as usual`,
+        ),
       });
     },
     async settle(request: SettleRequest): Promise<Result<SettlementReceipt>> {
@@ -865,7 +883,7 @@ export function createIntentsFundedStrategy(config: IntentsFundedStrategyConfig)
       if (!fundable(request.asset)) return unsupported(request.asset);
       const funded = await fund(request);
       if (!funded.ok) return funded;
-      return inner.settle(request);
+      return settledBy(id, await inner.settle(request));
     },
     ...(innerBatch === undefined
       ? {}
@@ -886,7 +904,7 @@ export function createIntentsFundedStrategy(config: IntentsFundedStrategyConfig)
               const funded = await fund(total);
               if (!funded.ok) return funded;
             }
-            return innerBatch.call(inner, requests);
+            return batchSettledBy(id, await innerBatch.call(inner, requests));
           },
         }),
   };

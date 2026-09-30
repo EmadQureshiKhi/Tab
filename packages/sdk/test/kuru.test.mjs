@@ -106,6 +106,7 @@ test("an Agent that already holds the Asset settles without a swap", async () =>
   const receipt = await strategy.settle(settleRequest(1_000_000n));
   assert.equal(receipt.ok, true);
   assert.equal(receipt.value.txHash, `0x${"aa".repeat(32)}`);
+  assert.equal(receipt.value.strategyId, "monad+kuru", "the receipt names the wrapper, not the inner strategy");
   assert.equal(settles.length, 1);
   assert.deepEqual(router.calls, [], "no quote and no swap");
   assert.equal(balance.state.reads, 1);

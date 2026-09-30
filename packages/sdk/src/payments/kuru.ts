@@ -45,6 +45,7 @@ import { causeOf, isAddress, ok, wrap, type Address, type Hex, type Result } fro
 import { chainError, upstreamError, validationError } from "../errors.js";
 import { defaultLogger, type Logger } from "../logger.js";
 import { ERC20_ABI } from "./abi.js";
+import { batchSettledBy, extendFeeNote, settledBy } from "./wrapping.js";
 import type { EthersV6Signer, EthersV6TransactionResponse } from "./monad.js";
 import {
   assetKey,
@@ -300,7 +301,7 @@ export function createKuruFundedStrategy(config: KuruFundedStrategyConfig): Paym
       if (!quoted.ok) return quoted;
       return ok({
         ...quoted.value,
-        feeNote: `${quoted.value.feeNote}; a shortfall in ${request.asset.symbol} is swapped in from ${kuru.source.symbol} through Kuru first`,
+        feeNote: extendFeeNote(quoted.value.feeNote, `a shortfall in ${request.asset.symbol} is swapped in from ${kuru.source.symbol} through Kuru first`),
       });
     },
     async settle(request: SettleRequest): Promise<Result<SettlementReceipt>> {
@@ -311,7 +312,7 @@ export function createKuruFundedStrategy(config: KuruFundedStrategyConfig): Paym
       }
       const funded = await fund(request);
       if (!funded.ok) return funded;
-      return inner.settle(request);
+      return settledBy(id, await inner.settle(request));
     },
     ...(innerBatch === undefined
       ? {}
@@ -323,7 +324,7 @@ export function createKuruFundedStrategy(config: KuruFundedStrategyConfig): Paym
               const funded = await fund(request);
               if (!funded.ok) return funded;
             }
-            return innerBatch.call(inner, requests);
+            return batchSettledBy(id, await innerBatch.call(inner, requests));
           },
         }),
   };

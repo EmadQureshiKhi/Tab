@@ -16,15 +16,18 @@
  * figure attached so nothing is hidden. Headroom is checked against
  * `TabBook.headroom` the same way.
  *
- * ## Open Tab is an observation, not the live figure
+ * ## Open Tab: the observation, and the live read beside it
  *
  * An Open Tab moves both ways. A Settlement reduces it, and that reduction is
  * indexed as `SettlementApplied.openAfter`. A Metered Delivery raises it, and
- * `DeliveryRecorded` carries the charge but not the running total, so the tab is
- * reported as at its last settlement, labelled as such, with the block it was
- * observed in. It is a lower bound on the tab now, and the live figure is
- * `TabBook.assetOpen(agent, asset)`, a public read that needs no signature. The
- * headroom block carries that read at the horizon block.
+ * `DeliveryRecorded` carries the charge but not the running total, so the index
+ * alone knows each tab only as at its last settlement: `observed` is that figure,
+ * labelled as such, and a lower bound on the tab now. The live figures are
+ * public reads that need no signature, taken at the horizon block: the headroom
+ * block carries `TabBook.assetOpen(agent, asset)`, and each tab row carries
+ * `TabBook.tabOf(tabIdOf(agent, serviceId, asset))` as `live`. The tab rows cover
+ * every Service the Agent has had a delivery metered to, so a tab that was never
+ * settled is listed too, with no observation and its live figure.
  *
  * ## Prepaid credit is exact
  *
@@ -70,7 +73,7 @@ import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { httpStatusOf, type TabError } from "@tabai/shared";
 
 import { parseCursor, parsePageSize, toPage } from "../cursor.js";
-import type { CreditChainReader } from "../chain-reads.js";
+import { tabIdOf, type CreditChainReader } from "../chain-reads.js";
 import { identityOf, reputationOfAddress, type IdentityDependencies } from "../identity-service.js";
 import { NANSEN_KEY_MISSING, type LabelSource } from "../nansen.js";
 import {
@@ -84,9 +87,11 @@ import {
 import {
   isHexAddress,
   type AgentAssetTotalsRow,
+  type DeliveredTabRow,
   type DelinquencyRow,
   type PrepaidObservationRow,
   type PrepaidTotalsRow,
+  type Provenance,
   type RegistryReads,
   type TabObservationRow,
 } from "../queries.js";
@@ -99,6 +104,32 @@ const fail = (c: Context, error: TabError): Response =>
 const sumBaseUnits = (values: readonly string[]): string =>
   values.reduce((total, value) => total + BigInt(value), 0n).toString();
 
+/**
+ * One tab of one Agent: what the index last observed of it, and what `TabBook`
+ * holds for it at the horizon block. Either may be absent, and neither stands in
+ * for the other.
+ */
+interface TabView {
+  readonly agent: string;
+  readonly serviceId: string;
+  readonly asset: string;
+  /** `TabBook.tabIdOf(agent, serviceId, asset)`. */
+  readonly tabId: string;
+  /** `SettlementApplied.openAfter` from the tab's last Settlement; null when it was never settled. */
+  readonly openAfter: string | null;
+  /** Where `openAfter` was read; null with it. */
+  readonly monad: Provenance | null;
+  /** `TabBook.tabOf` at the horizon block; null where the chain is not wired in or could not be read. */
+  readonly live: {
+    readonly open: string;
+    readonly prepaid: string;
+    /** Seconds; zero when nothing is open. */
+    readonly oldestUnsettledAt: string;
+    readonly delinquent: boolean;
+    readonly block: number;
+  } | null;
+}
+
 /** One Asset's credit picture for one Agent. */
 interface AgentAssetView {
   readonly asset: string;
@@ -108,7 +139,7 @@ interface AgentAssetView {
     readonly observed: string;
     readonly basis: string;
     readonly liveRead: string;
-    readonly tabs: readonly TabObservationRow[];
+    readonly tabs: readonly TabView[];
   };
   readonly delinquency: {
     readonly delinquent: boolean;
@@ -158,11 +189,59 @@ const NO_CHAIN_READER = (): AgentCreditView =>
   );
 
 /**
+ * The tab rows for one Agent and Asset: one per Service it was ever settled to or
+ * metered by, each with its last observation and its live state at the horizon.
+ * A live read that fails leaves `live` null on that row; the rest of the view
+ * still stands.
+ */
+async function toTabViews(
+  chain: CreditChainReader | undefined,
+  agent: string,
+  asset: string,
+  horizonBlock: number | null,
+  observed: readonly TabObservationRow[],
+  delivered: readonly DeliveredTabRow[],
+): Promise<readonly TabView[]> {
+  const services = [
+    ...new Set([...observed.map((row) => row.serviceId), ...delivered.filter((row) => row.asset === asset).map((row) => row.serviceId)]),
+  ].sort();
+  return Promise.all(
+    services.map(async (serviceId): Promise<TabView> => {
+      const observation = observed.find((row) => row.serviceId === serviceId);
+      let live: TabView["live"] = null;
+      if (chain !== undefined && horizonBlock !== null) {
+        try {
+          const tab = await chain.tabOf(agent, serviceId, asset, horizonBlock);
+          live = {
+            open: tab.open.toString(),
+            prepaid: tab.prepaid.toString(),
+            oldestUnsettledAt: tab.oldestUnsettledAt.toString(),
+            delinquent: tab.delinquent,
+            block: horizonBlock,
+          };
+        } catch {
+          live = null;
+        }
+      }
+      return {
+        agent,
+        serviceId,
+        asset,
+        tabId: tabIdOf(agent, serviceId, asset),
+        openAfter: observation?.openAfter ?? null,
+        monad: observation?.monad ?? null,
+        live,
+      };
+    }),
+  );
+}
+
+/**
  * Folds one Agent's rows into one entry per Asset, computing credit per Asset.
  *
- * The Asset set is the union of four sources rather than any one of them, so an
- * Asset that only ever appears in a delinquency, or only in a committed history
- * with no settlement totals yet, is still reported. Taking the settlement totals
+ * The Asset set is the union of every source rather than any one of them, so an
+ * Asset that only ever appears in a delinquency, only in a delivery, or only in a
+ * committed history with no settlement totals yet, is still reported. Taking the settlement totals
  * alone would hide exactly the Agent a credit view most needs to show.
  *
  * The Credit Limit is computed per Asset rather than once, because a Credit Limit
@@ -175,6 +254,7 @@ async function toAssetViews(
   horizonBlock: number | null,
   totals: readonly AgentAssetTotalsRow[],
   observations: readonly TabObservationRow[],
+  delivered: readonly DeliveredTabRow[],
   delinquencies: readonly DelinquencyRow[],
   creditAssets: readonly { readonly asset: string }[],
   prepaidTotals: readonly PrepaidTotalsRow[],
@@ -183,6 +263,7 @@ async function toAssetViews(
   const assets = new Set<string>([
     ...totals.map((row) => row.asset),
     ...observations.map((row) => row.asset),
+    ...delivered.map((row) => row.asset),
     ...delinquencies.map((row) => row.asset),
     ...creditAssets.map((row) => row.asset),
     ...prepaidTotals.map((row) => row.asset),
@@ -190,7 +271,8 @@ async function toAssetViews(
   ]);
 
   return Promise.all([...assets].sort().map(async (asset) => {
-    const tabs = observations.filter((row) => row.asset === asset);
+    const observed = observations.filter((row) => row.asset === asset);
+    const tabs = await toTabViews(chain, agent, asset, horizonBlock, observed, delivered);
     const flags = delinquencies.filter((row) => row.asset === asset);
     const prepaid = prepaidTotals.find((row) => row.asset === asset) ?? null;
     const draws = prepaidObservations.filter((row) => row.asset === asset);
@@ -209,10 +291,10 @@ async function toAssetViews(
       creditLimit: credit.creditLimit,
       headroom: credit.headroom,
       openTab: {
-        observed: sumBaseUnits(tabs.map((row) => row.openAfter)),
+        observed: sumBaseUnits(observed.map((row) => row.openAfter)),
         basis:
-          "sum of the last observed Open Tab per tab, each at its own block; a Metered Delivery raises a tab between observations, so this is a lower bound",
-        liveRead: "TabBook.assetOpen(agent, asset)",
+          "sum of the last observed Open Tab per tab, each at its own block; a Metered Delivery raises a tab between observations, so this is a lower bound. Each tab row also carries TabBook.tabOf at the horizon block as `live`",
+        liveRead: "TabBook.assetOpen(agent, asset), served as headroom.openTab",
         tabs,
       },
       delinquency: {
@@ -303,11 +385,12 @@ export function createAgentRoutes(reads: RegistryReads, options: AgentRouteOptio
       });
     }
 
-    const [index, totals, observations, delinquencies, creditAssets, prepaidTotals, prepaidDraws, identity, addressLabels] =
+    const [index, totals, observations, delivered, delinquencies, creditAssets, prepaidTotals, prepaidDraws, identity, addressLabels] =
       await Promise.all([
         reads.horizon(DEFAULT_STREAM),
         reads.agentAssetTotals(agent),
         reads.tabObservations(agent),
+        reads.deliveredTabs(agent),
         reads.delinquencies(agent),
         reads.creditAssets(agent),
         reads.prepaidTotals(agent),
@@ -326,6 +409,7 @@ export function createAgentRoutes(reads: RegistryReads, options: AgentRouteOptio
         index.lastBlock,
         totals,
         observations,
+        delivered,
         delinquencies,
         creditAssets,
         prepaidTotals,

@@ -225,6 +225,7 @@ test("a short Agent is funded for exactly the shortfall through a deposit on the
   const receipt = await strategy.settle(settleRequest(1_000_000n));
   assert.equal(receipt.ok, true, receipt.ok ? "" : receipt.error.message);
   assert.equal(settles.length, 1, "the inner strategy settled once, after the funding step");
+  assert.equal(receipt.value.strategyId, "intents-funded", "the receipt names the strategy that was asked for, not the one it wraps");
 
   assert.deepEqual(api.paths(), ["/v0/quote", "/v0/deposit/submit", "/v0/status", "/v0/status", "/v0/status"]);
   const quote = api.calls[0];
@@ -375,6 +376,7 @@ test("a dry run asks for a dry quote and moves nothing", async () => {
   assert.equal(quote.value.amount, 1_000_000n);
   assert.match(quote.value.feeNote, /short 750000 base units of USDC on Monad/);
   assert.match(quote.value.feeNote, /760000 base units of USDC on chain 8453 are brought to Monad through NEAR Intents first/);
+  assert.match(quote.value.feeNote, /^gas in MON\. The Agent is short .* as usual\.$/, "the funding step reads as a sentence after the inner note");
   assert.deepEqual(api.paths(), ["/v0/quote"]);
   assert.equal(api.calls[0].body.dry, true);
   assert.equal(signer.sent.length, 0, "no deposit");

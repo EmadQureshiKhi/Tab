@@ -53,6 +53,7 @@ import {
   serviceNameOf,
   shortenUri,
   toBigInt,
+  toCreditView,
   toIdentitySummary,
   toIdentityView,
   toLabelsView,
@@ -1123,4 +1124,23 @@ test("a provider mark is drawn in a colour that shows on the light disc behind i
 
 test("an example from a provider with no mark of its own is drawn with Tab's", () => {
   assert.equal(providerLogo("someone-new/model"), "/logo.png");
+});
+
+test("the credit gauge's Open Tab is the live TabBook read, not the lower bound left by the last Settlement", () => {
+  // Twenty deliveries after a Settlement that left 0: the index observed 0, the
+  // chain holds 200000, and the headroom beside it is measured from 200000.
+  const row = {
+    asset: "0x754704bc059f8c67012fed69bc8a327a5aafb603",
+    creditLimit: { value: "950000" },
+    headroom: { value: "750000", openTab: "200000" },
+    openTab: { observed: "0", basis: "lower bound", liveRead: "TabBook.assetOpen(agent, asset)" },
+    delinquency: { delinquent: false, openCount: 0 },
+    settlements: null,
+  };
+  const view = toCreditView(row);
+  assert.equal(view.openTabBaseUnits, 200_000n);
+  assert.equal(view.creditLimitBaseUnits! - view.openTabBaseUnits, view.headroomBaseUnits, "limit, open and headroom agree");
+
+  const withoutChain = toCreditView({ ...row, headroom: { value: null, openTab: null } });
+  assert.equal(withoutChain.openTabBaseUnits, 0n, "a registry with no chain reader leaves only the observation");
 });

@@ -212,7 +212,11 @@ export interface CreditView {
 export function toCreditView(row: AgentAssetRow): CreditView {
   const limit = toBigInt(row.creditLimit.value);
   const headroom = toBigInt(row.headroom.value);
-  const openTab = toBigInt(row.openTab.observed) ?? 0n;
+  // The live read at the horizon block, the same block as the limit and the
+  // headroom beside it. `observed` is as at each tab's last Settlement, so it
+  // misses deliveries since then; it stands in only for a registry without a
+  // chain reader.
+  const openTab = toBigInt(row.headroom.openTab) ?? toBigInt(row.openTab.observed) ?? 0n;
   const unavailable = row.creditLimit.unavailable?.message ?? row.headroom.unavailable?.message;
 
   return {

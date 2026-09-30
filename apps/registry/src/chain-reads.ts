@@ -29,7 +29,7 @@
  * omission, which is why the block timestamp read is safe here.
  */
 
-import { Interface, type JsonRpcProvider } from "ethers";
+import { AbiCoder, Interface, keccak256, type JsonRpcProvider } from "ethers";
 
 import type { LimitWitness } from "./credit.js";
 import {
@@ -64,6 +64,8 @@ export interface CreditChainReader {
   creditLimit(agent: string, asset: string, witness: LimitWitness, blockNumber: number): Promise<bigint>;
   headroom(agent: string, asset: string, witness: LimitWitness, blockNumber: number): Promise<bigint>;
   assetOpen(agent: string, asset: string, blockNumber: number): Promise<bigint>;
+  /** One tab as `TabBook.tabOf(tabIdOf(agent, serviceId, asset))` holds it at the block. */
+  tabOf(agent: string, serviceId: string, asset: string, blockNumber: number): Promise<LiveTab>;
   delinquentTabCount(agent: string, asset: string, blockNumber: number): Promise<number>;
   bondLedger(party: string, asset: string, blockNumber: number): Promise<LedgerFigures>;
 }
@@ -80,12 +82,27 @@ export const TAB_BOOK_READ_ABI = [
   "function creditLimit(address agent, address asset, (tuple(bytes32 serviceId, address asset, uint128 amount, uint64 settledAt, uint64 firstDeliveryAt, bool curated, bool bonded)[] history, tuple(bytes32 serviceId, address asset, uint128 amount)[] bonds) witness) view returns (uint256 limit)",
   "function headroom(address agent, address asset, (tuple(bytes32 serviceId, address asset, uint128 amount, uint64 settledAt, uint64 firstDeliveryAt, bool curated, bool bonded)[] history, tuple(bytes32 serviceId, address asset, uint128 amount)[] bonds) witness) view returns (uint256 available)",
   "function assetOpen(address agent, address asset) view returns (uint256 open)",
+  "function tabOf(bytes32 tabId) view returns (tuple(uint128 open, uint128 prepaid, uint64 oldestUnsettledAt, uint64 lastDeliveryAt, uint32 deliveryCount, bool delinquent) tab)",
   "function delinquentTabCount(address agent, address asset) view returns (uint32 count)",
 ] as const;
 
 export const BOND_READ_ABI = [
   "function ledgerOf(bytes32 party, address asset) view returns (tuple(uint128 staked, uint128 withdrawn) ledger)",
 ] as const;
+
+/** One tab's live state, read from `TabBook` at a block. */
+export interface LiveTab {
+  readonly tabId: string;
+  readonly open: bigint;
+  readonly prepaid: bigint;
+  /** Seconds; zero when nothing is open. */
+  readonly oldestUnsettledAt: bigint;
+  readonly delinquent: boolean;
+}
+
+/** `TabBook.tabIdOf`, which is `keccak256(abi.encode(agent, serviceId, asset))` and pure, so it is computed here. */
+export const tabIdOf = (agent: string, serviceId: string, asset: string): string =>
+  keccak256(AbiCoder.defaultAbiCoder().encode(["address", "bytes32", "address"], [agent, serviceId, asset])).toLowerCase();
 
 /** The witness as the ABI encoder takes it: positional tuples in declaration order. */
 const encodeWitness = (witness: LimitWitness): [unknown[], unknown[]] => [
@@ -179,6 +196,14 @@ export class EthersCreditChainReader implements CreditChainReader {
   async assetOpen(agent: string, asset: string, blockNumber: number): Promise<bigint> {
     const [open] = await this.call(this.tabBook, this.tabBookAddress, "assetOpen", [agent, asset], blockNumber);
     return BigInt(open as bigint);
+  }
+
+  async tabOf(agent: string, serviceId: string, asset: string, blockNumber: number): Promise<LiveTab> {
+    const tabId = tabIdOf(agent, serviceId, asset);
+    const [tab] = await this.call(this.tabBook, this.tabBookAddress, "tabOf", [tabId], blockNumber);
+    const fields = (tab as { toArray?: () => unknown[] }).toArray?.() ?? (tab as unknown[]);
+    const [open, prepaid, oldestUnsettledAt, , , delinquent] = fields as [bigint, bigint, bigint, bigint, bigint, boolean];
+    return { tabId, open: BigInt(open), prepaid: BigInt(prepaid), oldestUnsettledAt: BigInt(oldestUnsettledAt), delinquent: Boolean(delinquent) };
   }
 
   async delinquentTabCount(agent: string, asset: string, blockNumber: number): Promise<number> {

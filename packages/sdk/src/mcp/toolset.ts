@@ -209,6 +209,14 @@ export interface TabSettleOutput {
   readonly txHash?: string | null;
   readonly chainId?: number | null;
   readonly amountBaseUnits: string;
+  /** The strategy that settled, or would settle on a dry run. */
+  readonly strategyId?: string | null;
+  /**
+   * On a dry run, the strategy's own account of what `settle` would do: gas,
+   * and for a funded strategy the funding step it would take first. Null once
+   * sent.
+   */
+  readonly note?: string | null;
   readonly settlementId?: string | null;
   readonly appliedBaseUnits?: string | null;
   readonly prepaidBaseUnits?: string | null;
@@ -693,6 +701,8 @@ export function createTabToolset(options: TabToolsetOptions): TabToolset {
         txHash: null,
         chainId: Number(asset.value.chainId),
         amountBaseUnits,
+        strategyId: strategy.value.id,
+        note: quote.value.feeNote,
         settlementId: null,
         appliedBaseUnits: null,
         prepaidBaseUnits: null,
@@ -707,6 +717,8 @@ export function createTabToolset(options: TabToolsetOptions): TabToolset {
       txHash: receipt.value.txHash,
       chainId: Number(receipt.value.chainId),
       amountBaseUnits: receipt.value.amount.toString(10),
+      strategyId: receipt.value.strategyId,
+      note: null,
       settlementId: receipt.value.settlementId,
       appliedBaseUnits: receipt.value.applied === null ? null : receipt.value.applied.toString(10),
       prepaidBaseUnits: receipt.value.toPrepaid === null ? null : receipt.value.toPrepaid.toString(10),
@@ -910,14 +922,16 @@ function toPerAsset(
   const tabs = asArray(jsonPath(entry, "openTab", "tabs"))
     .slice(0, historyLimit)
     .map((tab) => {
-      // The index keys a tab observation by Agent, Service and Asset, not by the
-      // `TabBook` tabId, so the identity is often genuinely absent. Reporting the
-      // zero word here would name a tab that does not exist.
+      // An older registry keys a tab observation by Agent, Service and Asset
+      // without the `TabBook` tabId, so the identity may be absent. Reporting
+      // the zero word here would name a tab that does not exist.
       const tabId = asStringOrNull(field(tab, "tabId"));
+      // `live` is TabBook.tabOf at the index horizon. Without it, the last
+      // observation is all there is, and it is a lower bound.
       return {
         tabId: tabId !== null && /^0x[a-fA-F0-9]{64}$/.test(tabId) ? tabId.toLowerCase() : null,
         serviceId: asString(field(tab, "serviceId"), ZERO_WORD).toLowerCase(),
-        openBaseUnits: asDigits(field(tab, "openAfter"), "0"),
+        openBaseUnits: asDigitsOrNull(jsonPath(tab, "live", "open")) ?? asDigits(field(tab, "openAfter"), "0"),
         dueIso: null,
       };
     });

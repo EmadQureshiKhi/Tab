@@ -129,7 +129,8 @@ export interface ServedFigure {
 export interface AgentAssetRow {
   readonly asset: string;
   readonly creditLimit: ServedFigure;
-  readonly headroom: ServedFigure;
+  /** `openTab` is `TabBook.assetOpen` at the same block, served even where the headroom value is withheld. */
+  readonly headroom: ServedFigure & { readonly openTab?: string | null | undefined };
   readonly openTab: { readonly observed: string; readonly basis: string; readonly liveRead: string };
   readonly delinquency: { readonly delinquent: boolean; readonly openCount: number };
   readonly settlements:

@@ -159,6 +159,7 @@ const AGREEING_CHAIN: CreditChainReader = {
   creditLimit: async () => 0n,
   headroom: async () => 0n,
   assetOpen: async () => 0n,
+  tabOf: async (agent, serviceId, asset) => ({ tabId: tabIdOf(agent, serviceId, asset), open: 0n, prepaid: 0n, oldestUnsettledAt: 0n, delinquent: false }),
   delinquentTabCount: async () => 0,
   bondLedger: async () => ({ staked: 10_000_000n, withdrawn: 3_000_000n }),
 };
@@ -741,6 +742,48 @@ test("the Agent read carries Open Tab, delinquency with its clearing, and settle
   assert.equal(view.settlements.prepaidTotal, "200000");
   assert.equal(view.settlements.firstBlock, FIXTURE_FROM + 1);
   assert.equal(view.settlements.lastBlock, FIXTURE_FROM + 2);
+});
+
+test("each tab row carries its id, its last observation, and TabBook.tabOf at the horizon", { skip }, async () => {
+  // Deliveries after the last Settlement raise the tab without an event the
+  // index can total, so the observation says 0 while the chain says 250000.
+  // The row serves both, each labelled, and neither in place of the other.
+  if (reads === null) throw new Error("test: no reads");
+  const reading: string[] = [];
+  const liveApp = createApp({
+    status: () => IDLE_STATUS,
+    databaseReachable: () => reads.ping(),
+    reads,
+    chain: {
+      ...AGREEING_CHAIN,
+      tabOf: async (agent, serviceId, asset, block) => {
+        reading.push(`${agent}|${serviceId}|${asset}|${block}`);
+        return { tabId: tabIdOf(agent, serviceId, asset), open: 250_000n, prepaid: 0n, oldestUnsettledAt: 1_790_000_100n, delinquent: false };
+      },
+    },
+  });
+  const response = await liveApp.request(`/agents/${AGENT_A}`);
+  assert.equal(response.status, 200);
+  const body = (await response.json()) as {
+    index: { lastBlock: number };
+    assets: { openTab: { observed: string; tabs: { tabId: string; serviceId: string; openAfter: string | null; live: { open: string; oldestUnsettledAt: string; block: number } | null }[] } }[];
+  };
+  const tabs = body.assets[0]?.openTab.tabs ?? [];
+  assert.equal(tabs.length, 1);
+  assert.equal(tabs[0]?.tabId, tabA1, "the id TabBook.tabIdOf gives, computed without a read");
+  assert.equal(tabs[0]?.serviceId, SERVICE_ID);
+  assert.equal(tabs[0]?.openAfter, "0", "the observation stays what the last Settlement left");
+  assert.equal(tabs[0]?.live?.open, "250000", "and the live read says what is open now");
+  assert.equal(tabs[0]?.live?.oldestUnsettledAt, "1790000100");
+  assert.equal(tabs[0]?.live?.block, body.index.lastBlock, "read at the horizon block, like every other figure");
+  assert.equal(body.assets[0]?.openTab.observed, "0");
+  assert.deepEqual(reading, [`${AGENT_A}|${SERVICE_ID}|${ASSET_A}|${body.index.lastBlock}`]);
+
+  // Without a chain reader the row still names the tab, and says it has no live figure.
+  const plain = await request(`/agents/${AGENT_A}`);
+  const plainBody = (await plain.json()) as { assets: { openTab: { tabs: { tabId: string; live: unknown }[] } }[] };
+  assert.equal(plainBody.assets[0]?.openTab.tabs[0]?.tabId, tabA1);
+  assert.equal(plainBody.assets[0]?.openTab.tabs[0]?.live, null);
 });
 
 test("a witness the index cannot fold is refused whole, never served short", { skip }, async () => {
