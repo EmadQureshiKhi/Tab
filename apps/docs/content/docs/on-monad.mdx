@@ -19,6 +19,7 @@ An x402 payment, an identity, a label, a passkey, a swap: each is stated on the 
 | Nansen | Address labels beside an Agent's identity |
 | Mera passkeys | A Dashboard account with no extension and no seed phrase |
 | MetaMask Agent Wallet | `mm tab`, the rail as wallet plugin commands |
+| Privy server wallets | An Agent key outside the Agent's process, bounded by a signing policy |
 | Chainlink CRE | The delinquency keeper's schedule, as a CRE workflow that runs under the simulator and is not yet deployed to a DON |
 | Kuru | Settling from a token the tab is not denominated in |
 | Agora AUSD | A first-class Asset on Mainnet |
@@ -112,6 +113,14 @@ The key signs claims and nothing else: it cannot move funds, and every charge it
 It lapses at its expiry, at most a year ahead, and `mm tab delegate --revoke --broadcast` withdraws it in one transaction.
 This needs `MeteringDelegates` deployed on the network and read by the Service's gateway; where it is not, the call goes unsigned as before and a Service that requires a signature refuses it by name.
 
+## Privy server wallets
+
+`createPrivyAgentSigner` is an ethers signer whose key lives in a Privy server wallet, so the Agent's process never holds it.
+Metering claims are signed with `personal_sign`, Permit2 Settlements with `eth_signTypedData_v4`, and `authorise`, `approve` and `settle` with `eth_signTransaction` and broadcast through the Agent's own Monad provider.
+The wallet is created under a Privy policy that allows exactly those calls on this chain's `TabSettlement`, `TabBook`, Permit2 and accepted Assets, with a value of zero, and refuses everything else.
+The policy and the wallet are owned by a key that stays off the Agent's machine, and the Agent signs as an additional signer that cannot change either.
+Privy enforces the policy off chain, when it is asked to sign, and it needs a Privy app; the [integration page](/integration#an-agent-key-in-a-privy-server-wallet) has the configuration and the rules.
+
 ## Chainlink CRE, and the keeper
 
 A tab whose Settlement Window has closed with the tab still open may be marked delinquent by anyone.
@@ -135,4 +144,4 @@ Tab holds no rate between the two: a tab in AUSD is settled in AUSD.
 
 Take every piece on this page away and the rail is the same rail.
 A Service meters after delivery, an Agent settles with its own key in one transaction, the chain applies the payment, and the Credit Limit is computed from the record the chain kept.
-The pieces make it cheaper to reach (passkeys, the plugin), cheaper to run (HyperSync, the keeper on a schedule), gasless to settle (Permit2), and wider in what an Agent can buy on credit (the Hub), and the [boundaries page](/limitations) states the edge of each.
+The pieces make it cheaper to reach (passkeys, the plugin), safer to hold (a Privy wallet's policy), cheaper to run (HyperSync, the keeper on a schedule), gasless to settle (Permit2), and wider in what an Agent can buy on credit (the Hub), and the [boundaries page](/limitations) states the edge of each.
