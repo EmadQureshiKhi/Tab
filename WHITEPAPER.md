@@ -520,7 +520,8 @@ Both gateways accept delegate-signed metered calls and write an ERC-8004 reputat
 Runs against the live deployments exercise the newer surfaces.
 The MetaMask Agent Wallet plugin ran on Mainnet from a MetaMask server wallet: `mm tab delegate --broadcast` registered a delegate, `mm tab authorise` set the ceiling, `mm tab call` metered 0.01 USDC signed by the delegate with no wallet approval, and `mm tab settle --broadcast` settled it in block 109352198, each wallet transaction approved through MetaMask's email MFA.
 A Privy server-wallet Agent ran on Testnet against a real Privy app: a policy, a signer and a wallet were created, a transfer to an address the policy does not name was refused with Privy's own `policy_violation`, and the loop settled both directly and gasless through the relay until the tabs were at zero.
-The `intents-funded` strategy has live dry quotes from Base and Arbitrum USDC to Monad USDC; a live funded run is pending.
+The `intents-funded` strategy ran on Mainnet with the Agent's USDC on Arbitrum: owing 0.20 USDC with 0.08868 on Monad, the Agent deposited 0.113481 USDC on Arbitrum, NEAR Intents delivered the 0.11132 shortfall to its Monad address in block 109379795, and the Settlement of 0.20 landed in block 109379821, one Monad transaction as always.
+The quote's slippage tolerance was kept rather than refunded, so the funding step cost about 1.9% on that small amount.
 
 ### 8.2 The test suite
 
@@ -542,7 +543,7 @@ The `intents-funded` strategy has live dry quotes from Base and Arbitrum USDC to
 | `property/BondInvariant.t.sol` | 5 | Credit strictly under the Bond sum, and zero Bond yielding zero credit |
 
 The property suites run at 256 fuzz runs each under the default profile, covering the claims the credit model rests on: the limit never exceeds the bond cap, the concentration and bond rules compose, a zero Bond sum yields zero credit for any history, and the escrow balance equals the sum of free stake.
-Beside them, 787 tests cover the eight TypeScript packages: the SDK, the shared constants, the gateway, the registry, the two keepers, the plugin and the Dashboard.
+Beside them, 789 tests cover the eight TypeScript packages: the SDK, the shared constants, the gateway, the registry, the two keepers, the plugin and the Dashboard.
 
 ### 8.3 Keyless verification
 

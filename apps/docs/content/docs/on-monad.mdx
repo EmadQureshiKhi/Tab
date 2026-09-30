@@ -176,7 +176,17 @@ The shortfall is the swap's minimum out, so a Settlement is either fully funded 
 `createIntentsFundedStrategy`, strategy id `intents-funded`, wraps a strategy the same way and reads the Agent's Monad balance of USDC before every Settlement.
 When it is short, it asks the NEAR Intents 1Click API for the shortfall delivered to the Agent's own Monad address, pays the quoted USDC in on the funding chain, waits for the delivery, checks the Monad balance again, and only then settles.
 The funding step happens before the Settlement and only fills the Agent's balance; the Settlement is still one Monad transaction, same-chain and atomic.
-It is tested with mocks, and live dry quotes from Base and Arbitrum USDC to Monad USDC are confirmed; a live funded run is pending.
+It has run live on Mainnet, with the Agent's USDC on Arbitrum.
+The Agent owed 0.20 USDC to `tab.demo` and held 0.08868 on Monad, so it was 0.11132 short:
+
+| Step | Chain | Transaction |
+| --- | --- | --- |
+| Deposit 0.113481 USDC to the 1Click deposit address | Arbitrum, block 510411104 | `0xd4cd3e62b519affab2828b0b72e8152ae63dea9ed6891e57001afa3017a8168d` |
+| NEAR Intents delivers 0.11132 USDC to the Agent's own Monad address | Monad, block 109379795 | `0x5e110d8601b7602274f76c06e80e8a658b07d37eec210d27c0f33b29e9b57f74` |
+| The Settlement of 0.20 USDC, applied to the tab in the same transaction | Monad, block 109379821 | `0x863e9ae50961b38e7bf12e7ae14e7384bc543725ea51c8acdd9dc8bf9f817497` |
+
+The slippage tolerance is spent, not refunded: that run paid 0.113481 for 0.11132 delivered.
+Of the 0.002161 difference, 0.001125 was the 1% tolerance and the rest the route's own fees, about 1.9% in all on a small amount; a larger shortfall spreads the fixed fees thinner, and a lower `slippageBps` shrinks the tolerance.
 The [integration page](/integration#funding-from-another-chain) has the configuration.
 
 ## Agora AUSD

@@ -429,7 +429,8 @@ The strategy id is `intents-funded`, so `tab settle --strategy intents-funded` n
 It supports Mainnet USDC only, the one Tab Asset NEAR Intents delivers on Monad, and declines Testnet mUSDC so another strategy resolves for it.
 A dry run asks for a `dry: true` quote, which creates no deposit address, and reports the input it would take; nothing moves until `--broadcast`.
 A refused quote, an input above `maxFundingAmount`, a funding signer on the wrong chain or short of USDC, a refund, a failure or a timeout each come back as a `Result` naming the deposit address and the last status, and no Settlement is sent.
-Refunds go to the Agent's own address on the funding chain.
+A failed or expired deposit is refunded to the Agent's own address on the funding chain; the slippage tolerance on a delivered one is spent, not refunded.
+The strategy has run live on Mainnet: owing 0.20 USDC with 0.08868 on Monad, the Agent deposited 0.113481 USDC on Arbitrum, NEAR Intents delivered the 0.11132 shortfall to its Monad address in block 109379795, and the Settlement of 0.20 landed in block 109379821. The transactions are on the [On Monad](https://trytabai-docs.vercel.app/on-monad) page.
 The API talks through `OneClickClient`, a three-method seam with an injectable `fetch`, so a test drives the whole flow without a network.
 A partner key is optional: without one the API answers and charges an extra fee on each quote.
 The strategy is tested with mocks, and live dry quotes from Base and Arbitrum USDC to Monad USDC are confirmed; a live funded run is pending.

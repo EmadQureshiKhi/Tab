@@ -235,6 +235,7 @@ A Settlement restores headroom in the block it lands, so the retry after one suc
 
 `tab_settle` takes `dryRun` for exactly this moment.
 It resolves the Service's Collection address, checks the Asset is accepted, and reports what it would broadcast without broadcasting it.
+The answer names the strategy it would settle through as `strategyId`, and carries that strategy's own account of the Settlement as `note`: the gas, and for a funded strategy the shortfall and what it would bring in first.
 
 The other answer to a refusal is to pay for that one call.
 When the Service's `402` carries an x402 `PAYMENT-REQUIRED` offer and `tab.config` names an `x402` signer, `tab_call` signs an EIP-3009 authorization for the charge, repeats the request with `PAYMENT-SIGNATURE`, and returns the result with an `x402` block naming the transaction.
@@ -396,7 +397,7 @@ A receipt carries the transaction hash and, once the receipt is read, the `settl
 `createIntentsFundedStrategy` is the same wrapping with a different source of funds: USDC the Agent holds on another chain.
 Before every Settlement it reads the Agent's Monad balance of the Asset.
 When the balance covers the amount it delegates straight to the inner strategy.
-When it is short, it asks the NEAR Intents 1Click API for an `EXACT_OUTPUT` quote of the shortfall delivered to the Agent's own Monad address, with refunds to the Agent's address on the funding chain.
+When it is short, it asks the NEAR Intents 1Click API for an `EXACT_OUTPUT` quote of the shortfall delivered to the Agent's own Monad address, with a failed or expired deposit refunded to the Agent's address on the funding chain.
 It refuses a quote above `maxFundingAmount`, transfers the quoted USDC to the deposit address on the funding chain, polls the status until `SUCCESS`, and checks that the Monad balance now covers the amount before it settles.
 
 Settlement is same-chain and atomic by design, and this does not change it.
@@ -422,7 +423,10 @@ Its id is `intents-funded`, which `tab_settle` takes as `strategyId` and the CLI
 The repository's `tab.config.mjs` builds it on Mainnet when `INTENTS_FUNDING_CHAIN` (`base`, `arbitrum`, `ethereum`, `optimism`, `polygon` or `avalanche`) and `INTENTS_FUNDING_RPC_URL` are set, with `INTENTS_FUNDING_MAX_BASE_UNITS` as the ceiling and an optional `NEAR_INTENTS_API_KEY`.
 Only Mainnet USDC is supported, because it is the one Tab Asset NEAR Intents delivers on Monad; Testnet mUSDC is declined and resolves to another strategy.
 A dry run asks only for a `dry: true` quote, which creates no deposit address, so it moves nothing.
-The strategy is tested with mocks, and live dry quotes from Base and Arbitrum USDC to Monad USDC are confirmed; a live funded run is pending.
+It has run live on Mainnet: owing 0.20 USDC with 0.08868 on Monad, the Agent deposited 0.113481 USDC on Arbitrum, NEAR Intents delivered the 0.11132 shortfall to its Monad address in block 109379795, and the Settlement of 0.20 landed in block 109379821.
+The slippage tolerance is spent, not refunded: that run paid 0.113481 for 0.11132 delivered.
+Of the 0.002161 difference, 0.001125 was the 1% tolerance and the rest the route's own fees, about 1.9% in all on a small amount; a larger shortfall spreads the fixed fees thinner, and a lower `slippageBps` shrinks the tolerance.
+The [On Monad](/on-monad#near-intents-fund-from-another-chain-then-settle-on-monad) page has the three transactions.
 
 ### A strategy over a different signer
 
