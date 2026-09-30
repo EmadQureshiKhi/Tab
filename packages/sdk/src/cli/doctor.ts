@@ -130,7 +130,11 @@ export async function runDoctor(options: DoctorOptions): Promise<DoctorReport> {
   );
 
   // ---- Monad, keyless
-  if (settings.rpcUrl === undefined) {
+  // A fresh install configures no endpoint and settles through the hosted
+  // deployment over the network's public RPC, so that is what gets checked.
+  const hosted = settings.rpcUrl === undefined ? settings.hostedSettlement : undefined;
+  const rpcUrl = settings.rpcUrl ?? hosted?.rpcUrl;
+  if (rpcUrl === undefined) {
     checks.push(
       skip("monad-rpc", "no Monad RPC endpoint is configured", "set MONAD_RPC_URL"),
       skip("monad-contracts", "skipped: there is no endpoint to read from"),
@@ -141,7 +145,7 @@ export async function runDoctor(options: DoctorOptions): Promise<DoctorReport> {
     // own, and `eth_chainId` is then asked directly: a static network would
     // otherwise answer the configured id without the endpoint being consulted,
     // which is the one check this exists to make.
-    const provider = new JsonRpcProvider(settings.rpcUrl, Network.from(expected), { staticNetwork: true });
+    const provider = new JsonRpcProvider(rpcUrl, Network.from(expected), { staticNetwork: true });
     try {
       const [answered, head] = await Promise.all([
         withTimeout(provider.send("eth_chainId", []) as Promise<unknown>, timeoutMs, "eth_chainId"),
@@ -150,17 +154,17 @@ export async function runDoctor(options: DoctorOptions): Promise<DoctorReport> {
       const chainId = typeof answered === "string" ? Number.parseInt(answered, 16) : Number.NaN;
       checks.push(
         chainId === expected
-          ? pass("monad-rpc", `chain id ${chainId} at block ${head}`)
+          ? pass("monad-rpc", `chain id ${chainId} at block ${head}${hosted === undefined ? "" : " (the network's public endpoint)"}`)
           : bad(
               "monad-rpc",
               `the endpoint answers chain id ${chainId} and the configuration expects ${expected}`,
               "every contract address in the configuration names a contract on one chain; reading a different one would produce confident wrong answers",
             ),
       );
-      checks.push(...(await contractChecks(provider, env, timeoutMs)));
+      checks.push(...(await contractChecks(provider, env, timeoutMs, settings.hostedSettlement?.tabSettlement)));
     } catch (error) {
       checks.push(
-        bad("monad-rpc", `${settings.rpcUrl} could not be read: ${reason(error)}`, "check MONAD_RPC_URL"),
+        bad("monad-rpc", `${rpcUrl} could not be read: ${reason(error)}`, "check MONAD_RPC_URL"),
         skip("monad-contracts", "skipped: the endpoint did not answer"),
       );
     } finally {
@@ -236,11 +240,15 @@ export async function runDoctor(options: DoctorOptions): Promise<DoctorReport> {
   return { checks, ok: counts.fail === 0, counts };
 }
 
-/** `eth_getCode` at each configured contract address. */
+/**
+ * `eth_getCode` at each configured contract address, or, with none configured,
+ * at the hosted `TabSettlement` a fresh install settles through.
+ */
 async function contractChecks(
   provider: JsonRpcProvider,
   env: NodeJS.ProcessEnv,
   timeoutMs: number,
+  hostedSettlement: string | undefined,
 ): Promise<readonly DoctorCheck[]> {
   const configured: { readonly variable: string; readonly label: string; readonly address: string }[] = [];
   for (const [variable, label] of CONTRACTS) {
@@ -250,6 +258,10 @@ async function contractChecks(
     if (address === undefined) continue;
     if (!/^0x[a-fA-F0-9]{40}$/.test(address) || address.toLowerCase() === ZERO_ADDRESS) continue;
     configured.push({ variable, label, address });
+  }
+
+  if (configured.length === 0 && hostedSettlement !== undefined) {
+    configured.push({ variable: "TAB_SETTLEMENT_ADDRESS", label: "TabSettlement", address: hostedSettlement });
   }
 
   if (configured.length === 0) {

@@ -348,6 +348,21 @@ test("doctor fails on a Monad endpoint that answers the wrong chain id", async (
   assert.equal(report.ok, false);
 });
 
+test("doctor with no endpoint configured reads the hosted deployment's public endpoint instead of skipping", async () => {
+  const report = await runDoctor({
+    settings: settings({
+      rpcUrl: undefined,
+      hostedSettlement: { tabSettlement: "0x654Fac48185e4B71779eEc2457B1F24aEdf46717", assets: {}, rpcUrl: "http://127.0.0.1:1" },
+    }),
+    env: {},
+    timeoutMs: 1500,
+    logger: silent,
+  });
+  const rpc = report.checks.find((check) => check.name === "monad-rpc");
+  assert.equal(rpc.status, "fail", "the fallback endpoint was consulted");
+  assert.match(rpc.detail, /127\.0\.0\.1:1/);
+});
+
 // ---------------------------------------------------------------- the entry point
 
 test("the CLI answers help and an unknown command without throwing", async () => {

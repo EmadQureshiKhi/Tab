@@ -545,7 +545,7 @@ An integrator needs a much smaller set than a developer does.
 
 | Variable | Needed for |
 | --- | --- |
-| `MONAD_RPC_URL` | `doctor`'s chain checks, and the provider a signer in `tab.config` sends through. The MCP tools read through the registry read API and need no RPC |
+| `MONAD_RPC_URL` | `doctor`'s chain checks, and the provider a signer in `tab.config` sends through; the network's public endpoint when unset. The MCP tools read through the registry read API and need no RPC |
 | `MONAD_CHAIN_ID` | `143` for Mainnet, `10143` for Testnet. Defaults to Testnet |
 | `MONAD_EXPLORER_URL` | the links a page or a receipt prints. Never read by the contracts or the SDK's chain calls |
 | `TAB_BOOK_ADDRESS`, `TAB_SETTLEMENT_ADDRESS`, `SERVICE_REGISTRY_ADDRESS`, `BOND_ADDRESS` | resolving credit, Services and Bond |

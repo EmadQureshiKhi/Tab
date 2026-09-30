@@ -187,7 +187,7 @@ The key is read at the moment a Settlement is built, and never from this file. `
 
 | Variable | Needed for |
 | --- | --- |
-| `MONAD_RPC_URL` | `doctor`'s chain checks and a Settlement signer. The MCP tools read through the registry API |
+| `MONAD_RPC_URL` | `doctor`'s chain checks and a Settlement signer, the network's public endpoint when unset. The MCP tools read through the registry API |
 | `MONAD_CHAIN_ID` | `143` for Mainnet, `10143` for Testnet. Defaults to Testnet |
 | `TAB_BOOK_ADDRESS`, `TAB_SETTLEMENT_ADDRESS`, `SERVICE_REGISTRY_ADDRESS`, `BOND_ADDRESS` | resolving credit, Services and Bond |
 | `NEXT_PUBLIC_REGISTRY_API_URL` | the Service directory and an agent's history. Defaults to the project's hosted registry for the chosen network |
