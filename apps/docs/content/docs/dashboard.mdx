@@ -15,7 +15,7 @@ Signing takes a wallet extension or a passkey; the passkey needs nothing install
 | `/explorer` | Every Settlement by its `settlementId`, and the overdue tabs anyone may mark |
 | `/explorer/[settlementId]` | One Settlement: Agent, Service, Asset, amount, what applied to the tab and what banked as prepaid credit, and the Collection address it went to |
 | `/agents` | Every Agent the index has seen, with Open Tab per Asset |
-| `/agents/[agent]` | One Agent: its ERC-8004 identities and Nansen labels, then Credit Limit, Open Tab, prepaid credit and headroom per Asset, and its Settlement history |
+| `/agents/[agent]` | One Agent: its ERC-8004 identities and Nansen labels, its reputation from the ERC-8004 Reputation registry, stated as a derived signal the Credit Limit never reads, then Credit Limit, Open Tab, prepaid credit and headroom per Asset, and its Settlement history |
 | `/services` | Every registered Service, its terms, its Bond, its operator's ERC-8004 identity, and any queued change with the time left on its hold |
 | `/services/new` | Register a Service |
 | `/services/bond` | Post or withdraw a Bond |

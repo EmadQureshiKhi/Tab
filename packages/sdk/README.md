@@ -228,12 +228,13 @@ The main surfaces:
 
 ### Running a metered Service
 
-Deliver first, charge after. The plugin adds exactly one status code to your surface, a `402` when a charge would exceed the caller's credit limit.
+Deliver first, charge after.
+The plugin adds three status codes to your surface: a `402` when a charge would exceed the caller's credit limit, a `403` when the Agent's spending authorisation is missing, lapsed or spent, and a `409` when the tab is delinquent.
 
 ```ts
-import { honoTabPostPaid } from "@tabai/sdk";
+import { honoTabPostPaid, tabPostPaid } from "@tabai/sdk";
 
-app.use("/meter/*", honoTabPostPaid({ serviceId, priceOf, tabBook }));
+app.use("/meter/*", honoTabPostPaid(tabPostPaid({ serviceId, asset, priceOf, tabBook })));
 ```
 
 Mount it under `/meter/`: `tab_call` sends a call to `<endpoint>/meter/<tool>`, so the endpoint in `tab.config` is the Service's root and `/hub/<prefix>` sits beside the tools.
@@ -243,7 +244,8 @@ A gateway anyone can reach requires a signature on every metered call, and the A
 An Agent whose wallet cannot sign a message can name a session key in `MeteringDelegates` once, on chain, and put `headers: delegateSignedMetering(() => ({ agent, signer }))` on the entry instead.
 The key signs the same digest, sent as `Tab-Delegate-Signature` beside `Tab-Delegate`, and the gateway accepts it only while the chain says the Agent registered that key.
 A delegate signs claims and nothing else, cannot move funds, and stays within the Agent's `TabBook.authorise` ceilings.
-`METERING_DELEGATES` carries each network's address, `undefined` until deployed.
+`METERING_DELEGATES` carries the contract's address on each network, and it is deployed on both.
+Both hosted gateways accept delegate signatures and read the contract on every delegate-signed call, so a revocation takes effect on the next call.
 
 ### Adding a strategy
 
@@ -293,6 +295,7 @@ A policy refusal throws `PrivyError` with code `PRIVY_POLICY_DENIED`, which a st
 `buildPrivyAgentPolicy` writes the policy for one chain: transactions only to `TabSettlement` (`settle`, `settleBatch`), `TabBook` (`authorise`), an accepted Asset (`approve` with `TabSettlement` or Permit2 as spender) and Permit2 (`invalidateUnorderedNonces`), with a value of zero; typed data only as a Permit2 `PermitWitnessTransferFrom` to `TabSettlement`; and `personal_sign` only for a metering claim.
 `createPrivyAgentWallet` creates that policy and an `ethereum` wallet, both owned by an owner key, and adds the Agent's own authorization key as a signer bound to the policy, so the credentials on the Agent's machine cannot loosen it.
 `scripts/privy-agent.mjs` in the repository drives both, and the loop, against the live deployment.
+It has run on Testnet against a real Privy app: the policy, signer and wallet were created, a transfer to an address the policy does not name came back as Privy's own `policy_violation`, and the loop settled directly and gasless through the relay until the tabs were at zero.
 
 It needs a Privy app (an app id and secret).
 Privy enforces the policy off chain, in its signing enclave, at the moment it signs; the contracts treat the wallet like any other account.
@@ -429,6 +432,7 @@ A refused quote, an input above `maxFundingAmount`, a funding signer on the wron
 Refunds go to the Agent's own address on the funding chain.
 The API talks through `OneClickClient`, a three-method seam with an injectable `fetch`, so a test drives the whole flow without a network.
 A partner key is optional: without one the API answers and charges an extra fee on each quote.
+The strategy is tested with mocks, and live dry quotes from Base and Arbitrum USDC to Monad USDC are confirmed; a live funded run is pending.
 
 ### Configuration keys
 
@@ -459,6 +463,7 @@ Tab is deployed on both Monad networks, and `MONAD_CHAIN_ID` picks which one thi
 | `Bond` | `0xbA86C0D053ba88afDECbED8aBa5b2eC3973fb230` | `0x29aDfD90Fc7c9026563Fc60651f696ab089080E7` |
 | `TabBook` | `0x0Dabf8E52280D0F128f546602a99b6DC4fbb80DC` | `0x87571030cCe27C84836bAfF85288eB1d85d908a4` |
 | `TabSettlement` | `0x32A96bfEABe766B4898b961B333B7B89f079a9a9` | `0x654Fac48185e4B71779eEc2457B1F24aEdf46717` |
+| `MeteringDelegates` | `0x32f04C3e19d6a39f1B8A513ad86Bd8d5c6486F98` | `0xD287900EE0D4415CE4d362Fe8b6a4D4d6413A1a9` |
 | `CurationMultisig` (2-of-3) | `0x123c19F46C38d5b4E922D1297250a71A03DFFD17` | |
 | `mUSDC` | | `0x480209747417f5c830fDA188a9b9AcFa70Bc4083` |
 

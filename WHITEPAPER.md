@@ -155,8 +155,8 @@ Nothing in `TabBook`, `Bond` or `TabSettlement` is owned, pausable, or upgradeab
 | Component | Responsibility | What it cannot do |
 | --- | --- | --- |
 | Registry indexer and read API | Index every event and serve reads, including a Credit Limit only where its own recomputation agrees with `TabBook.creditLimit` at the same block | Change any figure it serves, or feed any figure into a contract |
-| Metering gateway | The Service side: rebuild the Agent's witness from `HistoryExtended` logs, check the fold against `TabBook.historyCommitment`, simulate `recordDelivery`, then broadcast. It also offers x402 on a credit refusal, fronts the API Hub and Nansen on credit, and relays Permit2 Settlements | Charge outside the Agent's own authorisation, lower a tab, or move an Agent's funds |
-| Delinquency keeper | Find tabs past their Settlement Window, confirm each on chain, and submit the permissionless `markDelinquent`; a Chainlink CRE workflow, compiled and run under the CRE simulator, is its scheduler | Anything `markDelinquent` does not already permit to anyone |
+| Metering gateway | The Service side: rebuild the Agent's witness from `HistoryExtended` logs, check the fold against `TabBook.historyCommitment`, simulate `recordDelivery`, then broadcast. It also offers x402 on a credit refusal, fronts the API Hub and Nansen on credit, relays Permit2 Settlements, and writes an ERC-8004 reputation entry about the paying Agent after each Settlement. Every operator transaction goes through one send queue that counts its own nonces, and only read-only RPC requests are retried | Charge outside the Agent's own authorisation, lower a tab, or move an Agent's funds |
+| Delinquency keeper | Find tabs past their Settlement Window, confirm each on chain, and submit the permissionless `markDelinquent`. Hosted for both networks, each with a gas-only key of its own; a Chainlink CRE workflow is its scheduler, and has run under the CRE simulator against the hosted Testnet keeper | Anything `markDelinquent` does not already permit to anyone |
 | SDK | Strategies, the 402 client, server plugins, the MCP server and the CLI | Hold a key it was not handed, or persist one |
 | Dashboard | Keyless reads of every Service, Agent, Settlement and overdue tab; a wallet only to sign `authorise`, `registerService`, or the allowance and deposit that fund a Bond | Anything the connected wallet did not sign |
 
@@ -173,10 +173,12 @@ Three of them are keyless reads, and only `tab_settle` signs, through the same s
 **None of them throws.**
 A failure returns `ok: false` with a `category`, a `code` and a `message`, so a language model can decide what to do next rather than parse an exception.
 
-Two more strategies sit beside the direct one: `monad-relayed` signs a Permit2 Settlement and hands it to the gateway to submit, so an Agent needs the Asset and no MON, and a Kuru-funded strategy swaps in a shortfall from another token before settling.
+Three more strategies sit beside the direct one: `monad-relayed` signs a Permit2 Settlement and hands it to the gateway to submit, so an Agent needs the Asset and no MON; a Kuru-funded strategy swaps in a shortfall from another token before settling; and `intents-funded` brings a USDC shortfall from another chain to the Agent's own Monad address through NEAR Intents before settling, so the Settlement itself stays one Monad transaction.
+The direct and relayed strategies, and the Agent's metering signature, can sign through `createPrivyAgentSigner`, which keeps the Agent's key in a Privy server wallet under a policy that allows only Tab's own calls.
 With nothing configured, the SDK reads the project's hosted registry and knows the hosted demo Service for the chosen network, so a fresh install can discover at once, and with `AGENT_ADDRESS` and `AGENT_PRIVATE_KEY` set it can call as well, signing each metered call with the Agent's own key.
 The same four operations are a MetaMask Agent Wallet plugin, `mm tab`, which builds each transaction and hands it to the wallet with a one-sentence intent, so the wallet's own policy decides what is signed.
 That wallet lends a plugin no message signing, so `mm tab delegate` has it submit one transaction naming a local key in `MeteringDelegates`, and `mm tab call` signs each metered call with that key (Section 7.5).
+The plugin has run that whole sequence on Monad Mainnet from a MetaMask server wallet (Section 8.1).
 
 ### 4.4 Around the core: the rest of Monad's agent stack
 
@@ -187,12 +189,15 @@ Tab plugs into the services Monad already offers agents rather than rebuilding t
 | x402 V2, through Monad's facilitator | A credit refusal carries an x402 offer for the same charge, so an Agent out of headroom can prepay that one call; a request that arrives prepaid is verified, settled and delivered without touching the Open Tab |
 | Monad API Hub and Nansen | Fronted on credit: the Service pays the upstream's x402 price with its own key and meters the Agent's Open Tab for that price plus a published margin, so pay-per-request data becomes buy now, pay later |
 | Permit2 | `settleWithPermit2` lets an Agent that holds no MON settle by signature (Section 5.2) |
-| ERC-8004 | Services and Agents hold identities on Monad's Identity Registry; the registry indexes them and serves each identity beside its tab. A Service may write one Reputation Registry entry about the paying Agent after each Settlement it receives, restating the Settlement where any ERC-8004 reader finds it; the Credit Limit never reads it |
+| ERC-8004 | Services and Agents hold identities on Monad's Identity Registry; the registry indexes them and serves each identity beside its tab. Both hosted gateways write one Reputation Registry entry about the paying Agent after each Settlement to `tab.demo`, restating the Settlement where any ERC-8004 reader finds it; the Credit Limit never reads it |
 | Envio HyperSync | The indexer's log source for catch-up, so a cold start is not bound by the public RPC's 100-block log window |
-| Chainlink CRE | The scheduler for the delinquency keeper |
+| Chainlink CRE | The scheduler for the delinquency keeper, run under the CRE simulator; deployment to a DON waits on Chainlink deploy access |
 | Mera passkeys | The Dashboard's account: a passkey-derived owner key that is never shown, and session keys an Agent runtime can hold |
+| MetaMask Agent Wallet | `mm tab`, the rail as wallet plugin commands, with metered calls signed by a registered delegate |
+| Privy server wallets | The Agent's key outside the Agent's process, signing only what a Privy policy allows |
 | Agora AUSD | A second Asset beside USDC on Mainnet, and so a second, independent credit line per Agent |
 | Kuru | The swap route for the Kuru-funded settlement strategy |
+| NEAR Intents | The funding route for the `intents-funded` strategy: USDC from another chain to the Agent's Monad address, before a same-chain Settlement |
 
 None of these changes what a Settlement is.
 The Credit Limit is computed only from Settlements applied on chain, and an x402 or Hub payment is prepaid, per request, and outside the credit history.
@@ -425,6 +430,7 @@ The organising fact is that the trusted set contains parties who can admit a cou
 There is deliberately no component that can assert a Settlement.
 
 In the demonstration deployments one project address, `0x49472EF9ED99f30d4eaD45Ac9E1C16c31f70783A`, holds several of these roles at once: deployer, operator of `tab.demo` on both networks, the Testnet curation authority, and one of the three Mainnet multisig owners.
+The hosted delinquency keepers each send from a key of their own that holds only MON for gas.
 The table bounds what each role can do, and that bound holds whoever holds the role.
 
 ### 7.2 What a malicious Service can do, and what a delinquent Agent costs
@@ -475,8 +481,15 @@ The delegate signs the same digest in `Tab-Delegate-Signature`, the gateway reco
 The bound is the argument for it.
 A delegate signs metering claims and nothing else; it can never move funds, because no Settlement path reads `MeteringDelegates`.
 Every charge it causes still passes `recordDelivery`, so it stays within the Agent's own `authorise` ceiling and expiry for that Service and Asset and within the Credit Limit.
-Its expiry is required and at most 365 days ahead, and the Agent revokes it with one transaction; a gateway holds a positive answer for at most a minute and never past the expiry.
+Its expiry is required and at most 365 days ahead, and the Agent revokes it with one transaction; the gateway reads `MeteringDelegates` on every delegate-signed call, so a revocation takes effect on the next call.
 Inside the SDK, `Tab-Agent` and `Tab-Authorisation` are treated as claims and never as authentication; `TabBook` derives the authorisation key itself, so a header cannot redirect a charge.
+
+### 7.6 Static analysis
+
+The deployed contracts have been through Slither, and every result is triaged in `packages/contracts/audit/slither.md`.
+Slither reports 56 results and none is exploitable: one is a gas optimization, 29 are false positives with the reason cited, and 26 are accepted by design.
+The same review documents one liveness bound: from an Agent's 513th Settlement in one Asset, every delivery to it in that Asset reverts, because the deployed contracts cannot compact a history past `MAX_HISTORY`.
+The Agent keeps its funds and continues from a new address.
 
 ---
 
@@ -493,11 +506,21 @@ The demonstration Service `tab.demo` is registered, bonded with 1 USDC, accepts 
 
 On **Monad Testnet** (chain id 10143) the same contracts begin at block 64554587, with the deploying account as curation authority and `MockUsdc`, a mintable six-decimal test token rendered as `mUSDC`, shipped beside Circle's Testnet USDC.
 The demonstration Service is bonded with 50 mUSDC and 20 USDC.
+Two more Testnet Services, `tab.demo.b` and `tab.demo.c`, are registered and bonded with 50 mUSDC each, and the Curated tier for all three is queued with eta `2026-10-02T02:44:06Z`.
+Once it applies, `scripts/credit-growth.mjs` is prepared to show a fresh Agent's Credit Limit rising from the 5 mUSDC baseline toward 20 mUSDC through settled history with the three; until then that growth is pending.
 
+`MeteringDelegates` was deployed on its own afterwards by `script/06_DeployMeteringDelegates.s.sol`, at block 109211361 on Mainnet and 66860629 on Testnet, since nothing is wired to it.
 Both deployments record a `BASELINE` of `5000000` base units, 5.00 of a six-decimal Asset, and a `GROWTH_FACTOR_BPS` of `5000`.
 The addresses are in Appendix A and every transaction hash is in `deployments.json`.
+Every contract on both networks is source-verified through Monad's Sourcify, with a full creation and runtime match on Mainnet and a runtime match on Testnet, so MonadVision shows the source.
 
-The off-chain rail is hosted for both networks: a registry and a metering gateway per network, each registry indexing through HyperSync into its own database, and one Dashboard that serves either network, chosen by the reader.
+The off-chain rail is hosted for both networks: a registry, a metering gateway and a delinquency keeper per network, each registry indexing through HyperSync into its own database, and one Dashboard that serves either network, chosen by the reader.
+Both gateways accept delegate-signed metered calls and write an ERC-8004 reputation entry about the paying Agent after each Settlement to `tab.demo`; the demo Agent's identities are owned by the Agent address itself, not by the `tab.demo` operator, because the registry refuses feedback from an identity's own owner, and they carry 20 such entries on Testnet and 2 on Mainnet.
+
+Runs against the live deployments exercise the newer surfaces.
+The MetaMask Agent Wallet plugin ran on Mainnet from a MetaMask server wallet: `mm tab delegate --broadcast` registered a delegate, `mm tab authorise` set the ceiling, `mm tab call` metered 0.01 USDC signed by the delegate with no wallet approval, and `mm tab settle --broadcast` settled it in block 109352198, each wallet transaction approved through MetaMask's email MFA.
+A Privy server-wallet Agent ran on Testnet against a real Privy app: a policy, a signer and a wallet were created, a transfer to an address the policy does not name was refused with Privy's own `policy_violation`, and the loop settled both directly and gasless through the relay until the tabs were at zero.
+The `intents-funded` strategy has live dry quotes from Base and Arbitrum USDC to Monad USDC; a live funded run is pending.
 
 ### 8.2 The test suite
 
@@ -519,7 +542,7 @@ The off-chain rail is hosted for both networks: a registry and a metering gatewa
 | `property/BondInvariant.t.sol` | 5 | Credit strictly under the Bond sum, and zero Bond yielding zero credit |
 
 The property suites run at 256 fuzz runs each under the default profile, covering the claims the credit model rests on: the limit never exceeds the bond cap, the concentration and bond rules compose, a zero Bond sum yields zero credit for any history, and the escrow balance equals the sum of free stake.
-Beside them, 679 tests cover the TypeScript packages: the SDK, the gateway, the registry, the keepers, the plugin and the Dashboard.
+Beside them, 787 tests cover the eight TypeScript packages: the SDK, the shared constants, the gateway, the registry, the two keepers, the plugin and the Dashboard.
 
 ### 8.3 Keyless verification
 
@@ -564,7 +587,7 @@ Every system has edges, and naming each one with the bound that says how far it 
 | One chain per deployment | A Settlement is a transfer on the chain the deployment lives on, and the contracts can observe no payment made anywhere else. That is also the reason the design holds. Mainnet and Testnet are separate deployments with separate addresses |
 | Credit is backed by Service Bonds, never by Agent balances | Nothing reads an Agent's balance. A new Agent has zero credit, authorising a bonded Service lifts it to the bond-capped baseline, and everything above that is earned |
 | Delinquency zeroes credit rather than taking anything | The mark lasts until the tab settles. The Service carries the unsettled balance, for at most the 24-hour Window it chose, and collection beyond that is outside the contracts as it is for any post-paid arrangement |
-| The witness is rebuilt from logs, and it is bounded | A caller that cannot reach `HistoryExtended` logs cannot read a limit. `MAX_HISTORY` of 512 and `MAX_COUNTERPARTIES` of 32 revert loudly, and an Agent at the bound needs compaction |
+| The witness is rebuilt from logs, and it is bounded | A caller that cannot reach `HistoryExtended` logs cannot read a limit. `MAX_HISTORY` of 512 and `MAX_COUNTERPARTIES` of 32 revert loudly. The deployed contracts cannot compact a history, so from an Agent's 513th Settlement in one Asset its deliveries in that Asset revert, and it continues from a new address (Section 7.6) |
 | One curation authority | Queued 48 hours in public, powerless over metering, tabs, Settlements and Bonds, and unable to move without a redeployment |
 | Collusion | Bounded by the colluding ring's own Bond sum, with at least 3 counterparties required and 25 % concentration |
 | Timelocked changes take 48 hours | The guarantee an Agent gets when it reads a price, and the wait a Service pays to rotate a compromised Collection address, during which `TabSettlement` pays the address on chain |
@@ -613,6 +636,7 @@ Tab's substitute is a repayment history the chain itself applied, bounded by cou
 
 `createMonadStrategy` takes a structural signer, anything that can report an address and send a transaction, rather than a wallet class.
 A smart account with a session-scoped key satisfies the same seam, which would let an Agent settle under a policy its operator set without holding an unrestricted key, and the seam exists so that this is a wiring task rather than a redesign.
+A Privy server wallet already gives an Agent that bound, enforced off chain by Privy's policy engine (Section 4.3); a smart account would enforce it on chain.
 
 ### 11.3 An indexer-backed 402 flow
 

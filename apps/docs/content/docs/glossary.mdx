@@ -21,6 +21,8 @@ Capitalisation is part of a term: a capitalised noun here names a concept with a
 | **x402** | the prepaid pay-per-request protocol. An x402 payment is never a Settlement |
 | **the Hub** | the Monad API Hub, whose paid endpoints a Service can front on credit |
 | **ERC-8004** | the agent identity standard. An **identity** is the registered agent, never a credential |
+| **reputation entry** | one ERC-8004 feedback entry a Service's gateway writes about the paying Agent after a Settlement, value 100 under the tags `tab` and `settled`. Derived, and never read by the Credit Limit |
+| **funding step** | what the `intents-funded` strategy does before a Settlement when the Agent's Monad balance is short: bring USDC from another chain to the Agent's own Monad address through NEAR Intents. It is not a Settlement |
 
 ## The product
 
@@ -59,6 +61,7 @@ Capitalisation is part of a term: a capitalised noun here names a concept with a
 | **`TabSettlement`** | the one way a tab is paid. Holds nothing |
 | **`LimitLib`** | the pure credit arithmetic |
 | **`CurationMultisig`** | the m-of-n contract that holds the curation role, 2-of-3 on Mainnet |
+| **`MeteringDelegates`** | where an Agent names a metering delegate until an expiry, and revokes one; read by gateways, wired to no other contract |
 | **registry read API** | the indexer that serves Services, Agents, Settlements and deliveries, and a Credit Limit only where its cross-check agrees |
 | **metering gateway** | the Service-side process that meters through the SDK's plugin, offers x402 on a refusal, fronts upstreams and relays gasless Settlements |
 | **relay** | `POST /relay/settle` on the gateway, which submits a Permit2 Settlement the Agent signed and pays its gas |

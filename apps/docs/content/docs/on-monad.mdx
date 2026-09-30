@@ -18,10 +18,11 @@ An x402 payment, an identity, a label, a passkey, a swap: each is stated on the 
 | Envio HyperSync | The indexer's cold start, past the public RPC's log cap |
 | Nansen | Address labels beside an Agent's identity |
 | Mera passkeys | A Dashboard account with no extension and no seed phrase |
-| MetaMask Agent Wallet | `mm tab`, the rail as wallet plugin commands |
-| Privy server wallets | An Agent key outside the Agent's process, bounded by a signing policy |
-| Chainlink CRE | The delinquency keeper's schedule, as a CRE workflow that runs under the simulator and is not yet deployed to a DON |
+| MetaMask Agent Wallet | `mm tab`, the rail as wallet plugin commands, run end to end on Mainnet |
+| Privy server wallets | An Agent key outside the Agent's process, bounded by a signing policy, run live on Testnet |
+| Chainlink CRE | The delinquency keeper's schedule, as a CRE workflow that has run under the simulator against the hosted keeper and is not deployed to a DON |
 | Kuru | Settling from a token the tab is not denominated in |
+| NEAR Intents | Filling the Agent's Monad balance from USDC on another chain before it settles |
 | Agora AUSD | A first-class Asset on Mainnet |
 
 ## x402: the fallback, and the thing fronted
@@ -76,6 +77,7 @@ An identity is a name, not a credential: the Credit Limit reads none of it.
 ## ERC-8004 reputation: the repayment record, where anyone can read it
 
 With `GATEWAY_REPUTATION_ENABLED=true`, a Service's gateway writes one feedback entry to the Reputation registry after each Settlement it receives, about the Agent that paid it.
+Both hosted gateways run with it on, so every Settlement to `tab.demo` on either network is restated there.
 The entry is `giveFeedback(agentId, 100, 0, "tab", "settled", endpoint, feedbackURI, feedbackHash)`, sent from the operator key once the Settlement is indexed.
 The value is the same for every Settlement, so the count is the signal: how many Settlements an Agent has made to Tab Services, readable with `getSummary` by anyone who reads ERC-8004 and never reads Tab's contracts.
 `feedbackURI` is `<GATEWAY_PUBLIC_URL>/reputation/<settlementId>`, a document the gateway serves naming the amount, the Asset, the time and the transaction, and `feedbackHash` is the keccak-256 of exactly those bytes.
@@ -85,7 +87,10 @@ The registry accepts feedback from anyone except the agent's own owner or operat
 So an Agent is rated only when it holds an ERC-8004 identity itself, as its owner or its `agentWallet`, and a Service whose operator key also owns the Agent's identity is refused by the registry; the gateway reads that refusal from a simulation and writes nothing.
 The writer counts what it has already written about each agent under its two tags rather than keeping state of its own, so a restart writes nothing twice, and `scripts/reputation-backfill.mjs` writes the entries for Settlements made before it was switched on, as a dry run unless given `--broadcast`.
 
-An Agent's page shows the summary in its own section, from Tab Services (the operators of registered Services, under `tab` and `settled`) apart from every client, and `GET /agents/:agent/reputation` serves the same per agentId.
+That is why the demo Agent's identities, `1914` on Testnet and `10255` on Mainnet, are owned by the Agent address `0x3a3B6079e418C81a9dE08414Bb07ea817939e7Ce` and not by the operator of `tab.demo`.
+They carry 20 entries and 2 entries respectively, each from the `tab.demo` operator, with a mean of 100.
+
+An Agent's page shows the summary in its own section, "Reputation, from the ERC-8004 registry", from Tab Services (the operators of registered Services, under `tab` and `settled`) apart from every client, and the registry's `GET /agents/:agent/reputation` serves the same per agentId.
 
 <Bounded
   title="Reputation restates Settlements; it does not replace them"
@@ -117,6 +122,8 @@ The [Dashboard page](/dashboard#keys-from-a-passkey) walks through it.
 `@tabai/agent-wallet-plugin` registers `mm tab` with the MetaMask Agent Wallet CLI.
 It installs from npm with `mm plugins install @tabai/agent-wallet-plugin` and defaults to the recorded deployment on both networks.
 Its wallet-backed commands need `mm login`, and on Testnet only its reads and dry runs work, because the wallet's gas service does not know chain 10143.
+On Mainnet it has run end to end from a MetaMask server wallet: `mm tab delegate --broadcast`, `mm tab authorise`, an `mm tab call` of 0.01 USDC signed by the delegate with no wallet approval, and `mm tab settle --broadcast`, whose Settlement landed in block `109352198`.
+Each wallet transaction was approved through MetaMask's email MFA, and the transaction hashes are in the [plugin's README](https://github.com/EmadQureshiKhi/Tab/blob/main/packages/agent-wallet-plugin/README.md).
 
 | Command | What it does |
 | --- | --- |
@@ -132,7 +139,8 @@ Every write is handed over with a one-sentence intent, so the wallet's own polic
 So `mm tab delegate` has the wallet submit one transaction naming a local key in `MeteringDelegates`, and `mm tab call` signs each metering claim with that key while the chain says it is registered.
 The key signs claims and nothing else: it cannot move funds, and every charge it causes stays within the ceilings the wallet set with `mm tab authorise`.
 It lapses at its expiry, at most a year ahead, and `mm tab delegate --revoke --broadcast` withdraws it in one transaction.
-This needs `MeteringDelegates` deployed on the network and read by the Service's gateway; where it is not, the call goes unsigned as before and a Service that requires a signature refuses it by name.
+`MeteringDelegates` is deployed on both networks and both hosted gateways read it on every delegate-signed call, so a revocation takes effect on the next call.
+A self-hosted gateway that does not read it refuses a delegate-only call by name.
 
 ## Privy server wallets
 
@@ -142,12 +150,18 @@ The wallet is created under a Privy policy that allows exactly those calls on th
 The policy and the wallet are owned by a key that stays off the Agent's machine, and the Agent signs as an additional signer that cannot change either.
 Privy enforces the policy off chain, when it is asked to sign, and it needs a Privy app; the [integration page](/integration#an-agent-key-in-a-privy-server-wallet) has the configuration and the rules.
 
+It has run live on Testnet against a real Privy app.
+`scripts/privy-agent.mjs --create --broadcast` created the policy, the signer and the wallet, and `--denied` got Privy's own `policy_violation` refusing a transfer to an address the policy does not name.
+`--loop` then ran the Agent both ways: directly, with `authorise`, `approve` and `settle` signed by `eth_signTransaction`, and gasless, with the Permit2 Settlement signed by `eth_signTypedData_v4` and submitted through the relay, each metering claim signed by `personal_sign`, until the tabs settled to zero.
+
 ## Chainlink CRE, and the keeper
 
 A tab whose Settlement Window has closed with the tab still open may be marked delinquent by anyone.
 `apps/keeper` is the process that does it: it takes candidates from the registry's delivery feed, confirms each on chain, and submits `markDelinquent` when asked to broadcast.
 `apps/cre-keeper` is the schedule, a Chainlink CRE workflow with a cron trigger every ten minutes and an HTTP call to the keeper behind a shared secret.
-It compiles to WASM and runs under the CRE simulator; deploying it to a DON needs a public keeper URL.
+The keeper is hosted for both networks, at `https://keeper-testnet-production-e820.up.railway.app` and `https://keeper-mainnet-production-0f50.up.railway.app`, each sending from a key of its own that holds only MON for gas, with `/tick` behind the shared secret.
+The workflow compiles to WASM, its `testnet-settings` and `production-settings` targets point at those two keepers, and it has run under the CRE simulator against the hosted Testnet keeper.
+It is not deployed to a DON: that waits on Chainlink deploy access.
 The mark is permissionless and the keeper holds no privilege: anyone running the same two processes marks the same tabs.
 
 ## Kuru: settle in any asset
@@ -155,6 +169,14 @@ The mark is permissionless and the keeper holds no privilege: anyone running the
 `TabSettlement.settle` moves the Asset the tab is denominated in.
 `createKuruFundedStrategy` wraps a strategy, reads the Agent's balance of that Asset before every Settlement, and when it is short, swaps the shortfall in from a configured source token through Kuru's on-chain router, then settles.
 The shortfall is the swap's minimum out, so a Settlement is either fully funded or the swap reverts, and the Settlement itself is still the inner strategy's transaction.
+
+## NEAR Intents: fund from another chain, then settle on Monad
+
+`createIntentsFundedStrategy`, strategy id `intents-funded`, wraps a strategy the same way and reads the Agent's Monad balance of USDC before every Settlement.
+When it is short, it asks the NEAR Intents 1Click API for the shortfall delivered to the Agent's own Monad address, pays the quoted USDC in on the funding chain, waits for the delivery, checks the Monad balance again, and only then settles.
+The funding step happens before the Settlement and only fills the Agent's balance; the Settlement is still one Monad transaction, same-chain and atomic.
+It is tested with mocks, and live dry quotes from Base and Arbitrum USDC to Monad USDC are confirmed; a live funded run is pending.
+The [integration page](/integration#funding-from-another-chain) has the configuration.
 
 ## Agora AUSD
 
@@ -165,4 +187,4 @@ Tab holds no rate between the two: a tab in AUSD is settled in AUSD.
 
 Take every piece on this page away and the rail is the same rail.
 A Service meters after delivery, an Agent settles with its own key in one transaction, the chain applies the payment, and the Credit Limit is computed from the record the chain kept.
-The pieces make it cheaper to reach (passkeys, the plugin), safer to hold (a Privy wallet's policy), cheaper to run (HyperSync, the keeper on a schedule), gasless to settle (Permit2), and wider in what an Agent can buy on credit (the Hub), and the [boundaries page](/limitations) states the edge of each.
+The pieces make it cheaper to reach (passkeys, the plugin), safer to hold (a Privy wallet's policy), cheaper to run (HyperSync, the keeper on a schedule), gasless to settle (Permit2), easier to fund (Kuru, NEAR Intents), and wider in what an Agent can buy on credit (the Hub), and the [boundaries page](/limitations) states the edge of each.

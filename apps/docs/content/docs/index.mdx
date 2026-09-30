@@ -122,7 +122,8 @@ Tab is built by Emad Qureshi.
 | Dashboard | [trytabai.vercel.app](https://trytabai.vercel.app). One deployment serves both networks: the switch in its header picks one, and every page, figure, link and the Try it button follow it |
 | Registry read API | Mainnet `https://registry-mainnet-production.up.railway.app`, Testnet `https://registry-testnet-production.up.railway.app` |
 | Metering gateway for the demo Service `tab.demo` | Mainnet `https://gateway-mainnet-production.up.railway.app`, Testnet `https://gateway-testnet-production-a657.up.railway.app` |
-| SDK, CLI and MCP server | [`@tabai/sdk`](https://www.npmjs.com/package/@tabai/sdk) on npm. With nothing configured it reads the hosted registry and knows `tab.demo` on the chosen network |
+| Delinquency keeper | Mainnet `https://keeper-mainnet-production-0f50.up.railway.app`, Testnet `https://keeper-testnet-production-e820.up.railway.app` |
+| SDK, CLI and MCP server | [`@tabai/sdk`](https://www.npmjs.com/package/@tabai/sdk) on npm. With nothing configured it reads the hosted registry and knows `tab.demo` on the chosen network, and with `AGENT_ADDRESS` and `AGENT_PRIVATE_KEY` set it calls `tab.demo`, signing each call |
 | MetaMask Agent Wallet plugin | [`@tabai/agent-wallet-plugin`](https://www.npmjs.com/package/@tabai/agent-wallet-plugin) on npm, installed with `mm plugins install @tabai/agent-wallet-plugin` |
 
 Testnet is the free playground, where `tab.demo` also prices in a mintable test token.
@@ -162,14 +163,17 @@ The contracts on Mainnet:
 | `MeteringDelegates` | `0x32f04C3e19d6a39f1B8A513ad86Bd8d5c6486F98` |
 
 Every one of those addresses, on either network, can be read back with no key and no funded account, and the verification script in the contracts package does exactly that.
-Every contract is also source-verified through Monad's Sourcify, so an explorer shows the code in the repository beside the bytecode it matches.
+`MeteringDelegates` is the exception, because nothing is wired to it: it was deployed on its own, at block `66860629` on Testnet and `109211361` on Mainnet, and its own deploy script checks a recorded address and deploys nothing when run again.
+Every contract is also source-verified through Monad's Sourcify, a full creation and runtime match on Mainnet and a runtime match on Testnet, so an explorer shows the code in the repository beside the bytecode it matches.
 The demo Service `tab.demo` is registered on both: on Testnet with a Bond of 50 mUSDC and 20 USDC and prices in both Testnet Assets, holding ERC-8004 identity `1913` beside the demo Agent's `1914`; on Mainnet with a 1 USDC Bond and prices in both USDC and AUSD, holding `10254` beside the Agent's `10255`.
+On Testnet two more Services, `tab.demo.b` and `tab.demo.c`, are registered and bonded with 50 mUSDC each, and the Curated tier for all three is queued with eta `2026-10-02T02:44:06Z`.
+Once it applies, `scripts/credit-growth.mjs` is prepared to show a Credit Limit rising from the 5 mUSDC baseline toward 20 mUSDC.
 
 The curation role is the one difference between the two that is not an address.
 On Testnet the deploying account holds it.
 On Mainnet a 2-of-3 `CurationMultisig` does, deployed before the registry because the authority is a constructor argument with no setter.
 The [boundaries page](/limitations#one-authority-decides-the-curated-tier) says who holds its three keys today.
-The page [On Monad](/on-monad) lists what else the deployment plugs into: x402, the API Hub, Permit2, ERC-8004, HyperSync, Nansen, Mera, the MetaMask Agent Wallet, Chainlink CRE, Kuru and AUSD.
+The page [On Monad](/on-monad) lists what else the deployment plugs into: x402, the API Hub, Permit2, ERC-8004, HyperSync, Nansen, Mera, the MetaMask Agent Wallet, Privy server wallets, Chainlink CRE, Kuru, NEAR Intents and AUSD.
 
 ## Read further
 

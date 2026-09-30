@@ -300,11 +300,15 @@ A delegate is bounded by construction.
 It signs metering claims and nothing else: no Settlement path reads `MeteringDelegates`, so it can never move the Agent's funds.
 Every charge it causes still passes `TabBook.recordDelivery`, which holds it to the Agent's own `TabBook.authorise` ceiling and expiry for that Service and Asset and to the Credit Limit.
 Its expiry is required and at most a year ahead, and the Agent revokes it with one transaction, `revokeDelegate(delegate)`.
-The gateway keeps a positive answer for at most a minute and never past the expiry, and it accepts delegates only when `METERING_DELEGATES_ADDRESS` names the contract; without it a delegate-only call is refused with `METERING_DELEGATE_UNSUPPORTED` and the other two paths are unchanged.
-The Agent Wallet plugin's `mm tab delegate` is the reference user of this path.
+The gateway reads `MeteringDelegates` on every delegate-signed call and holds no answer by default, so a revocation takes effect on the next call.
+It accepts delegates only when `METERING_DELEGATES_ADDRESS` names the contract; without it a delegate-only call is refused with `METERING_DELEGATE_UNSUPPORTED` and the other two paths are unchanged.
+Both hosted gateways name it, on Testnet and on Mainnet.
+The Agent Wallet plugin's `mm tab delegate` is the reference user of this path, and it has run end to end on Mainnet.
 
 Before it broadcasts, the gateway proves the witness against `TabBook.historyCommitment` and simulates the call, so a delivery that would revert is never paid gas for.
 The history behind that witness is held between calls and read from the registry's `GET /agents/:agent/witness/:asset` on first sight, so a metered call costs one commitment read and not a log scan from the deployment block.
+Every transaction the operator key sends, whether metering, a relayed Settlement or a reputation entry, goes through one send queue that counts its own nonces, so overlapping calls never race for one.
+A read-only RPC request is retried twice on a transport failure or a rate limit, and a write or a revert is never retried.
 
 ### The client side of the 402
 
@@ -418,6 +422,7 @@ Its id is `intents-funded`, which `tab_settle` takes as `strategyId` and the CLI
 The repository's `tab.config.mjs` builds it on Mainnet when `INTENTS_FUNDING_CHAIN` (`base`, `arbitrum`, `ethereum`, `optimism`, `polygon` or `avalanche`) and `INTENTS_FUNDING_RPC_URL` are set, with `INTENTS_FUNDING_MAX_BASE_UNITS` as the ceiling and an optional `NEAR_INTENTS_API_KEY`.
 Only Mainnet USDC is supported, because it is the one Tab Asset NEAR Intents delivers on Monad; Testnet mUSDC is declined and resolves to another strategy.
 A dry run asks only for a `dry: true` quote, which creates no deposit address, so it moves nothing.
+The strategy is tested with mocks, and live dry quotes from Base and Arbitrum USDC to Monad USDC are confirmed; a live funded run is pending.
 
 ### A strategy over a different signer
 
@@ -519,6 +524,9 @@ node --env-file=.env scripts/privy-agent.mjs --loop --broadcast      # authorise
 
 `--chain 143` creates a Mainnet wallet, and `--strategy monad-relayed` on `--loop` settles through the Permit2 relay.
 
+This has run on Testnet against a real Privy app.
+`--create --broadcast` created the policy, the signer and the wallet, `--denied` got Privy's own `policy_violation`, and `--loop` settled both directly and through the relay, with every metering claim signed by `personal_sign`, until the tabs were back at zero.
+
 ### What it needs, and what it does not do
 
 It needs a Privy app: the app id and secret come from Privy's dashboard, and nothing here works without them.
@@ -547,6 +555,7 @@ An integrator needs a much smaller set than a developer does.
 | `X402_ENABLED`, `X402_FACILITATOR_URL` | the offer on a `402` and the prepaid path, and the facilitator that settles them |
 | `GATEWAY_HUB_UPSTREAMS`, `GATEWAY_X402_PRIVATE_KEY` | the upstreams the gateway fronts, and an optional dedicated key that pays them |
 | `GATEWAY_RELAY_ENABLED` | `false` turns `/relay/settle` off. On whenever `TAB_SETTLEMENT_ADDRESS` is set otherwise |
+| `METERING_DELEGATES_ADDRESS` | the `MeteringDelegates` contract a gateway checks a delegate-signed call against, and the one `mm tab delegate` registers in. The plugin defaults to the recorded address on each network |
 | `GATEWAY_REPUTATION_ENABLED`, `GATEWAY_PUBLIC_URL`, `GATEWAY_REPUTATION_INTERVAL_MS` | ERC-8004 feedback about the paying Agent after each Settlement, off unless `true`; the public URL the feedback documents are served under at `/reputation/:settlementId`; how often new Settlements are looked for. See [On Monad](/on-monad) |
 
 The deployed addresses were read back off the chain by a script that holds no key, so they are checkable by anyone with an RPC endpoint rather than only by whoever deployed them.

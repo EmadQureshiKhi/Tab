@@ -41,6 +41,7 @@ Built by **Emad Qureshi**.
 | MetaMask Agent Wallet plugin | [`@tabai/agent-wallet-plugin`](https://www.npmjs.com/package/@tabai/agent-wallet-plugin): `mm plugins install @tabai/agent-wallet-plugin` |
 | Registry read API | Mainnet `https://registry-mainnet-production.up.railway.app`, Testnet `https://registry-testnet-production.up.railway.app` |
 | Metering gateway (demo Service `tab.demo`) | Mainnet `https://gateway-mainnet-production.up.railway.app`, Testnet `https://gateway-testnet-production-a657.up.railway.app` |
+| Delinquency keeper | Mainnet `https://keeper-mainnet-production-0f50.up.railway.app`, Testnet `https://keeper-testnet-production-e820.up.railway.app` |
 
 Testnet is the free playground: its demo Service prices in a mintable test token and in Circle's Testnet USDC.
 On Mainnet the Assets are real USDC and AUSD, so the Dashboard rate-limits Mainnet trial calls, each of which spends real gas.
@@ -108,6 +109,7 @@ The Dashboard lists every markable tab with the exact `cast send` line, so the g
 ## Deployed on chain
 
 Everything below was read back off the chain by [`script/02_VerifyDeployment.s.sol`](./packages/contracts/script/02_VerifyDeployment.s.sol), which holds no key and sends nothing, so this table is checkable by anyone with an RPC endpoint rather than only by whoever deployed it.
+`MeteringDelegates` is wired to nothing, so that script does not read it; it was deployed on its own by [`script/06_DeployMeteringDelegates.s.sol`](./packages/contracts/script/06_DeployMeteringDelegates.s.sol), which, run again with `METERING_DELEGATES_ADDRESS` set, checks the recorded contract and deploys nothing.
 
 ### Monad Mainnet, chain id `143`
 
@@ -121,12 +123,12 @@ Everything below was read back off the chain by [`script/02_VerifyDeployment.s.s
 | `MeteringDelegates` | `0x32f04C3e19d6a39f1B8A513ad86Bd8d5c6486F98` |
 
 The Assets are the canonical USDC and AUSD, and no token was shipped.
-Every contract on both networks is source-verified through Monad's Sourcify, so MonadVision shows the code in this repository and a full bytecode match on Mainnet.
+Every contract on both networks is source-verified through Monad's Sourcify, so MonadVision shows the code in this repository: a full creation and runtime match on Mainnet, a runtime match on Testnet.
 The curation role is held by a 2-of-3 `CurationMultisig` (see [the one privileged role](#the-one-privileged-role)).
-The demo Service is registered with a 1 USDC Bond and holds ERC-8004 identity `10254`; the demo Agent holds `10255`.
+The demo Service is registered with a 1 USDC Bond and holds ERC-8004 identity `10254`; the demo Agent holds `10255`, owned by the Agent address `0x3a3B6079e418C81a9dE08414Bb07ea817939e7Ce` itself.
 It accepts USDC and AUSD and prices `quote.generate` at 0.01 in each, plus the two fronted tools `apihub.run` and `nansen.query` at one base unit a unit, all applied on 2026-09-25 after the registry's 48-hour hold.
 The ERC-8004 Identity and Reputation registries on Mainnet are `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` and `0x8004BAa17C55a88189AE136b182e5fdA19dE9b63`.
-Deployment block `107094526` (the `CurationMultisig` at `107094289`), every transaction hash and the applied change ids are in [`deployments.json`](./deployments.json), under `networks.143`.
+Deployment block `107094526` (the `CurationMultisig` at `107094289`, `MeteringDelegates` at `109211361`), every transaction hash and the applied change ids are in [`deployments.json`](./deployments.json), under `networks.143`.
 RPC `https://rpc.monad.xyz`, explorer `https://monadvision.com`.
 
 ### Monad Testnet, chain id `10143`
@@ -145,31 +147,36 @@ RPC `https://rpc.monad.xyz`, explorer `https://monadvision.com`.
 The demo Service also prices its tool in Circle's Testnet USDC, `0x534b2f3A21130d7a60830c2Df862319e593943A3`.
 
 Three contracts Tab reads but did not deploy: Uniswap's Permit2 at `0x000000000022D473030F116dDEE9F6B43aC78BA3` (the same on both networks), and the Testnet ERC-8004 Identity and Reputation registries at `0x8004A818BFB912233c491871b3d84c89A494BD9e` and `0x8004B663056A597Dffe9eCcC1965A193B7388713`.
-The demo Service is ERC-8004 agent `1913` and the demo Agent is `1914`.
+The demo Service is ERC-8004 agent `1913` and the demo Agent is `1914`, owned by the same Agent address as on Mainnet.
+Two more Testnet Services, `tab.demo.b` and `tab.demo.c`, are registered and bonded with 50 mUSDC each.
+The Curated tier for all three is queued behind the 48-hour hold, with eta `2026-10-02T02:44:06Z`.
+Once it applies, [`scripts/credit-growth.mjs`](./scripts/credit-growth.mjs) is prepared to show a fresh Agent's Credit Limit rising from the 5 mUSDC baseline toward 20 mUSDC through settled history with the three.
 
-The deployment block (`64554587`), every transaction hash, the demo Service and the curation authority are in [`deployments.json`](./deployments.json), under `networks.10143`.
+The deployment block (`64554587`, `MeteringDelegates` at `66860629`), every transaction hash, the demo Services and the curation authority are in [`deployments.json`](./deployments.json), under `networks.10143`.
 RPC `https://testnet-rpc.monad.xyz`, explorer `https://testnet.monadvision.com`, faucet `https://faucet.monad.xyz`.
 
 ---
 
 ## On Monad, end to end
 
-Every piece below is in the tree and exercised by tests; the registry, the gateway, the keeper and the Dashboard are live in the hosted deployment, and the keeper's CRE workflow runs under the CRE simulator against the hosted keeper until it is deployed to a DON.
+Every piece below is in the tree and exercised by tests.
+The registry, the gateway, the keeper and the Dashboard are live in the hosted deployment on both networks.
+The keeper's CRE workflow has run under the CRE simulator against the hosted Testnet keeper, and running it on a DON waits on Chainlink deploy access.
 
 | Piece | What Tab does with it | Where |
 | --- | --- | --- |
 | **x402, V2** | A credit refusal (`402 LimitExceeded`) carries a `PAYMENT-REQUIRED` offer for the same charge through Monad's facilitator, `exact` scheme over EIP-3009. A request carrying `PAYMENT-SIGNATURE` is verified, settled and delivered prepaid, and never touches the Open Tab. Credit first, pay-per-request as the fallback | `packages/sdk/src/x402`, `apps/gateway/src/x402.ts` |
 | **Monad API Hub** | Buy now, pay later for the Hub's pay-per-request data services. `POST /hub/apihub/run` fronts any provider: the Service pays the Hub's x402 price with its own key and meters the Agent's Open Tab for that price plus its published margin. `/hub/nansen/*` fronts Nansen's x402 endpoints the same way | `packages/sdk/src/x402/hub.ts`, `apps/gateway/src/server.ts` |
 | **Permit2, gasless settlement** | `TabSettlement.settleWithPermit2` verifies a `PermitWitnessTransferFrom` whose witness binds Service, Asset, amount, surface and chain. The Agent signs; `POST /relay/settle` on the gateway simulates from the operator and submits, so an Agent needs USDC and nothing else | `packages/contracts/src/TabSettlement.sol`, `packages/sdk/src/payments/permit2.ts`, `apps/gateway/src/relay.ts` |
-| **ERC-8004** | The demo Service and Agent are registered on Monad's Identity Registry. The registry indexes the Identity Registry's events, reads each agent's registration file and reputation summary, and serves them on `/agents/:address` and `/services/:id`; the Dashboard shows them. With `GATEWAY_REPUTATION_ENABLED=true` a Service's gateway writes one Reputation Registry entry (`100`, tags `tab` and `settled`) about the paying Agent after each Settlement it receives, pointing at a document that names the Settlement's transaction, so the repayment record is portable and anyone can check it against the `Settled` event. A derived signal: the Credit Limit never reads it | `packages/contracts/script/03_RegisterIdentity.s.sol`, `apps/registry/src/erc8004.ts`, `apps/gateway/src/reputation.ts` |
+| **ERC-8004** | The demo Service and Agent are registered on Monad's Identity Registry. The registry indexes the Identity Registry's events, reads each agent's registration file and reputation summary, and serves them on `/agents/:address`, `/agents/:agent/reputation` and `/services/:id`; the Dashboard shows them. Both hosted gateways run with `GATEWAY_REPUTATION_ENABLED=true`: after each Settlement to `tab.demo` the gateway writes one Reputation Registry entry (`100`, tags `tab` and `settled`) about the paying Agent, pointing at a document it serves at `/reputation/:settlementId` that names the Settlement's transaction, so the repayment record is portable and anyone can check it against the `Settled` event. The demo Agent carries 20 such entries on Testnet (`#1914`) and 2 on Mainnet (`#10255`). A derived signal: the Credit Limit never reads it | `packages/contracts/script/03_RegisterIdentity.s.sol`, `apps/registry/src/erc8004.ts`, `apps/gateway/src/reputation.ts` |
 | **Envio HyperSync** | An alternative log source for the indexer: whole block ranges in one request, so a cold start is not bound by the public RPC's 100-block `eth_getLogs` cap | `apps/registry/src/hypersync.ts` |
 | **Nansen** | Address labels served beside an Agent's identity, stated as an offchain signal that changes nothing in the Credit Limit | `apps/registry/src/nansen.ts` |
 | **Mera passkeys** | `/keys` on the Dashboard is a passkey account: a seed from the WebAuthn PRF extension, an owner key that is never shown, and session keys revealed once each for the runtime they will be the Agent for | `apps/app/components/passkey` |
-| **MetaMask Agent Wallet** | `mm tab discover`, `status`, `call`, `settle`, `authorise` and `delegate` as a plugin: each builds the transaction and hands it to the wallet with a one-sentence intent, so the wallet's policy decides what is signed, and `call` is signed by a metering delegate the wallet registered | `packages/agent-wallet-plugin` |
-| **Privy server wallets** | The Agent's key held in a Privy server wallet instead of its environment: metering claims by `personal_sign`, Permit2 Settlements by `eth_signTypedData_v4`, and `authorise`, `approve` and `settle` by `eth_signTransaction`, each checked by a Privy policy that allows only those calls on Tab's contracts on one chain. The owner key that can change the policy is never on the Agent's machine. Needs a Privy app; tested against a Privy double, not yet run against Privy itself | `packages/sdk/src/signers`, `scripts/privy-agent.mjs` |
-| **Chainlink CRE** | A cron workflow, compiled to WASM and run under the CRE simulator, that calls the delinquency keeper every ten minutes; the keeper confirms each overdue tab on chain and submits the permissionless `markDelinquent` | `apps/cre-keeper`, `apps/keeper` |
+| **MetaMask Agent Wallet** | `mm tab discover`, `status`, `call`, `settle`, `authorise` and `delegate` as a plugin: each builds the transaction and hands it to the wallet with a one-sentence intent, so the wallet's policy decides what is signed, and `call` is signed by a metering delegate the wallet registered. Run end to end on Monad Mainnet from a MetaMask server wallet: `delegate`, `authorise`, a 0.01 USDC `call` signed by the delegate with no wallet approval, and `settle`, each wallet transaction approved through MetaMask's email MFA | `packages/agent-wallet-plugin` |
+| **Privy server wallets** | The Agent's key held in a Privy server wallet instead of its environment: metering claims by `personal_sign`, Permit2 Settlements by `eth_signTypedData_v4`, and `authorise`, `approve` and `settle` by `eth_signTransaction`, each checked by a Privy policy that allows only those calls on Tab's contracts on one chain. The owner key that can change the policy is never on the Agent's machine. Run live on Testnet against a real Privy app: `scripts/privy-agent.mjs` created the policy, signer and wallet, got Privy's own `policy_violation` for a transfer to an address the policy does not name, and ran the loop directly and gasless until the tabs settled to zero | `packages/sdk/src/signers`, `scripts/privy-agent.mjs` |
+| **Chainlink CRE** | A cron workflow, compiled to WASM, that calls the delinquency keeper every ten minutes; the keeper confirms each overdue tab on chain and submits the permissionless `markDelinquent`. The keeper is hosted for both networks with gas-only keys of its own, and the workflow's `testnet-settings` and `production-settings` targets point at the two. It has run under the CRE simulator against the hosted Testnet keeper and is not deployed to a DON, which waits on Chainlink deploy access | `apps/cre-keeper`, `apps/keeper` |
 | **Kuru** | A settlement strategy that reads the Agent's balance of the Asset and, when it is short, swaps the shortfall in from another token through Kuru's router before settling | `packages/sdk/src/payments/kuru.ts` |
-| **NEAR Intents** | Any-chain liquidity for Monad: the `intents-funded` strategy reads the Agent's Monad balance of USDC and, when it is short, brings the shortfall to the Agent's own Monad address from USDC on Base, Arbitrum or another chain through the 1Click API before settling. The funding step only fills the Agent's balance; the Settlement is still one Monad transaction, same-chain and atomic | `packages/sdk/src/payments/intents.ts` |
+| **NEAR Intents** | Any-chain liquidity for Monad: the `intents-funded` strategy reads the Agent's Monad balance of USDC and, when it is short, brings the shortfall to the Agent's own Monad address from USDC on Base, Arbitrum or another chain through the 1Click API before settling. The funding step only fills the Agent's balance; the Settlement is still one Monad transaction, same-chain and atomic. Tested with mocks, with live dry quotes from Base and Arbitrum USDC to Monad USDC confirmed; a live funded run is pending | `packages/sdk/src/payments/intents.ts` |
 | **Agora AUSD** | A first-class Asset beside USDC on Mainnet: in the shared table, so every page and tool that prints an Asset names it | `packages/shared/src/chains.ts` |
 
 None of these change what a Settlement is.
@@ -220,6 +227,8 @@ node --env-file=.env --import tsx apps/keeper/src/main.ts once                  
 
 The gateway rebuilds the Agent's witness from `HistoryExtended` logs, checks it against `TabBook.historyCommitment`, simulates `recordDelivery` over a keyless `eth_call`, and only then broadcasts.
 A refused delivery costs real gas and returns the same revert data a free simulation returns, so paying for it first would be paying for information already available.
+Every operator transaction, whether metering, relay or reputation, goes through one send queue that counts its own nonces.
+A read-only RPC request is retried twice on a transport failure or a rate limit, and a write or a revert never is.
 
 ### From the SDK and CLI
 
@@ -264,6 +273,7 @@ import { createMonadStrategy, createTabToolset, honoTabPostPaid } from "@tabai/s
 ```
 
 The package ships its own types and carries no workspace dependency, so it installs and type-checks on its own.
+With `AGENT_ADDRESS` and `AGENT_PRIVATE_KEY` set, a fresh install calls the hosted demo Service with no configuration file, signing each call with the Agent's key.
 The full guide is in [`packages/sdk/README.md`](./packages/sdk/README.md) and [`integration.mdx`](./apps/docs/content/docs/integration.mdx).
 
 ---
@@ -281,7 +291,7 @@ The full guide is in [`packages/sdk/README.md`](./packages/sdk/README.md) and [`
 | `packages/contracts/src/MeteringDelegates.sol` | Session keys an Agent names to sign its metering claims. Signs claims only, moves no funds; deployed on its own |
 | `apps/registry` | Indexes every event, ERC-8004 identities included, serves the read API, and serves a Credit Limit only where its own recomputation agrees with the chain |
 | `apps/gateway` | The Service side: rebuilds the witness, simulates, meters delivery after the fact, offers x402 on a refusal, fronts the API Hub and relays Permit2 Settlements |
-| `apps/keeper` | Marks overdue tabs delinquent, once or as a service a scheduler calls |
+| `apps/keeper` | Marks overdue tabs delinquent, once or as a service a scheduler calls; hosted for both networks |
 | `apps/cre-keeper` | The Chainlink CRE workflow that schedules the keeper |
 | `apps/app` | The Dashboard. No wallet to read, a passkey to sign |
 | `apps/docs` | The documentation site |
@@ -347,12 +357,14 @@ The same review records one liveness limit found by hand: an Agent that settles 
 
 | | |
 | --- | --- |
-| Contracts | Deployed and verified from both ends of every wired slot on **both** networks: five on Testnet, four plus a 2-of-3 curation multisig on Mainnet. The keyless verification script passes on each |
+| Contracts | Deployed on **both** networks: the four core contracts and `MeteringDelegates` on each, with `MockUsdc` on Testnet and a 2-of-3 curation multisig on Mainnet. The keyless verification script passes on each, and every contract is source-verified through Monad's Sourcify |
 | Mainnet demo Service | Bonded, accepting USDC and AUSD, with `quote.generate` and both fronted tools priced; the demo Agent has authorised it |
-| Hosted rail | A registry and a metering gateway per network on Railway, each registry with its own Postgres and Envio HyperSync; the Dashboard and the docs on Vercel |
+| Hosted rail | A registry, a metering gateway and a delinquency keeper per network on Railway, each registry with its own Postgres and Envio HyperSync. Both gateways accept delegate-signed calls and write ERC-8004 reputation. The Dashboard and the docs on Vercel |
 | Dashboard | One deployment serving both networks, chosen in the header, with passkey accounts and a rate-limited Try it on Mainnet |
-| Client tooling | `@tabai/sdk` (SDK, CLI, MCP server with four tools) and `@tabai/agent-wallet-plugin` on npm |
-| Tests | 179 contract tests, including property tests, and 720 across the eight TypeScript packages |
+| Client tooling | `@tabai/sdk` 0.2.6 (SDK, CLI, MCP server with four tools) and `@tabai/agent-wallet-plugin` 0.1.3 on npm |
+| Run live | The Agent Wallet plugin end to end on Mainnet; a Privy server-wallet Agent on Testnet, direct and gasless; ERC-8004 reputation after each Settlement to `tab.demo` on both networks |
+| Prepared, pending | Credit growth above the baseline on Testnet, once the queued Curated tier applies on 2026-10-02; a live funded NEAR Intents run; the CRE workflow on a DON, which waits on Chainlink deploy access |
+| Tests | 179 contract tests, including property tests, and 787 across the eight TypeScript packages |
 
 Nothing in the rail is pinned to one network: `deployments.json` holds one entry per chain id, `MONAD_CHAIN_ID` selects it, and the same contracts, scripts and services run on both.
 

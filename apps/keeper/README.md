@@ -54,6 +54,17 @@ A server started without `KEEPER_PRIVATE_KEY` serves `/overdue` and answers `/ti
 
 Every failure is `{ error: { category, code, message } }` under the category's status, the same shape the rest of the workspace answers with.
 
+## Hosted
+
+The keeper runs as a service for both networks, built from `apps/keeper/Dockerfile`:
+
+| Network | URL |
+| --- | --- |
+| Mainnet | `https://keeper-mainnet-production-0f50.up.railway.app` |
+| Testnet | `https://keeper-testnet-production-e820.up.railway.app` |
+
+Each sends its marks from a `KEEPER_PRIVATE_KEY` of its own that holds only MON for gas, serves `/healthz` and `/overdue` to anyone, and answers `/tick` only with the shared secret.
+
 ## Environment
 
 | Variable | Purpose |
@@ -72,7 +83,8 @@ A feed that runs past the page bound, a malformed row, or an unreachable node is
 
 Anything with the secret and a clock.
 `apps/cre-keeper` is a Chainlink CRE workflow that reads `/overdue` every ten minutes, decides which tabs to mark, and posts `/tick` for exactly those, so once deployed the decision runs under a DON's consensus and the gas-spending call stays here.
-It runs under the CRE simulator today; deploying it to a DON needs this keeper at a public URL.
+Its `testnet-settings` and `production-settings` targets point at the two hosted keepers, and it has run under the CRE simulator against the hosted Testnet keeper.
+It is not deployed to a DON: that waits on Chainlink deploy access.
 
 ```bash
 pnpm --filter @tabai/keeper test

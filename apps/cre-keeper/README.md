@@ -7,7 +7,8 @@ Every verdict is logged, one line per tab.
 This is a standard CRE TypeScript project: `project.yaml` at the root, one workflow in `delinquency/` with its `workflow.yaml`, `main.ts` and `config.json`, and `secrets.yaml` naming the one secret.
 It runs against `apps/keeper`, which must be reachable from wherever the workflow executes.
 The keeper is hosted for both networks, at `https://keeper-testnet-production-e820.up.railway.app` and `https://keeper-mainnet-production-0f50.up.railway.app`, and the `testnet-settings` and `production-settings` targets point at them.
-The workflow has run under the CRE simulator against the hosted Testnet keeper; deploying it to a DON waits on deploy access for the account.
+The workflow has run under the CRE simulator against the hosted Testnet keeper.
+It is not deployed to a DON: that waits on Chainlink granting deploy access to the account.
 
 ## Layout
 
