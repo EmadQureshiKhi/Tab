@@ -65,6 +65,6 @@
   "devDependencies": {
     "@tabai/shared": "workspace:*",
     "@types/node": "22.20.1",
-    "tsx": "4.19.2"
+    "tsx": "4.23.15"
   }
 }
