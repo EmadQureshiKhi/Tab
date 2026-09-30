@@ -1,5 +1,5 @@
 /**
- * The two ABIs the Monad strategy needs, in the human-readable form `ethers`
+ * The two ABIs the Monad strategies need, in the human-readable form `ethers`
  * parses. Kept minimal on purpose: only the functions this package calls and
  * the one event it decodes.
  */
@@ -8,6 +8,7 @@ export const ERC20_ABI = [
   "function approve(address spender, uint256 amount) returns (bool)",
   "function allowance(address owner, address spender) view returns (uint256)",
   "function balanceOf(address owner) view returns (uint256)",
+  "function transfer(address to, uint256 amount) returns (bool)",
 ] as const;
 
 /** `TabSettlement`, the one way an Open Tab is paid on Monad. */

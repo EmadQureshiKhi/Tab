@@ -23,7 +23,13 @@
 
 import { Wallet, JsonRpcProvider } from "ethers";
 
-import { agentSignedMetering, createMonadStrategy, createRelayedMonadStrategy } from "@tabai/sdk";
+import {
+  ONE_CLICK_USDC_FUNDING,
+  agentSignedMetering,
+  createIntentsFundedStrategy,
+  createMonadStrategy,
+  createRelayedMonadStrategy,
+} from "@tabai/sdk";
 
 /** Testnet unless the environment says otherwise. */
 const CHAIN_ID = BigInt(process.env.MONAD_CHAIN_ID ?? "10143");
@@ -115,6 +121,40 @@ export default {
     what keeps every read on this rail keyless.
   */
   strategies: [
+    /*
+      Funding from another chain. When the Agent's USDC is on Base, Arbitrum
+      or another chain NEAR Intents lists, this brings the shortfall to the
+      Agent's own Monad address before settling, then settles through the
+      direct strategy exactly as below: the Settlement is still one Monad
+      transaction, same-chain and atomic. Declines unless the network is
+      Mainnet (NEAR Intents delivers Mainnet USDC only) and a funding chain is
+      named, so by default nothing here changes. First in the list because it
+      delegates straight to the direct strategy whenever the Agent already
+      holds enough on Monad.
+    */
+    () => {
+      const signer = agentSigner();
+      const surface = process.env.TAB_SETTLEMENT_ADDRESS;
+      const chain = process.env.INTENTS_FUNDING_CHAIN;
+      const fundingRpc = process.env.INTENTS_FUNDING_RPC_URL;
+      if (signer === undefined || CHAIN_ID !== 143n) return undefined;
+      if (surface === undefined || !/^0x[0-9a-fA-F]{40}$/.test(surface)) return undefined;
+      const funding = chain !== undefined && Object.hasOwn(ONE_CLICK_USDC_FUNDING, chain) ? ONE_CLICK_USDC_FUNDING[chain] : undefined;
+      if (funding === undefined || fundingRpc === undefined || fundingRpc.length === 0) return undefined;
+      // The same key on the funding chain: one address on every EVM chain.
+      const fundingSigner = signer.connect(new JsonRpcProvider(fundingRpc, Number(funding.chainId), { staticNetwork: true }));
+      const max = process.env.INTENTS_FUNDING_MAX_BASE_UNITS;
+      return createIntentsFundedStrategy({
+        inner: createMonadStrategy({ signer, tabSettlement: surface, assets: ASSETS }),
+        signer,
+        intents: {
+          funding,
+          fundingSigner,
+          ...(max === undefined || max.length === 0 ? {} : { maxFundingAmount: BigInt(max) }),
+          ...(process.env.NEAR_INTENTS_API_KEY ? { apiKey: process.env.NEAR_INTENTS_API_KEY } : {}),
+        },
+      });
+    },
     () => {
       const signer = agentSigner();
       const surface = process.env.TAB_SETTLEMENT_ADDRESS;

@@ -221,6 +221,7 @@ The main surfaces:
 | `createMonadStrategy`, `createStrategyRegistry` | The Monad payment strategy, and the registry that resolves strategies |
 | `createRelayedMonadStrategy`, `signSettlementPermit` | Gasless settlement: a Permit2 witness the Agent signs and a relay submits |
 | `createKuruFundedStrategy`, `createKuruOnchainRouter` | Settle in any asset: swap the shortfall in through Kuru before the Monad strategy settles |
+| `createIntentsFundedStrategy`, `createOneClickClient` | Fund from another chain: bring a USDC shortfall to Monad through NEAR Intents before the Monad strategy settles |
 | `revertMappingFor` | The single table mapping a contract revert to a category, code, disposition and remedy |
 
 ### Running a metered Service
@@ -354,6 +355,38 @@ const strategy = createKuruFundedStrategy({
 ```
 
 The swap runs through a `KuruRouter`, a two-method seam: `quote` says how much of the source token buys the shortfall, `swap` executes it. `createKuruOnchainRouter` is the shipped implementation over Kuru's `Router.anyToAnySwap`, quoting by simulation at the amount that will be sent and passing the shortfall as the swap's minimum out, so a Settlement is either fully funded or the swap reverts. A test hands in a fake router. The Router is deployed on Testnet and Mainnet; Kuru's aggregator is Mainnet only and is not used here, and neither is Kuru's own SDK, which pins ethers 5 and takes amounts as floating point.
+
+### Fund from another chain through NEAR Intents
+
+An Agent whose USDC sits on Base, Arbitrum, Ethereum or another chain can still settle a Mainnet tab.
+`createIntentsFundedStrategy` wraps the Monad strategy and reads the Agent's Monad balance of the Asset before every Settlement.
+When it is short, it asks the 1Click API for an `EXACT_OUTPUT` quote of the shortfall delivered to the Agent's own Monad address, transfers the quoted USDC to the deposit address on the funding chain, waits for the delivery, checks the Monad balance again, and only then settles.
+The funding step fills the Agent's own balance and never touches a tab.
+Settlement is unchanged and stays same-chain and atomic by design: one Monad transaction moves the Asset to the Service and applies it to the tab together.
+
+```ts
+import { createIntentsFundedStrategy, createMonadStrategy, ONE_CLICK_USDC_FUNDING } from "@tabai/sdk";
+
+const inner = createMonadStrategy({ signer, tabSettlement, assets });
+const strategy = createIntentsFundedStrategy({
+  inner,
+  signer, // the Agent on Monad, for the balance read
+  intents: {
+    funding: ONE_CLICK_USDC_FUNDING.base,
+    fundingSigner: signer.connect(baseProvider), // the same key on the funding chain
+    maxFundingAmount: 5_000_000n, // at most 5 USDC in per funding step
+    apiKey: process.env.NEAR_INTENTS_API_KEY, // optional
+  },
+});
+```
+
+The strategy id is `intents-funded`, so `tab settle --strategy intents-funded` names it, and the repository's `tab.config.mjs` builds it from `INTENTS_FUNDING_CHAIN` and `INTENTS_FUNDING_RPC_URL`.
+It supports Mainnet USDC only, the one Tab Asset NEAR Intents delivers on Monad, and declines Testnet mUSDC so another strategy resolves for it.
+A dry run asks for a `dry: true` quote, which creates no deposit address, and reports the input it would take; nothing moves until `--broadcast`.
+A refused quote, an input above `maxFundingAmount`, a funding signer on the wrong chain or short of USDC, a refund, a failure or a timeout each come back as a `Result` naming the deposit address and the last status, and no Settlement is sent.
+Refunds go to the Agent's own address on the funding chain.
+The API talks through `OneClickClient`, a three-method seam with an injectable `fetch`, so a test drives the whole flow without a network.
+A partner key is optional: without one the API answers and charges an extra fee on each quote.
 
 ### Configuration keys
 
