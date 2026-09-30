@@ -1,15 +1,16 @@
 /**
  * The calldata this plugin hands to the wallet.
  *
- * Three functions on two contracts. The ERC-20 and `TabSettlement` fragments
- * come from the SDK so the plugin encodes exactly what `createMonadStrategy`
- * encodes; `TabBook.authorise` is the one fragment the SDK has no reason to
- * carry, because the Dashboard signs it in a browser and the SDK never does.
+ * Functions on three contracts. The ERC-20, `TabSettlement` and
+ * `MeteringDelegates` fragments come from the SDK so the plugin encodes exactly
+ * what the SDK and the gateway read; `TabBook.authorise` is the one fragment the
+ * SDK has no reason to carry, because the Dashboard signs it in a browser and
+ * the SDK never does.
  */
 
 import type { Address, Bytes32, Hex, Result } from "@tabai/sdk";
 import { ok } from "@tabai/sdk";
-import { ERC20_ABI, TAB_SETTLEMENT_ABI, validationError } from "@tabai/sdk";
+import { ERC20_ABI, METERING_DELEGATES_ABI, TAB_SETTLEMENT_ABI, validationError } from "@tabai/sdk";
 import { Interface, MaxUint256 } from "ethers";
 
 /** `TabBook.authorise`, the Agent's own cap on what a Service may meter. */
@@ -78,4 +79,37 @@ export function parseServiceId(raw: string): Result<Bytes32> {
     );
   }
   return ok(text.toLowerCase() as Bytes32);
+}
+
+// ---------------------------------------------------------------- MeteringDelegates
+
+const meteringDelegates = new Interface(METERING_DELEGATES_ABI);
+
+export const encodeSetDelegate = (delegate: Address, expiry: bigint): Hex =>
+  meteringDelegates.encodeFunctionData("setDelegate", [delegate, expiry]) as Hex;
+
+export const encodeRevokeDelegate = (delegate: Address): Hex =>
+  meteringDelegates.encodeFunctionData("revokeDelegate", [delegate]) as Hex;
+
+export const encodeIsDelegate = (agent: Address, delegate: Address): Hex =>
+  meteringDelegates.encodeFunctionData("isDelegate", [agent, delegate]) as Hex;
+
+export const encodeExpiryOf = (agent: Address, delegate: Address): Hex =>
+  meteringDelegates.encodeFunctionData("expiryOf", [agent, delegate]) as Hex;
+
+/**
+ * One return word from `MeteringDelegates`, as a number. Empty data is what an
+ * address with no code answers, so it is refused by name rather than read as
+ * zero: a wrong address must not look like "no delegate registered".
+ */
+export function decodeDelegatesWord(data: string, fn: "isDelegate" | "expiryOf"): Result<bigint> {
+  const body = data.startsWith("0x") ? data.slice(2) : data;
+  if (body.length < 64) {
+    return validationError(
+      "METERING_DELEGATES_UNREADABLE",
+      `MeteringDelegates.${fn} returned ${body.length} hex digits, so the configured address does not hold MeteringDelegates`,
+      { details: { fn, length: body.length } },
+    );
+  }
+  return ok(BigInt(`0x${body.slice(0, 64)}`));
 }

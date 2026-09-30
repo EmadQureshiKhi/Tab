@@ -1,5 +1,5 @@
 /**
- * The five command classes, run against a fake `CommandIO` and a fake host
+ * The six command classes, run against a fake `CommandIO` and a fake host
  * context, exactly as the host would run them after `io.resolveInputs`.
  */
 
@@ -12,6 +12,7 @@ import { CommandError, PluginManifestSchema } from "@metamask/agent-wallet/plugi
 
 import TabAuthorise from "../dist/commands/tab/authorise.js";
 import TabCall from "../dist/commands/tab/call.js";
+import TabDelegate from "../dist/commands/tab/delegate.js";
 import TabDiscover from "../dist/commands/tab/discover.js";
 import TabSettle from "../dist/commands/tab/settle.js";
 import TabStatus from "../dist/commands/tab/status.js";
@@ -28,6 +29,7 @@ const COMMANDS = [
   ["tab:call", TabCall],
   ["tab:settle", TabSettle],
   ["tab:authorise", TabAuthorise],
+  ["tab:delegate", TabDelegate],
 ];
 
 /** Builds a command the way oclif does, then installs the fake context the host would. */
@@ -40,6 +42,7 @@ function instantiate(Command, ctx) {
 const ENV_KEYS = [
   "TAB_BOOK_ADDRESS",
   "TAB_SETTLEMENT_ADDRESS",
+  "METERING_DELEGATES_ADDRESS",
   "NEXT_PUBLIC_REGISTRY_API_URL",
   "MONAD_CHAIN_ID",
   "MONAD_RPC_URL",
@@ -80,6 +83,7 @@ test("the manifest asks for wallet-submit only where a transaction is submitted,
   assert.deepEqual(byId.get("tab:call").capabilities, ["wallet-read"]);
   assert.deepEqual(byId.get("tab:settle").capabilities, ["wallet-read", "wallet-submit"]);
   assert.deepEqual(byId.get("tab:authorise").capabilities, ["wallet-read", "wallet-submit"]);
+  assert.deepEqual(byId.get("tab:delegate").capabilities, ["wallet-read", "wallet-submit"]);
   assert.deepEqual(pkg.mm.capabilities, [], "plugin-wide capabilities stay empty so nothing is over-granted");
   assert.equal(pkg.mm.schemaVersion, 1);
   assert.equal(pkg.keywords.includes("oclif-plugin"), true);
@@ -103,6 +107,8 @@ test("the positionals read as documented: settle <service> <asset> <amount>, aut
   assert.ok("broadcast" in TabSettle.flags);
   assert.ok("broadcast" in TabAuthorise.flags);
   assert.ok("args" in TabCall.flags, "the arguments flag is --args, because --json is the host's output flag");
+  assert.deepEqual(Object.keys(TabDelegate.args), [], "delegate takes flags only");
+  for (const flag of ["days", "revoke", "broadcast"]) assert.ok(flag in TabDelegate.flags, `--${flag}`);
 });
 
 test("mm tab settle: a dry run through the command class returns the plan and touches no executor", async () => {
@@ -183,4 +189,39 @@ test("the LIMIT_EXCEEDED hint tells the agent to settle, with both figures", () 
   assert.match(hint, /2500 of headroom/);
   assert.match(hint, /mm tab settle/);
   assert.match(hintFor({ category: "UPSTREAM", code: "REGISTRY_UNCONFIGURED", message: "m", retryable: false }), /NEXT_PUBLIC_REGISTRY_API_URL/);
+});
+
+test("mm tab delegate through the command class reads its flags, and refuses --revoke with --days before touching a key or the wallet", async () => {
+  const context = fakeContext();
+  const command = instantiate(TabDelegate, context.ctx);
+  await withEnv({}, async () => {
+    await assert.rejects(
+      () => command.execute(fakeIo({ days: "7", revoke: true, broadcast: true })),
+      (error) => error instanceof CommandError && error.code === "DELEGATE_FLAGS_CONFLICT",
+    );
+  });
+  assert.equal(context.executorCalls.length, 0);
+});
+
+test("the metering-signature refusals point at mm tab delegate", () => {
+  for (const code of ["METERING_SIGNATURE_ABSENT", "METERING_DELEGATE_NOT_REGISTERED", "DELEGATE_KEY_MISSING"]) {
+    assert.match(hintFor({ category: "AUTHORISATION", code, message: "m", retryable: false }), /mm tab delegate --broadcast/, code);
+  }
+  assert.match(hintFor({ category: "AUTHORISATION", code: "METERING_DELEGATE_UNSUPPORTED", message: "m", retryable: false }), /METERING_DELEGATES_ADDRESS/);
+});
+
+test("the delegate command's success hint names the delegate, never its key", () => {
+  const report = {
+    broadcast: true,
+    action: "register",
+    delegate: "0x00000000000000000000000000000000000de1e9",
+    expiryIso: "2026-10-30T00:00:00.000Z",
+    tx: { txHash: "0x01", status: "CONFIRMED", explorerUrl: "https://testnet.monadvision.com/tx/0x01" },
+    note: "n",
+  };
+  const command = instantiate(TabDelegate, {});
+  assert.match(command.successHint(report), /0x00000000000000000000000000000000000de1e9 registered until 2026-10-30/);
+  assert.match(command.successHint({ ...report, action: "revoke" }), /^Revoked 0x0000/);
+  assert.equal(command.successHint({ ...report, broadcast: false }), "n");
+  assert.deepEqual(command.analyticsOutcome(report), { tx_hash: "0x01" });
 });

@@ -1,7 +1,7 @@
 {
   "name": "@tabai/agent-wallet-plugin",
   "version": "0.1.2",
-  "description": "Tab commands for the MetaMask Agent Wallet CLI (mm): discover priced Services on Monad, call one on credit, read the Open Tab, and settle or authorise with the wallet's own policy-gated key.",
+  "description": "Tab commands for the MetaMask Agent Wallet CLI (mm): discover priced Services on Monad, call one on credit, read the Open Tab, and settle, authorise or register a metering delegate with the wallet's own policy-gated key.",
   "keywords": [
     "oclif-plugin",
     "metamask",
@@ -98,6 +98,20 @@
       },
       {
         "id": "tab:authorise",
+        "capabilities": [
+          "wallet-read",
+          "wallet-submit"
+        ],
+        "dataAccess": [
+          "accounts"
+        ],
+        "targetChains": [
+          143,
+          10143
+        ]
+      },
+      {
+        "id": "tab:delegate",
         "capabilities": [
           "wallet-read",
           "wallet-submit"

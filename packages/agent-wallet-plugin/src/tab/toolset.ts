@@ -1,7 +1,7 @@
 /**
  * The SDK toolset, built with the wallet's address as the Agent.
  *
- * Three of the five commands are the SDK's own tools behind a different front
+ * Three of the six commands are the SDK's own tools behind a different front
  * door: `discover`, `status` and `call` are `tab_discover`, `tab_status` and
  * `tab_call` with the Agent filled in from the wallet rather than from
  * `tab.config`. The SDK still loads `tab.config` for the rest, because that is
@@ -16,10 +16,13 @@
 
 import type { Address } from "@tabai/sdk";
 import {
+  METERING_HEADER,
   createTabToolset,
   resolveTabMcpSettings,
   stderrLogger,
   type RegistryFetch,
+  type ServiceHeaderProvider,
+  type TabServiceEntry,
   type Tab402Fetch,
   type Tab402Response,
   type TabMcpSettings,
@@ -38,6 +41,11 @@ export interface BuildToolsetOptions {
   /** Test seams, passed straight through to the SDK. */
   readonly registryFetch?: RegistryFetch | undefined;
   readonly fetchImpl?: Tab402Fetch<Tab402Response> | undefined;
+  /**
+   * Signs each metered call, on every Service entry that does not already
+   * sign. `mm tab call` passes the registered metering delegate's here.
+   */
+  readonly meteringHeaders?: ServiceHeaderProvider | undefined;
 }
 
 export interface BuiltToolset {
@@ -62,13 +70,39 @@ export async function buildToolset(options: BuildToolsetOptions): Promise<BuiltT
     env,
     logger: stderrLogger,
   });
+  const signing = options.meteringHeaders;
+  const settings: TabMcpSettings =
+    signing === undefined
+      ? mcp
+      : { ...mcp, services: mcp.services.map((entry) => ({ ...entry, headers: withMeteringSignature(entry.headers, signing) })) };
   const toolset = createTabToolset({
-    settings: mcp,
+    settings,
     env,
     logger: stderrLogger,
     ...(options.cwd === undefined ? {} : { cwd: options.cwd }),
     ...(options.registryFetch === undefined ? {} : { registryFetch: options.registryFetch }),
     ...(options.fetchImpl === undefined ? {} : { fetchImpl: options.fetchImpl }),
   });
-  return { toolset, mcp };
+  return { toolset, mcp: settings };
+}
+
+/** The headers that already carry a metering signature, lower-cased. */
+const SIGNED_BY = new Set([METERING_HEADER.operatorSignature, METERING_HEADER.agentSignature].map((name) => name.toLowerCase()));
+
+/**
+ * A Service's own headers, then the metering signature when they carry none.
+ *
+ * A `tab.config` entry or the SDK's hosted default may already sign as the
+ * Agent (with `AGENT_PRIVATE_KEY`), and that signature is the stronger claim,
+ * so it is kept and nothing is added over it.
+ */
+export function withMeteringSignature(
+  declared: TabServiceEntry["headers"],
+  signing: ServiceHeaderProvider,
+): ServiceHeaderProvider {
+  return async (request) => {
+    const base = declared === undefined ? {} : typeof declared === "function" ? await declared(request) : declared;
+    if (Object.keys(base).some((name) => SIGNED_BY.has(name.toLowerCase()))) return base;
+    return { ...base, ...(await signing(request)) };
+  };
 }

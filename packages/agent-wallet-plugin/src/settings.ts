@@ -1,11 +1,13 @@
 /**
  * Where the plugin's settings come from.
  *
- * Seven names from the environment, each already declared in the repository's
+ * Eight names from the environment, each already declared in the repository's
  * tracked `.env.example`. Testnet is the default chain, and the deployment
- * recorded for whichever chain is named is the fallback for every address. Nothing here is a key: the only
- * key this plugin ever uses is the one MetaMask Agent Wallet holds, and it never
- * leaves the host.
+ * recorded for whichever chain is named is the fallback for every address.
+ * Nothing here is a key. The Agent's key is the one MetaMask Agent Wallet
+ * holds, and it never leaves the host; the one other key this plugin knows
+ * about, a metering delegate, lives in its own file (see `delegate-key.ts`)
+ * and never passes through a setting.
  *
  * ## Every read is one name on one line
  *
@@ -16,7 +18,7 @@
  */
 
 import type { Address, Result } from "@tabai/sdk";
-import { ok } from "@tabai/sdk";
+import { meteringDelegatesFor, ok } from "@tabai/sdk";
 import { validationError } from "@tabai/sdk";
 
 import { DEFAULT_CHAIN_ID, MAINNET_CHAIN_ID, TESTNET_DEFAULTS, deploymentDefaults } from "./defaults.js";
@@ -25,6 +27,7 @@ import { DEFAULT_CHAIN_ID, MAINNET_CHAIN_ID, TESTNET_DEFAULTS, deploymentDefault
 export interface PluginEnv {
   readonly TAB_BOOK_ADDRESS?: string | undefined;
   readonly TAB_SETTLEMENT_ADDRESS?: string | undefined;
+  readonly METERING_DELEGATES_ADDRESS?: string | undefined;
   readonly NEXT_PUBLIC_REGISTRY_API_URL?: string | undefined;
   readonly MONAD_CHAIN_ID?: string | undefined;
   readonly MONAD_RPC_URL?: string | undefined;
@@ -37,6 +40,7 @@ export function processPluginEnv(): PluginEnv {
   return {
     TAB_BOOK_ADDRESS: process.env.TAB_BOOK_ADDRESS,
     TAB_SETTLEMENT_ADDRESS: process.env.TAB_SETTLEMENT_ADDRESS,
+    METERING_DELEGATES_ADDRESS: process.env.METERING_DELEGATES_ADDRESS,
     NEXT_PUBLIC_REGISTRY_API_URL: process.env.NEXT_PUBLIC_REGISTRY_API_URL,
     MONAD_CHAIN_ID: process.env.MONAD_CHAIN_ID,
     MONAD_RPC_URL: process.env.MONAD_RPC_URL,
@@ -50,6 +54,12 @@ export interface PluginSettings {
   readonly chainId: number;
   readonly tabBook: Address;
   readonly tabSettlement: Address;
+  /**
+   * `MeteringDelegates` on this chain, or undefined where none is deployed,
+   * which is what switches `mm tab delegate` off and keeps `mm tab call`
+   * from signing with a delegate.
+   */
+  readonly meteringDelegates?: Address | undefined;
   /** The registry read API, or undefined when nothing names one. The SDK reports the absence by name. */
   readonly registryUrl: string | undefined;
   /**
@@ -149,6 +159,27 @@ export function resolvePluginSettings(env: PluginEnv): Result<PluginSettings> {
   );
   if (!tabSettlement.ok) return tabSettlement;
 
+  /*
+    MeteringDelegates is deployed after the core, network by network, so the
+    recorded default may be absent. The environment names one for a network
+    the published defaults do not know yet; empty means the default.
+  */
+  let meteringDelegates: Address | undefined;
+  const delegatesDefault = meteringDelegatesFor(chainId);
+  if (trimmed(env.METERING_DELEGATES_ADDRESS) !== undefined || delegatesDefault !== undefined) {
+    const delegates = addressSetting(
+      env.METERING_DELEGATES_ADDRESS,
+      "METERING_DELEGATES_ADDRESS",
+      chainId,
+      (delegatesDefault?.toLowerCase() ?? ZERO_ADDRESS) as Address,
+      sources,
+    );
+    if (!delegates.ok) return delegates;
+    meteringDelegates = delegates.value;
+  } else {
+    sources["METERING_DELEGATES_ADDRESS"] = "none (not deployed on this network)";
+  }
+
   const registryUrl = trimmed(env.NEXT_PUBLIC_REGISTRY_API_URL);
   if (registryUrl !== undefined) sources["NEXT_PUBLIC_REGISTRY_API_URL"] = "env NEXT_PUBLIC_REGISTRY_API_URL";
 
@@ -171,6 +202,7 @@ export function resolvePluginSettings(env: PluginEnv): Result<PluginSettings> {
     chainId,
     tabBook: tabBook.value,
     tabSettlement: tabSettlement.value,
+    meteringDelegates,
     registryUrl,
     rpcUrl,
     explorerUrl,
