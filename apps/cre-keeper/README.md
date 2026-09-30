@@ -6,7 +6,8 @@ Every verdict is logged, one line per tab.
 
 This is a standard CRE TypeScript project: `project.yaml` at the root, one workflow in `delinquency/` with its `workflow.yaml`, `main.ts` and `config.json`, and `secrets.yaml` naming the one secret.
 It runs against `apps/keeper`, which must be reachable from wherever the workflow executes.
-Today it runs under the CRE simulator; `config.production.json` needs a public keeper URL before it can be deployed to a DON.
+The keeper is hosted for both networks, at `https://keeper-testnet-production-e820.up.railway.app` and `https://keeper-mainnet-production-0f50.up.railway.app`, and the `testnet-settings` and `production-settings` targets point at them.
+The workflow has run under the CRE simulator against the hosted Testnet keeper; deploying it to a DON waits on deploy access for the account.
 
 ## Layout
 
@@ -17,7 +18,8 @@ delinquency/
   workflow.yaml               workflow-name, entry file, config file, secrets path, per target
   package.json                what `bun install` installs for the CRE CLI's compiler, plus cre-setup
   config.json                 staging: schedule, keeperUrl, requestTimeout, maxMarksPerTick
-  config.production.json      the same for production-settings
+  config.testnet.json         the same for testnet-settings, against the hosted Testnet keeper
+  config.production.json      the same for production-settings, against the hosted Mainnet keeper
   main.ts                     Runner.newRunner({ configSchema }) and runner.run(initWorkflow)
   workflow.ts                 the CRE wiring: CronCapability, HTTPClient, consensus, the secret
   tick.ts                     the tick as a function of three ports, testable without the SDK
@@ -67,7 +69,8 @@ The simulator also wants `CRE_ETH_PRIVATE_KEY` in that file, a 64-hex key withou
 Non-interactively: `cre workflow simulate delinquency --non-interactive --trigger-index 0 --target staging-settings --env ../../.env`.
 
 `config.json` points `keeperUrl` at `http://localhost:8791`, which is reachable from a local simulation and from nothing else.
-For a deployed workflow, `config.production.json` must name a public keeper, and the HTTP capability does not follow redirects, so the URL must be the final one.
+A deployed workflow must name a public keeper, and the HTTP capability does not follow redirects, so the URL must be the final one; the hosted keepers' URLs are.
+To run against the hosted Testnet keeper, give the simulator that keeper's secret as `CRE_KEEPER_SHARED_SECRET` and use `--target testnet-settings`.
 
 This has been run, against Bun 1.4.2 and CRE CLI v1.35.0, with the keeper serving on `:8791`:
 
@@ -123,7 +126,7 @@ The keeper's `/overdue` stays useful either way: it is the same verdict the Dash
 
 ## Configuration
 
-`config.json` and `config.production.json`, validated by a Zod schema at startup:
+`config.json`, `config.testnet.json` and `config.production.json`, validated by a Zod schema at startup:
 
 | Key | Meaning |
 | --- | --- |

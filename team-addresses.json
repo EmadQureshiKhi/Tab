@@ -115,6 +115,22 @@
       ],
       "role": "operator of tab.demo.c on Testnet",
       "why": "a second demo Service registered on 2026-09-30 for the credit-growth demonstration, operated and bonded by this project"
+    },
+    {
+      "address": "0x89540FE60597d41C7539319671002f0b3189B290",
+      "chainIds": [
+        10143
+      ],
+      "role": "hosted keeper on Testnet",
+      "why": "sends markDelinquent for overdue tabs from the hosted keeper; holds gas only and never settles or is metered"
+    },
+    {
+      "address": "0x159ea99ca125f4434738f0A8175db640A2d06Bc1",
+      "chainIds": [
+        143
+      ],
+      "role": "hosted keeper on Mainnet",
+      "why": "sends markDelinquent for overdue tabs from the hosted keeper; holds gas only and never settles or is metered"
     }
   ],
   "networks": [

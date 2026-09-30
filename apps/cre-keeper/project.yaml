@@ -17,6 +17,12 @@ staging-settings:
       url: https://testnet-rpc.monad.xyz
 
 # ==========================================================================
+testnet-settings:
+  rpcs:
+    - chain-name: monad-testnet
+      url: https://testnet-rpc.monad.xyz
+
+# ==========================================================================
 production-settings:
   rpcs:
     - chain-name: monad-mainnet

@@ -15,6 +15,15 @@ staging-settings:
     secrets-path: "../secrets.yaml"
 
 # ==========================================================================
+testnet-settings:
+  user-workflow:
+    workflow-name: "tab-delinquency-keeper-testnet"
+  workflow-artifacts:
+    workflow-path: "./main.ts"
+    config-path: "./config.testnet.json"
+    secrets-path: "../secrets.yaml"
+
+# ==========================================================================
 production-settings:
   user-workflow:
     workflow-name: "tab-delinquency-keeper-production"

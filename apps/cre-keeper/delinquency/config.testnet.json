@@ -1,6 +1,6 @@
 {
   "schedule": "0 */10 * * * *",
-  "keeperUrl": "https://keeper-mainnet-production-0f50.up.railway.app",
+  "keeperUrl": "https://keeper-testnet-production-e820.up.railway.app",
   "requestTimeout": "8s",
   "maxMarksPerTick": 25
 }

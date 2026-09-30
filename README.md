@@ -151,7 +151,7 @@ RPC `https://testnet-rpc.monad.xyz`, explorer `https://testnet.monadvision.com`,
 
 ## On Monad, end to end
 
-Every piece below is in the tree and exercised by tests; the registry, the gateway and the Dashboard are live in the hosted deployment, and the keeper runs locally with its CRE workflow under the CRE simulator.
+Every piece below is in the tree and exercised by tests; the registry, the gateway, the keeper and the Dashboard are live in the hosted deployment, and the keeper's CRE workflow runs under the CRE simulator against the hosted keeper until it is deployed to a DON.
 
 | Piece | What Tab does with it | Where |
 | --- | --- | --- |
