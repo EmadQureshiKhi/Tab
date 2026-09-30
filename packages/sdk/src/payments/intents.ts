@@ -89,8 +89,8 @@ export interface IntentsFundingAsset {
   readonly assetId: string;
   /** The EVM chain id of the funding chain. */
   readonly chainId: bigint;
-  /** The ERC-20 the deposit is a transfer of. */
-  readonly token: Address;
+  /** The ERC-20 contract the deposit is a transfer of. */
+  readonly address: Address;
   readonly decimals: number;
   readonly symbol: string;
 }
@@ -100,42 +100,42 @@ export const ONE_CLICK_USDC_FUNDING = {
   ethereum: {
     assetId: "nep141:eth-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48.omft.near",
     chainId: 1n,
-    token: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+    address: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
     decimals: 6,
     symbol: "USDC",
   },
   arbitrum: {
     assetId: "nep141:arb-0xaf88d065e77c8cc2239327c5edb3a432268e5831.omft.near",
     chainId: 42161n,
-    token: "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+    address: "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
     decimals: 6,
     symbol: "USDC",
   },
   base: {
     assetId: "nep141:base-0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.omft.near",
     chainId: 8453n,
-    token: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    address: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
     decimals: 6,
     symbol: "USDC",
   },
   optimism: {
     assetId: "nep245:v2_1.omni.hot.tg:10_A2ewyUyDp6qsue1jqZsGypkCxRJ",
     chainId: 10n,
-    token: "0x0b2c639c533813f4aa9d7837caf62653d097ff85",
+    address: "0x0b2c639c533813f4aa9d7837caf62653d097ff85",
     decimals: 6,
     symbol: "USDC",
   },
   polygon: {
     assetId: "nep245:v2_1.omni.hot.tg:137_qiStmoQJDQPTebaPjgx5VBxZv6L",
     chainId: 137n,
-    token: "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+    address: "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
     decimals: 6,
     symbol: "USDC",
   },
   avalanche: {
     assetId: "nep245:v2_1.omni.hot.tg:43114_3atVJH3r5c4GqiSYmg9fECvjc47o",
     chainId: 43114n,
-    token: "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e",
+    address: "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e",
     decimals: 6,
     symbol: "USDC",
   },
@@ -633,7 +633,7 @@ export function createIntentsFundedStrategy(config: IntentsFundedStrategyConfig)
         }
       }
       const owner = await fundingSigner.getAddress();
-      const held = await readBalance(provider, funding.token, owner, "INTENTS_FUNDING_BALANCE_UNREADABLE", `${funding.symbol} on chain ${funding.chainId.toString(10)}`);
+      const held = await readBalance(provider, funding.address, owner, "INTENTS_FUNDING_BALANCE_UNREADABLE", `${funding.symbol} on chain ${funding.chainId.toString(10)}`);
       if (!held.ok) return held;
       if (held.value < amountIn) {
         return chainError(
@@ -645,7 +645,7 @@ export function createIntentsFundedStrategy(config: IntentsFundedStrategyConfig)
     }
 
     const sent = await wrap(
-      async () => fundingSigner.sendTransaction({ to: funding.token, data: erc20.encodeFunctionData("transfer", [depositAddress, amountIn]) }),
+      async () => fundingSigner.sendTransaction({ to: funding.address, data: erc20.encodeFunctionData("transfer", [depositAddress, amountIn]) }),
       (error) => ({
         category: "CHAIN" as const,
         code: "INTENTS_DEPOSIT_FAILED",

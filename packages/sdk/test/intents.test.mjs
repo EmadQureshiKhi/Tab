@@ -88,7 +88,7 @@ function fakeFundingSigner({ held = 10_000_000n, chainId = FUNDING.chainId, stat
     provider: {
       getNetwork: async () => ({ chainId }),
       async call(transaction) {
-        assert.equal(transaction.to, FUNDING.token);
+        assert.equal(transaction.to, FUNDING.address);
         return erc20.encodeFunctionResult("balanceOf", [held]);
       },
     },
@@ -244,7 +244,7 @@ test("a short Agent is funded for exactly the shortfall through a deposit on the
   assert.ok(Date.parse(quote.body.deadline) > 0);
 
   assert.equal(signer.sent.length, 1, "one transfer on the funding chain");
-  assert.equal(signer.sent[0].to, FUNDING.token);
+  assert.equal(signer.sent[0].to, FUNDING.address);
   const [to, amount] = erc20.decodeFunctionData("transfer", signer.sent[0].data);
   assert.equal(to, DEPOSIT);
   assert.equal(amount, 760_000n, "the quote's amountIn, which carries the slippage tolerance");

@@ -6,3 +6,15 @@
 # deployments.json and the README; the generic rule matched the field name.
 # The field is now named `testAsset`.
 02f7585e6ad89e064d1242e3005d3039d5320c08:packages/shared/src/chains.ts:generic-api-key:145
+#
+# ed803e8 named each funding chain's USDC contract `token` in
+# packages/sdk/src/payments/intents.ts. The values are the public USDC
+# contracts on Ethereum, Arbitrum, Base, Optimism, Polygon and Avalanche, as
+# the 1Click API's token list names them; the generic rule matched the field
+# name. The field is now named `address`.
+ed803e8c2c761384e8904dbb9d48f48aadf14b7d:packages/sdk/src/payments/intents.ts:generic-api-key:103
+ed803e8c2c761384e8904dbb9d48f48aadf14b7d:packages/sdk/src/payments/intents.ts:generic-api-key:110
+ed803e8c2c761384e8904dbb9d48f48aadf14b7d:packages/sdk/src/payments/intents.ts:generic-api-key:117
+ed803e8c2c761384e8904dbb9d48f48aadf14b7d:packages/sdk/src/payments/intents.ts:generic-api-key:124
+ed803e8c2c761384e8904dbb9d48f48aadf14b7d:packages/sdk/src/payments/intents.ts:generic-api-key:131
+ed803e8c2c761384e8904dbb9d48f48aadf14b7d:packages/sdk/src/payments/intents.ts:generic-api-key:138
