@@ -131,6 +131,22 @@
       ],
       "role": "hosted keeper on Mainnet",
       "why": "sends markDelinquent for overdue tabs from the hosted keeper; holds gas only and never settles or is metered"
+    },
+    {
+      "address": "0xFe3B564dFce2120960ccC5E95BA50ee3B32be6F6",
+      "chainIds": [
+        10143
+      ],
+      "role": "Testnet Agent whose key is a Privy server wallet",
+      "why": "the demonstration Agent for the Privy integration, created 2026-09-30 by scripts/privy-agent.mjs and funded by this project"
+    },
+    {
+      "address": "0x1E9A5cF0746f846E14DaFf5CbD6e85c5cC8985ff",
+      "chainIds": [
+        10143
+      ],
+      "role": "Testnet Agent for the credit-growth demonstration",
+      "why": "prepared 2026-09-30 by scripts/credit-growth.mjs to settle with three Curated Services and show its Credit Limit grow"
     }
   ],
   "networks": [
