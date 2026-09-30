@@ -361,7 +361,7 @@ The same review records one liveness limit found by hand: an Agent that settles 
 | Mainnet demo Service | Bonded, accepting USDC and AUSD, with `quote.generate` and both fronted tools priced; the demo Agent has authorised it |
 | Hosted rail | A registry, a metering gateway and a delinquency keeper per network on Railway, each registry with its own Postgres and Envio HyperSync. Both gateways accept delegate-signed calls and write ERC-8004 reputation. The Dashboard and the docs on Vercel |
 | Dashboard | One deployment serving both networks, chosen in the header, with passkey accounts and a rate-limited Try it on Mainnet |
-| Client tooling | `@tabai/sdk` 0.2.6 (SDK, CLI, MCP server with four tools) and `@tabai/agent-wallet-plugin` 0.1.3 on npm |
+| Client tooling | `@tabai/sdk` (SDK, CLI, MCP server with four tools) and `@tabai/agent-wallet-plugin` on npm |
 | Run live | The Agent Wallet plugin end to end on Mainnet; a Privy server-wallet Agent on Testnet, direct and gasless; ERC-8004 reputation after each Settlement to `tab.demo` on both networks |
 | Prepared, pending | Credit growth above the baseline on Testnet, once the queued Curated tier applies on 2026-10-02; a live funded NEAR Intents run; the CRE workflow on a DON, which waits on Chainlink deploy access |
 | Tests | 179 contract tests, including property tests, and 787 across the eight TypeScript packages |

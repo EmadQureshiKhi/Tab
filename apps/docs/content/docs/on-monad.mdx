@@ -88,7 +88,7 @@ So an Agent is rated only when it holds an ERC-8004 identity itself, as its owne
 The writer counts what it has already written about each agent under its two tags rather than keeping state of its own, so a restart writes nothing twice, and `scripts/reputation-backfill.mjs` writes the entries for Settlements made before it was switched on, as a dry run unless given `--broadcast`.
 
 That is why the demo Agent's identities, `1914` on Testnet and `10255` on Mainnet, are owned by the Agent address `0x3a3B6079e418C81a9dE08414Bb07ea817939e7Ce` and not by the operator of `tab.demo`.
-They carry 20 entries and 2 entries respectively, each from the `tab.demo` operator, with a mean of 100.
+Both carry entries written by the `tab.demo` operator, one per Settlement, with a mean of 100; the Agent page on the Dashboard reads the current count live.
 
 An Agent's page shows the summary in its own section, "Reputation, from the ERC-8004 registry", from Tab Services (the operators of registered Services, under `tab` and `settled`) apart from every client, and the registry's `GET /agents/:agent/reputation` serves the same per agentId.
 

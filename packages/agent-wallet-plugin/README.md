@@ -76,8 +76,7 @@ Three practical notes from that run:
 - Run `mm` under Node `>= 22.18`; the CLI refuses anything older.
 - Run `mm tab` from a directory with no `tab.config.mjs` in it or above it.
   The plugin reads the nearest one, and inside this repository that is the development config, which points `tab.demo` at a gateway on `localhost`.
-- With 0.1.3, answer `n` if `mm tab delegate` asks whether to withdraw the delegate.
-  The fix that stops any option from prompting is in this repository and ships in the next release.
+- No option ever prompts: a flag left off means its default, so leaving out `--broadcast` is always a dry run.
 
 ### What the host will and will not do on Monad Testnet
 
