@@ -24,6 +24,7 @@ import { createTabBookClient } from "./tab-book.js";
 import { createSettlementRelay } from "./relay.js";
 import { createMeteringDelegateReader, type MeteringDelegateReader } from "./delegates.js";
 import { createSerialSender } from "./sender.js";
+import { RetryingJsonRpcProvider } from "./provider.js";
 import { createApp, type GatewayAsset, type GatewayHubOptions, type GatewayX402Options } from "./server.js";
 import { loadX402Config, readCollectionAddress, readEip712Domain } from "./x402.js";
 import { createFeedbackDocuments, createReputationWriter, loadReputationConfig, processReputationEnv } from "./reputation.js";
@@ -74,7 +75,7 @@ async function main(): Promise<number> {
     return 2;
   }
 
-  const provider = new JsonRpcProvider(config.value.rpcUrl, config.value.chainId, {
+  const provider = new RetryingJsonRpcProvider(config.value.rpcUrl, config.value.chainId, {
     batchMaxCount: config.value.batchMaxCount,
     staticNetwork: true,
   });

@@ -134,7 +134,12 @@ export async function runAgentLoop({ agent, provider, env, broadcast, authorise,
       break;
     }
     show("result", JSON.stringify(called.result));
-    show("charge", `${money(called.charge.amountBaseUnits)} on the Open Tab, now ${money(called.tab.openTabBaseUnits)}, headroom ${money(called.tab.headroomBaseUnits)}`);
+    if (called.charge === undefined || called.tab === undefined) {
+      // The Service could not meter this call, a failure of its own, so it delivered anyway and absorbs the charge.
+      show("charge", "none: the Service delivered without metering this call, so nothing landed on the tab");
+    } else {
+      show("charge", `${money(called.charge.amountBaseUnits)} on the Open Tab, now ${money(called.tab.openTabBaseUnits)}, headroom ${money(called.tab.headroomBaseUnits)}`);
+    }
     if (called.x402) show("x402", `prepaid instead: ${called.x402.txHash}`);
   }
 
