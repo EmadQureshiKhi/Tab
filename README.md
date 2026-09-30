@@ -165,6 +165,7 @@ Every piece below is in the tree and exercised by tests; the registry, the gatew
 | **MetaMask Agent Wallet** | `mm tab discover`, `status`, `call`, `settle` and `authorise` as a plugin: each builds the transaction and hands it to the wallet with a one-sentence intent, so the wallet's policy decides what is signed | `packages/agent-wallet-plugin` |
 | **Chainlink CRE** | A cron workflow, compiled to WASM and run under the CRE simulator, that calls the delinquency keeper every ten minutes; the keeper confirms each overdue tab on chain and submits the permissionless `markDelinquent` | `apps/cre-keeper`, `apps/keeper` |
 | **Kuru** | A settlement strategy that reads the Agent's balance of the Asset and, when it is short, swaps the shortfall in from another token through Kuru's router before settling | `packages/sdk/src/payments/kuru.ts` |
+| **NEAR Intents** | Any-chain liquidity for Monad: the `intents-funded` strategy reads the Agent's Monad balance of USDC and, when it is short, brings the shortfall to the Agent's own Monad address from USDC on Base, Arbitrum or another chain through the 1Click API before settling. The funding step only fills the Agent's balance; the Settlement is still one Monad transaction, same-chain and atomic | `packages/sdk/src/payments/intents.ts` |
 | **Agora AUSD** | A first-class Asset beside USDC on Mainnet: in the shared table, so every page and tool that prints an Asset names it | `packages/shared/src/chains.ts` |
 
 None of these change what a Settlement is.

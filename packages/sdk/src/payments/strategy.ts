@@ -7,7 +7,9 @@
  * after an approval (`createMonadStrategy`), or `settleWithPermit2`, signed by the
  * Agent and sent by a relayer (`createRelayedMonadStrategy`).
  * `createKuruFundedStrategy` wraps either one and swaps the Asset in first when
- * the Agent is short. The seam also lets a different signer, a smart account, a
+ * the Agent is short, and `createIntentsFundedStrategy` brings a USDC shortfall
+ * to Monad from another chain through NEAR Intents first. Either way the
+ * Settlement stays one Monad transaction. The seam also lets a different signer, a smart account, a
  * session key, or a test double stand behind the same call without the SDK
  * caring which.
  *

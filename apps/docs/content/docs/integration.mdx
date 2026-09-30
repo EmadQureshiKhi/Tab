@@ -190,6 +190,7 @@ Beside the main entry point, `@tabai/sdk/hub` (the API Hub manifest reader) and 
 | `createMonadStrategy`, `createStrategyRegistry` | The Monad payment strategy, and the registry that resolves strategies |
 | `createRelayedMonadStrategy`, `signSettlementPermit` | The gasless strategy: a Permit2 witness the Agent signs and a relay submits, and the signing helper on its own |
 | `createKuruFundedStrategy`, `createKuruOnchainRouter` | A strategy that swaps the shortfall in through Kuru before settling |
+| `createIntentsFundedStrategy`, `createOneClickClient` | A strategy that brings a USDC shortfall to Monad from another chain through NEAR Intents before settling |
 | `createX402Client`, `createX402Facilitator`, `handlePrepaidRequest`, `exactRequirementFor` | The x402 client and server halves, over Monad's facilitator |
 | `createX402FrontedProxy`, `createX402UpstreamPricing`, `fetchHubManifest` | Fronting an x402 upstream on credit, and reading the API Hub's manifest |
 | `revertMappingFor` | The table mapping a `recordDelivery` revert to a category, code, disposition and remedy |
@@ -375,6 +376,38 @@ export interface PaymentStrategy {
 
 A receipt carries the transaction hash and, once the receipt is read, the `settlementId`, `applied` and `toPrepaid` figures from the `Settled` event.
 `settleBatch` maps onto `TabSettlement.settleBatch`, which pays several tabs in one transaction, and it should stay undefined where the signer behind the strategy has no batch form.
+
+### Funding from another chain
+
+`createIntentsFundedStrategy` is the same wrapping with a different source of funds: USDC the Agent holds on another chain.
+Before every Settlement it reads the Agent's Monad balance of the Asset.
+When the balance covers the amount it delegates straight to the inner strategy.
+When it is short, it asks the NEAR Intents 1Click API for an `EXACT_OUTPUT` quote of the shortfall delivered to the Agent's own Monad address, with refunds to the Agent's address on the funding chain.
+It refuses a quote above `maxFundingAmount`, transfers the quoted USDC to the deposit address on the funding chain, polls the status until `SUCCESS`, and checks that the Monad balance now covers the amount before it settles.
+
+Settlement is same-chain and atomic by design, and this does not change it.
+The funding step only fills the Agent's own balance on Monad; the Settlement is still one Monad transaction that moves the Asset to the Service and applies it to the tab together.
+A funding step that is refunded, fails or times out returns a `Result` naming the deposit address and its last status, and no Settlement is sent.
+
+```ts
+import { JsonRpcProvider } from "ethers";
+import { createIntentsFundedStrategy, createMonadStrategy, ONE_CLICK_USDC_FUNDING } from "@tabai/sdk";
+
+const strategy = createIntentsFundedStrategy({
+  inner: createMonadStrategy({ signer, tabSettlement, assets }),
+  signer,
+  intents: {
+    funding: ONE_CLICK_USDC_FUNDING.base,
+    fundingSigner: signer.connect(new JsonRpcProvider(process.env.INTENTS_FUNDING_RPC_URL)),
+    maxFundingAmount: 5_000_000n,
+  },
+});
+```
+
+Its id is `intents-funded`, which `tab_settle` takes as `strategyId` and the CLI as `--strategy intents-funded`.
+The repository's `tab.config.mjs` builds it on Mainnet when `INTENTS_FUNDING_CHAIN` (`base`, `arbitrum`, `ethereum`, `optimism`, `polygon` or `avalanche`) and `INTENTS_FUNDING_RPC_URL` are set, with `INTENTS_FUNDING_MAX_BASE_UNITS` as the ceiling and an optional `NEAR_INTENTS_API_KEY`.
+Only Mainnet USDC is supported, because it is the one Tab Asset NEAR Intents delivers on Monad; Testnet mUSDC is declined and resolves to another strategy.
+A dry run asks only for a `dry: true` quote, which creates no deposit address, so it moves nothing.
 
 ### A strategy over a different signer
 
