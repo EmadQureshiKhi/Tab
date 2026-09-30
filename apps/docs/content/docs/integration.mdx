@@ -51,7 +51,7 @@ Every command reads the chain; one of them writes to it, and it says so before i
 | `settle` | Pays down an Open Tab, with the Agent's key or, with `--strategy monad-relayed`, by a Permit2 signature the gateway submits | real funds, and only with `--broadcast` |
 
 `settle` is a dry run unless you ask otherwise.
-It needs a payment strategy, so run it with the `tab.config` below and `AGENT_PRIVATE_KEY` set.
+It needs a payment strategy: with no `tab.config`, `AGENT_PRIVATE_KEY` is enough, because the SDK then settles through the direct Monad strategy against the deployment's `TabSettlement`, and a `tab.config` below registers any other.
 It checks that the Service accepts the Asset, quotes the amount, and stops:
 
 ```bash
@@ -82,6 +82,7 @@ On Testnet the mock token is named `mUSDC` wherever a symbol is printed, so a re
 With nothing configured, the SDK reads the hosted registry read API for the chosen network and knows the hosted demo Service, `tab.demo`, at its hosted gateway.
 Both are exported as `TAB_HOSTED`, anything you configure takes precedence over them, and `TAB_HOSTED_DEFAULTS=off` switches them off for a setup that must reach nothing it did not name.
 The hosted gateway meters only a signed call, so with `AGENT_ADDRESS` and `AGENT_PRIVATE_KEY` set and no file at all, `tab_call` reaches `tab.demo` and signs each call with the Agent's own key.
+The same key settles: with no strategy registered, `tab_settle` pays through the direct Monad strategy against the hosted deployment's `TabSettlement`, in that network's Assets.
 
 A file is for everything beyond that: the Agent's address if you would rather not put it in the environment, any Services beyond the demo one (the chain records no URL for a Service), the payment strategies, and the x402 signer.
 

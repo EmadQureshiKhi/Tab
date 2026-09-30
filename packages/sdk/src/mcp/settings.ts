@@ -34,7 +34,8 @@
  */
 
 import type { Address } from "@tabai/shared";
-import { CHAINS, TAB_HOSTED, isAddress, isMonadChainId } from "@tabai/shared";
+import { CHAINS, MAINNET_ASSETS, MONAD_MAINNET, TAB_HOSTED, TESTNET_ASSETS, isAddress, isMonadChainId } from "@tabai/shared";
+import type { AssetRef } from "../payments/strategy.js";
 import { Wallet } from "ethers";
 
 import type { TabServiceEntry } from "../payments/config.js";
@@ -51,6 +52,14 @@ export interface TabMcpSettings {
   readonly registryUrl: string | undefined;
   /** The Monad JSON-RPC endpoint, used by `doctor` and by nothing that signs. */
   readonly rpcUrl: string | undefined;
+  /**
+   * Where a Settlement goes when no `tab.config` registers a strategy: the hosted
+   * deployment's `TabSettlement` and the Assets it settles in, on this network.
+   * Undefined when the hosted defaults are off or the chain is not Monad.
+   */
+  readonly hostedSettlement:
+    | { readonly tabSettlement: Address; readonly assets: Readonly<Record<string, AssetRef>>; readonly rpcUrl: string }
+    | undefined;
   /** The EVM chain id every Asset is named against: 143 for Mainnet, 10143 for Testnet. */
   readonly chainId: number;
   /** Where a Monad transaction is linked. Always resolved; a default is fine for a link. */
@@ -281,10 +290,31 @@ export async function resolveTabMcpSettings(
   const x402 = options.x402 ?? (typeof config.x402 === "function" ? config.x402 : undefined);
   if (x402 !== undefined) sources["x402"] = options.x402 === undefined ? "tab.config" : "options";
 
+  const hostedSettlement =
+    hosted === undefined || !isMonadChainId(chainId)
+      ? undefined
+      : (() => {
+          const listed = chainId === MONAD_MAINNET.chainId
+            ? Object.values(MAINNET_ASSETS)
+            : [
+                ...Object.values(TESTNET_ASSETS),
+                ...("testAsset" in hosted && hosted.testAsset !== undefined
+                  ? [{ symbol: "mUSDC", decimals: 6, address: hosted.testAsset }]
+                  : []),
+              ];
+          const assets: Record<string, AssetRef> = {};
+          for (const asset of listed) {
+            const address = asset.address.toLowerCase() as Address;
+            assets[chainId + ":" + address] = { chainId: BigInt(chainId), address, decimals: asset.decimals, symbol: asset.symbol };
+          }
+          return { tabSettlement: hosted.tabSettlement as Address, assets, rpcUrl: rpcUrl ?? CHAINS[chainId].rpcUrl };
+        })();
+
   return {
     agent,
     registryUrl,
     rpcUrl,
+    hostedSettlement,
     chainId,
     explorerUrl,
     services,

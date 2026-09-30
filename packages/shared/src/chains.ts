@@ -140,6 +140,11 @@ export interface TabHosted {
   readonly demoService: HostedService;
   /** The test token the hosted deployment prices in, where it ships one: `mUSDC`, 6 decimals. */
   readonly testAsset?: Address;
+  /**
+   * The deployment's `TabSettlement`, so a fresh install holding `AGENT_PRIVATE_KEY`
+   * can settle with no `tab.config` at all. The same address `deployments.json` records.
+   */
+  readonly tabSettlement: Address;
 }
 
 /**
@@ -158,6 +163,7 @@ export const TAB_HOSTED = {
       name: "tab.demo",
       endpoint: "https://gateway-mainnet-production.up.railway.app",
     },
+    tabSettlement: "0x32A96bfEABe766B4898b961B333B7B89f079a9a9",
   },
   [MONAD_TESTNET.chainId]: {
     registryUrl: "https://registry-testnet-production.up.railway.app",
@@ -167,6 +173,7 @@ export const TAB_HOSTED = {
       endpoint: "https://gateway-testnet-production-a657.up.railway.app",
     },
     testAsset: "0x480209747417f5c830fDA188a9b9AcFa70Bc4083",
+    tabSettlement: "0x654Fac48185e4B71779eEc2457B1F24aEdf46717",
   },
 } as const satisfies Readonly<Record<MonadChainId, TabHosted>>;
 

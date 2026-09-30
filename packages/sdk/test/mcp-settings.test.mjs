@@ -117,3 +117,23 @@ test("without a key the hosted demo Service adds no signature", async () => {
   const settings = await resolveTabMcpSettings({ ...base, env: { AGENT_ADDRESS: AGENT.address } });
   assert.deepEqual(await demoHeaders(settings, AGENT.address), {});
 });
+
+test("a fresh install knows where to settle on each network, and it is the deployment's own TabSettlement", async () => {
+  const { readFileSync } = await import("node:fs");
+  const record = JSON.parse(readFileSync(new URL("../../../deployments.json", import.meta.url), "utf8"));
+  for (const chain of ["143", "10143"]) {
+    const settings = await resolveTabMcpSettings({ ...base, env: { MONAD_CHAIN_ID: chain } });
+    assert.equal(
+      settings.hostedSettlement.tabSettlement.toLowerCase(),
+      record.networks[chain].contracts.TabSettlement.address.toLowerCase(),
+      `chain ${chain}`,
+    );
+  }
+  const mainnet = await resolveTabMcpSettings({ ...base, env: { MONAD_CHAIN_ID: "143" } });
+  assert.deepEqual(Object.values(mainnet.hostedSettlement.assets).map((asset) => asset.symbol).sort(), ["AUSD", "USDC"]);
+  assert.equal(mainnet.hostedSettlement.rpcUrl, "https://rpc.monad.xyz");
+  const testnet = await resolveTabMcpSettings({ ...base, env: {} });
+  assert.deepEqual(Object.values(testnet.hostedSettlement.assets).map((asset) => asset.symbol).sort(), ["USDC", "mUSDC"]);
+  const off = await resolveTabMcpSettings({ ...base, env: { TAB_HOSTED_DEFAULTS: "off" } });
+  assert.equal(off.hostedSettlement, undefined, "no hosted defaults, so nowhere is assumed");
+});

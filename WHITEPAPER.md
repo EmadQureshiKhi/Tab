@@ -175,7 +175,7 @@ A failure returns `ok: false` with a `category`, a `code` and a `message`, so a 
 
 Three more strategies sit beside the direct one: `monad-relayed` signs a Permit2 Settlement and hands it to the gateway to submit, so an Agent needs the Asset and no MON; a Kuru-funded strategy swaps in a shortfall from another token before settling; and `intents-funded` brings a USDC shortfall from another chain to the Agent's own Monad address through NEAR Intents before settling, so the Settlement itself stays one Monad transaction.
 The direct and relayed strategies, and the Agent's metering signature, can sign through `createPrivyAgentSigner`, which keeps the Agent's key in a Privy server wallet under a policy that allows only Tab's own calls.
-With nothing configured, the SDK reads the project's hosted registry and knows the hosted demo Service for the chosen network, so a fresh install can discover at once, and with `AGENT_ADDRESS` and `AGENT_PRIVATE_KEY` set it can call as well, signing each metered call with the Agent's own key.
+With nothing configured, the SDK reads the project's hosted registry and knows the hosted demo Service for the chosen network, so a fresh install can discover at once, and with `AGENT_ADDRESS` and `AGENT_PRIVATE_KEY` set it can call and settle as well, signing each metered call with the Agent's own key and settling through the direct Monad strategy against the deployment's `TabSettlement`.
 The same four operations are a MetaMask Agent Wallet plugin, `mm tab`, which builds each transaction and hands it to the wallet with a one-sentence intent, so the wallet's own policy decides what is signed.
 That wallet lends a plugin no message signing, so `mm tab delegate` has it submit one transaction naming a local key in `MeteringDelegates`, and `mm tab call` signs each metered call with that key (Section 7.5).
 The plugin has run that whole sequence on Monad Mainnet from a MetaMask server wallet (Section 8.1).
@@ -543,7 +543,7 @@ The quote's slippage tolerance was kept rather than refunded, so the funding ste
 | `property/BondInvariant.t.sol` | 5 | Credit strictly under the Bond sum, and zero Bond yielding zero credit |
 
 The property suites run at 256 fuzz runs each under the default profile, covering the claims the credit model rests on: the limit never exceeds the bond cap, the concentration and bond rules compose, a zero Bond sum yields zero credit for any history, and the escrow balance equals the sum of free stake.
-Beside them, 806 tests cover the eight TypeScript packages: the SDK, the shared constants, the gateway, the registry, the two keepers, the plugin and the Dashboard.
+Beside them, 808 tests cover the eight TypeScript packages: the SDK, the shared constants, the gateway, the registry, the two keepers, the plugin and the Dashboard.
 
 ### 8.3 Keyless verification
 

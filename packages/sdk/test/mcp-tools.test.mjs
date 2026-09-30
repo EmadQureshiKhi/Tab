@@ -866,3 +866,31 @@ test("a real MCP client sees the four declarations and gets schema-valid structu
     await server.server.close();
   }
 });
+
+test("with no tab.config, the Agent's key settles through the direct Monad strategy, and without it nothing does", async () => {
+  const { Wallet } = await import("ethers");
+  const { mkdtempSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const empty = mkdtempSync(join(tmpdir(), "tab-fresh-"));
+  const hostedSettlement = {
+    tabSettlement: "0x654Fac48185e4B71779eEc2457B1F24aEdf46717",
+    assets: { [`10143:${TESTNET_MUSDC}`]: { chainId: 10143n, address: TESTNET_MUSDC, decimals: 6, symbol: "mUSDC" } },
+    rpcUrl: "http://127.0.0.1:9",
+  };
+  const fresh = (env) =>
+    createTabToolset({ settings: settings({ hostedSettlement }), registryFetch: stubRegistryFetch(), env, cwd: empty, logger: silent });
+
+  const keyed = await fresh({ ...ENV, AGENT_PRIVATE_KEY: Wallet.createRandom().privateKey }).settle({
+    serviceId: SERVICE_ID,
+    asset: `10143:${TESTNET_MUSDC}`,
+    amountBaseUnits: "10000",
+    dryRun: true,
+  });
+  assertMatchesOutputSchema("tab_settle", keyed);
+  assert.equal(keyed.ok, true, JSON.stringify(keyed.error));
+  assert.equal(keyed.strategyId, "monad");
+
+  const keyless = await fresh({ ...ENV }).settle({ serviceId: SERVICE_ID, asset: `10143:${TESTNET_MUSDC}`, amountBaseUnits: "10000", dryRun: true });
+  assert.equal(keyless.ok, false, "no key, so no strategy is assumed");
+});

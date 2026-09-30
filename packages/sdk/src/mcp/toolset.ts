@@ -33,14 +33,15 @@
 
 import type { Address, Bytes32, Result, TabError } from "@tabai/shared";
 import { isAddress, ok } from "@tabai/shared";
-import { decodeBytes32String, encodeBytes32String } from "ethers";
+import { JsonRpcProvider, Wallet, decodeBytes32String, encodeBytes32String } from "ethers";
 
 import { fail, notFoundError, tabError, upstreamError, validationError } from "../errors.js";
 import { createTab402Client, type Tab402Fetch, type Tab402Response } from "../http/client-402.js";
 import { defaultLogger, type Logger } from "../logger.js";
 import type { ServiceHeaderRequest, TabServiceEntry } from "../payments/config.js";
 import { loadTabConfig } from "../payments/config.js";
-import { moduleStrategyRegistry, type StrategyRegistry } from "../payments/registry.js";
+import { createMonadStrategy } from "../payments/monad.js";
+import { createStrategyRegistry, moduleStrategyRegistry, type StrategyRegistry } from "../payments/registry.js";
 import type { AssetRef, PaymentStrategy, SettleRequest } from "../payments/strategy.js";
 import { assetFacts, assetStringOf, formatAsset, parseAsset } from "./assets.js";
 import { applyJsonDefaults, validateJsonValue } from "./json-schema.js";
@@ -368,6 +369,33 @@ export function createTabToolset(options: TabToolsetOptions): TabToolset {
           code: loaded.error.code,
           message: loaded.error.message,
         });
+      }
+      /*
+        A fresh install with no tab.config and the Agent's key in the environment
+        settles through the direct Monad strategy against the hosted deployment's
+        TabSettlement, in that network's Assets. The same wiring the repository's
+        tab.config does by hand, so tab_settle works out of the box wherever
+        tab_call already does. A tab.config that registers anything wins.
+      */
+      const hosted = settings.hostedSettlement;
+      const key = (env["AGENT_PRIVATE_KEY"] ?? "").trim();
+      if (registry.list().length === 0 && hosted !== undefined && key !== "") {
+        try {
+          const provider = new JsonRpcProvider(hosted.rpcUrl, chainId, { staticNetwork: true });
+          const signer = new Wallet(key, provider);
+          // This toolset's own registry, over the shared one: a default built from one
+          // environment's key must never leak into another toolset in the same process.
+          const own = createStrategyRegistry({ inherit: registry, logger });
+          own.register(createMonadStrategy({ signer, tabSettlement: hosted.tabSettlement, assets: hosted.assets, logger }));
+          logger.info("no tab.config strategy, so tab_settle signs with AGENT_PRIVATE_KEY through the direct Monad strategy", {
+            tabSettlement: hosted.tabSettlement,
+          });
+          return own;
+        } catch (error) {
+          logger.warn("AGENT_PRIVATE_KEY is not a usable key, so no payment strategy is registered", {
+            message: error instanceof Error ? error.message : String(error),
+          });
+        }
       }
       return registry;
     })();
