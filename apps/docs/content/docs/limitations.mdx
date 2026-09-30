@@ -38,7 +38,8 @@ Collection of a balance an Agent never settles is outside the contracts, as it i
 Every Credit Limit read takes a `LimitWitness`: the Agent's full ordered Settlement history in that Asset plus one Bond entry per counterparty.
 The contract stores only the rolling `historyCommitment`, so whoever calls has to rebuild the history from `HistoryExtended` logs, and a caller that cannot reach the logs cannot read a limit.
 The library bounds the witness at `MAX_HISTORY` of 512 records and `MAX_COUNTERPARTIES` of 32, and reverts `HistoryTooLong`, `TooManyCounterparties` or `TooManyBondEntries` beyond them.
-An Agent whose history reaches those bounds needs compaction.
+The deployed contracts have no way to compact a history, so from an Agent's 513th Settlement in one Asset every delivery to it in that Asset reverts, and any prepaid credit left on its tabs in that Asset can no longer be spent.
+The Agent keeps its funds and continues from a new address; only its own Settlements can bring it there, and the [static-analysis report](https://github.com/EmadQureshiKhi/Tab/blob/main/packages/contracts/audit/slither.md) measures the bound.
 The contract reverts rather than quietly dropping records, so the ceiling announces itself instead of changing an answer.
 
 ### One authority decides the Curated tier
