@@ -187,7 +187,7 @@ Tab plugs into the services Monad already offers agents rather than rebuilding t
 | Piece | What Tab does with it |
 | --- | --- |
 | x402 V2, through Monad's facilitator | A credit refusal carries an x402 offer for the same charge, so an Agent out of headroom can prepay that one call; a request that arrives prepaid is verified, settled and delivered without touching the Open Tab |
-| Monad API Hub and Nansen | Fronted on credit: the Service pays the upstream's x402 price with its own key and meters the Agent's Open Tab for that price plus a published margin, so pay-per-request data becomes buy now, pay later |
+| Monad API Hub and Nansen | Fronted on credit: the Service pays the upstream's x402 price with its own key and meters the Agent's Open Tab for that price plus a published margin, so pay-per-request data becomes buy now, pay later. The registry also buys a Nansen profile of each Agent over x402, three one-cent calls once a week, and serves it on the Agent's Dashboard page as an offchain signal |
 | Permit2 | `settleWithPermit2` lets an Agent that holds no MON settle by signature (Section 5.2) |
 | ERC-8004 | Services and Agents hold identities on Monad's Identity Registry; the registry indexes them and serves each identity beside its tab. Both hosted gateways write one Reputation Registry entry about the paying Agent after each Settlement to `tab.demo`, restating the Settlement where any ERC-8004 reader finds it; the Credit Limit never reads it |
 | Envio HyperSync | The indexer's log source for catch-up, so a cold start is not bound by the public RPC's 100-block log window |
@@ -543,7 +543,7 @@ The quote's slippage tolerance was kept rather than refunded, so the funding ste
 | `property/BondInvariant.t.sol` | 5 | Credit strictly under the Bond sum, and zero Bond yielding zero credit |
 
 The property suites run at 256 fuzz runs each under the default profile, covering the claims the credit model rests on: the limit never exceeds the bond cap, the concentration and bond rules compose, a zero Bond sum yields zero credit for any history, and the escrow balance equals the sum of free stake.
-Beside them, 789 tests cover the eight TypeScript packages: the SDK, the shared constants, the gateway, the registry, the two keepers, the plugin and the Dashboard.
+Beside them, 805 tests cover the eight TypeScript packages: the SDK, the shared constants, the gateway, the registry, the two keepers, the plugin and the Dashboard.
 
 ### 8.3 Keyless verification
 

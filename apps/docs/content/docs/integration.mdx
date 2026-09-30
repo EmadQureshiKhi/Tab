@@ -178,7 +178,7 @@ import { createTabToolset, createTab402Client, createMonadStrategy, createRelaye
 ```
 
 The package ships its own types and carries no workspace dependency, so it installs and type-checks on its own.
-Beside the main entry point, `@tabai/sdk/hub` (the API Hub manifest reader) and `@tabai/sdk/metering` (the metering-signature digest) are pure entry points for a bundle that must not carry the `tab.config` file walk.
+Beside the main entry point, `@tabai/sdk/hub` (the API Hub manifest reader), `@tabai/sdk/metering` (the metering-signature digest) and `@tabai/sdk/x402/client` (the x402 client that pays a `402`, which the registry buys its Nansen profiles with) are pure entry points for a bundle that must not carry the `tab.config` file walk.
 
 | Import | What it is |
 | --- | --- |
