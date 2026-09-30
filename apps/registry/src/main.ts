@@ -23,6 +23,9 @@ import { EthersLogSource, createProvider, requireChainId } from "./chain.js";
 import { HyperSyncLogSource, createCatchUpSource, createHyperSyncClient } from "./hypersync.js";
 import type { LogSource } from "./indexer.js";
 import { createNansenLabels } from "./nansen.js";
+import { createNansenPayer } from "./nansen-payer.js";
+import { createNansenProfiles } from "./nansen-profile.js";
+import { PostgresNansenStore } from "./nansen-store.js";
 import { PostgresSink } from "./postgres-sink.js";
 import { PostgresReads } from "./queries.js";
 import { IndexerService } from "./service.js";
@@ -143,6 +146,22 @@ async function main(): Promise<void> {
         };
   const labels = config.nansen === null ? undefined : createNansenLabels(config.nansen);
 
+  // The Nansen profile, bought per call over x402 and kept for a week in its own
+  // tables. Stored profiles are served without a payer key; a new one needs it.
+  const nansenStore = PostgresNansenStore.open(config.databaseUrl);
+  const payer = config.nansenProfile.payerKey === null ? null : createNansenPayer(config.nansenProfile.payerKey);
+  const nansenProfile = createNansenProfiles({
+    chainId: config.chainId,
+    store: nansenStore,
+    paidFetch: payer?.paidFetch ?? null,
+    dailyBudget: config.nansenProfile.dailyBudget,
+  });
+  if (payer !== null) {
+    console.log(
+      `registry: Nansen profiles are bought per call over x402 by ${payer.address}, kept for a week, at most ${config.nansenProfile.dailyBudget} USDC base units a day`,
+    );
+  }
+
   const app = createApp({
     status: () => service.status,
     databaseReachable: () => sink.ping(),
@@ -150,6 +169,7 @@ async function main(): Promise<void> {
     chain,
     ...(identity === undefined ? {} : { identity }),
     ...(labels === undefined ? {} : { labels }),
+    nansenProfile,
     ...(classifier !== undefined && classifier.internalCount > 0 ? { adoption: { classifier, allowlistPath } } : {}),
   });
 
@@ -162,6 +182,7 @@ async function main(): Promise<void> {
     server.close();
     await service.stop();
     await reads.close();
+    await nansenStore.close();
     await sink.close();
     provider.destroy();
   };

@@ -35,6 +35,10 @@
     "./metering": {
       "types": "./dist/http/metering-claim.d.ts",
       "default": "./dist/http/metering-claim.js"
+    },
+    "./x402/client": {
+      "types": "./dist/x402/client.d.ts",
+      "default": "./dist/x402/client.js"
     }
   },
   "bin": {

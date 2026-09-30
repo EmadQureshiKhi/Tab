@@ -57,6 +57,8 @@ import {
   toIdentitySummary,
   toIdentityView,
   toLabelsView,
+  toNansenProfileView,
+  NANSEN_OFFCHAIN_STATEMENT,
   toReputationSectionView,
   toSettlementView,
   toSettlementViews,
@@ -69,6 +71,7 @@ import { CATEGORY_TINT, SHOWCASE, providerLogo } from "../src/dashboard/showcase
 import { parseLimit, serveSettlements } from "../src/dashboard/api-settlements";
 import { NetworkSwitchView } from "../components/shell/network-switch";
 import { LabelsStrip } from "../components/custom-ui/labels-strip";
+import { NansenProfile } from "../components/custom-ui/nansen-profile";
 import { EmptyChain } from "../components/views/empty-chain";
 import { IdentitySection } from "../components/views/identity-section";
 import { ReputationSection } from "../components/views/reputation-section";
@@ -771,12 +774,111 @@ test("the agent page gives reputation its own section, so the identity card leav
   assert.match(renderToStaticMarkup(createElement(IdentitySection, { identity: toIdentityView(IDENTITY) })), /mean 4\.567/);
 });
 
-test("the agent page places both sections and the strip says what a label is not", () => {
+test("the agent page streams the Nansen section, and it says what Nansen's view is not", () => {
   const source = readFileSync(join(APP_ROOT, "app", "agents", "[agent]", "page.tsx"), "utf8");
   assert.match(source, /<IdentitySection identity=\{identity\}/);
-  assert.match(source, /<LabelsStrip view=\{labels\} offchainStatement=\{LABELS_OFFCHAIN_STATEMENT\}/);
-  assert.match(LABELS_OFFCHAIN_STATEMENT, /offchain signal/);
+  // Suspended, so a first-of-the-week purchase never holds up the credit picture.
+  assert.match(source, /<Suspense fallback=\{<Skeleton[^>]*\/>\}>\s*<NansenSection context=\{context\} agent=\{detail\.value\.agent\} labels=\{detail\.value\.labels\} \/>/);
+  const section = readFileSync(join(APP_ROOT, "app", "agents", "[agent]", "_nansen.tsx"), "utf8");
+  assert.match(section, /offchainStatement=\{NANSEN_OFFCHAIN_STATEMENT\}/);
+  assert.match(section, /<LabelsStrip view=\{labelsView\} offchainStatement=\{LABELS_OFFCHAIN_STATEMENT\}/);
+  assert.match(NANSEN_OFFCHAIN_STATEMENT, /offchain signal/);
+  assert.match(NANSEN_OFFCHAIN_STATEMENT, /changes nothing in the Credit Limit/);
   assert.match(LABELS_OFFCHAIN_STATEMENT, /change nothing in the Credit Limit/);
+});
+
+const NANSEN_SERVED = {
+  source: "nansen" as const,
+  chain: "monad",
+  address: "0x3a3b6079e418c81a9de08414bb07ea817939e7ce",
+  fetchedAt: "2026-09-30T18:00:00.000Z",
+  refreshesAt: "2026-10-07T18:00:00.000Z",
+  stale: false,
+  paid: {
+    asset: "0x754704bc059f8c67012fed69bc8a327a5aafb603",
+    totalBaseUnits: "30000",
+    payments: [
+      { endpoint: "current-balance", amountBaseUnits: "10000", txHash: `0x${"c9".repeat(32)}` },
+      { endpoint: "related-wallets", amountBaseUnits: "10000", txHash: null },
+      { endpoint: "transactions", amountBaseUnits: "10000", txHash: `0x${"59".repeat(32)}` },
+    ],
+  },
+  holdings: { totalUsd: 0.4229, tokens: [{ symbol: "MON", amount: 14.844042918, valueUsd: 0.4229 }, { symbol: "DUST", amount: 1, valueUsd: 0.001 }] },
+  funding: {
+    wallets: [{ address: "0x456a79894e2b68e7986791c399f98a4ba5844a75", label: null, relation: "First Funder", txHash: "0x83c7", at: "2026-09-29T14:49:43Z" }],
+  },
+  activity: {
+    windowDays: 30,
+    transactions: 3,
+    more: false,
+    volumeUsd: 0.32,
+    lastAt: "2026-09-30T17:19:26",
+    counterparties: [
+      { address: "0x49472ef9ed99f30d4ead45ac9e1c16c31f70783a", label: null, transactions: 2 },
+      { address: "0x233c5370ccfb3cd7409d9a3fb98ab94de94cb4cd", label: "\u{1f916} USDT Bridge [0x233c53]", transactions: 1 },
+    ],
+  },
+};
+
+test("nansen: a served profile shows its dates, its cost and each section; a refusal is a plain sentence", () => {
+  const view = toNansenProfileView(NANSEN_SERVED, "Monad Mainnet");
+  assert.equal(view.status, "served");
+  assert.equal(view.paidText, "$0.03");
+  assert.deepEqual(view.payments.map((payment) => [payment.endpoint, payment.amountText, payment.txHash !== undefined]), [
+    ["current-balance", "$0.01", true],
+    ["related-wallets", "$0.01", false],
+    ["transactions", "$0.01", true],
+  ]);
+  assert.equal(view.holdings.totalText, "$0.42");
+  assert.deepEqual(view.holdings.rows.map((row) => [row.amountText, row.valueText]), [["14.844", "$0.42"], ["1", "<$0.01"]]);
+  assert.equal(view.funding.rows[0]?.label, undefined, "no name is shown where Nansen has none");
+  assert.equal(view.activity.summary, "3 transactions in the last 30 days, $0.32 in volume.");
+  assert.equal(view.activity.lastAt, "2026-09-30T17:19:26Z", "a zoneless Nansen timestamp is read as UTC");
+  assert.equal(view.activity.rows[1]?.label, "\u{1f916} USDT Bridge [0x233c53]");
+
+  const html = renderToStaticMarkup(
+    createElement(NansenProfile, {
+      view,
+      offchainStatement: NANSEN_OFFCHAIN_STATEMENT,
+      explorerAddressHrefFor: (address: string) => `https://explorer.test/address/${address}`,
+      explorerHrefFor: (hash: string) => `https://explorer.test/tx/${hash}`,
+    }),
+  );
+  assert.match(html, /Profile, from Nansen/);
+  assert.match(html, /fetched 2026-09-30 18:00 UTC, refreshes 2026-10-07 18:00 UTC/);
+  assert.match(html, /Bought for \$0\.03 in USDC over x402, 3 calls:/);
+  assert.ok(html.includes(`https://explorer.test/tx/0x${"59".repeat(32)}`), "each payment links to its transaction");
+  assert.match(html, /USDT Bridge/);
+  assert.match(html, /First Funder, 2026-09-29 14:49 UTC/);
+  assert.match(html, /an offchain signal, bought per call over x402 and refreshed weekly/);
+  assert.equal(/tone="danger"|status-danger/.test(html), false);
+
+  const stale = toNansenProfileView({ ...NANSEN_SERVED, stale: true }, "Monad Mainnet");
+  assert.equal(stale.status, "stale");
+  assert.match(renderToStaticMarkup(createElement(NansenProfile, { view: stale, offchainStatement: "", explorerAddressHrefFor: String, explorerHrefFor: String })), />stale</);
+
+  const refusals: [string, string, RegExp][] = [
+    ["NANSEN_MAINNET_ONLY", "testnet", /Monad Mainnet only/],
+    ["NANSEN_NOT_AN_AGENT", "not-an-agent", /no authorisation, delivery or Settlement on Monad Testnet/],
+    ["NANSEN_PAYER_MISSING", "not-configured", /not configured on this deployment/],
+    ["NANSEN_BUDGET_SPENT", "budget", /budget is spent/],
+    ["NANSEN_UPSTREAM_ERROR", "unavailable", /could not be read: transactions: Nansen answered 500\./],
+  ];
+  for (const [code, status, statement] of refusals) {
+    const refused = toNansenProfileView({ source: "nansen", unavailable: { code, message: "transactions: Nansen answered 500" } }, "Monad Testnet");
+    assert.equal(refused.status, status, code);
+    assert.match(refused.statement, statement, code);
+    const markup = renderToStaticMarkup(createElement(NansenProfile, { view: refused, offchainStatement: "x", explorerAddressHrefFor: String, explorerHrefFor: String }));
+    assert.equal(/Holdings|Bought for/.test(markup), false, `${code} shows no empty sections`);
+  }
+  assert.equal(toNansenProfileView(undefined, "Monad Mainnet").status, "not-served");
+
+  const partial = toNansenProfileView(
+    { ...NANSEN_SERVED, funding: { unavailable: { code: "NANSEN_PAYMENT_FAILED", message: "related-wallets: offer refused" } } },
+    "Monad Mainnet",
+  );
+  assert.equal(partial.funding.available, false);
+  assert.equal(partial.funding.statement, "Nansen's funding record could not be read: related-wallets: offer refused.");
 });
 
 test("the operator strip names the identity or the absence, and the x402 offer", () => {

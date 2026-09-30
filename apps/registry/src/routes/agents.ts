@@ -76,6 +76,7 @@ import { parseCursor, parsePageSize, toPage } from "../cursor.js";
 import { tabIdOf, type CreditChainReader } from "../chain-reads.js";
 import { identityOf, reputationOfAddress, type IdentityDependencies } from "../identity-service.js";
 import { NANSEN_KEY_MISSING, type LabelSource } from "../nansen.js";
+import { nansenProfileUnconfigured, type NansenProfileSource } from "../nansen-profile.js";
 import {
   computeAgentCredit,
   creditWithheld,
@@ -327,12 +328,16 @@ export interface AgentRouteOptions {
   readonly identity?: IdentityDependencies | undefined;
   /** Nansen labels. Defaults to the source that states the key is missing. */
   readonly labels?: LabelSource | undefined;
+  /** The Nansen profile, bought per call and kept for a week. Defaults to a stated refusal. */
+  readonly nansenProfile?: NansenProfileSource | undefined;
 }
 
 export function createAgentRoutes(reads: RegistryReads, options: AgentRouteOptions = {}): Hono {
   const app = new Hono();
   const chain = options.chain;
   const labels = options.labels ?? NANSEN_KEY_MISSING;
+  const nansenProfile =
+    options.nansenProfile ?? nansenProfileUnconfigured("this registry has no Nansen profile wired in, so none is bought or served");
 
   /** A page of Agents, most recently settled first. */
   app.get("/agents", async (c) => {
@@ -418,6 +423,32 @@ export function createAgentRoutes(reads: RegistryReads, options: AgentRouteOptio
       identity,
       labels: addressLabels,
     });
+  });
+
+  /**
+   * What Nansen says about the address: holdings, who funded it, and its last
+   * thirty days of activity with the counterparties it dealt with most.
+   *
+   * A route of its own rather than a block on the Agent read, because the first
+   * read of an Agent in a week pays Nansen and waits for three calls; the credit
+   * read, which `tab_status` and every Agent tool makes, never does. The answer
+   * is served from `registry.nansen_profile` for a week after it was bought, to
+   * every reader, and says when it was fetched and when it refreshes. An address
+   * this network has never seen as an Agent is refused and nothing is paid. See
+   * `nansen-profile.ts`.
+   */
+  app.get("/agents/:agent/nansen", async (c) => {
+    const agent = c.req.param("agent").toLowerCase();
+    if (!isHexAddress(agent)) {
+      return fail(c, {
+        category: "VALIDATION",
+        code: "PARAMETER_MALFORMED",
+        message: "agent must be a 20-byte hex address",
+        retryable: false,
+        details: { field: "agent" },
+      });
+    }
+    return c.json({ agent, nansen: await nansenProfile.profileFor(agent) });
   });
 
   /**

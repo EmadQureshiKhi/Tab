@@ -36,6 +36,7 @@ import { Hono } from "hono";
 import type { CreditChainReader } from "../chain-reads.js";
 import type { IdentityDependencies } from "../identity-service.js";
 import type { LabelSource } from "../nansen.js";
+import type { NansenProfileSource } from "../nansen-profile.js";
 import type { RegistryReads } from "../queries.js";
 import { createAgentRoutes } from "./agents.js";
 import { createServiceRoutes } from "./services.js";
@@ -49,6 +50,7 @@ export interface ReadRouteOptions {
   readonly chain?: CreditChainReader | undefined;
   readonly identity?: IdentityDependencies | undefined;
   readonly labels?: LabelSource | undefined;
+  readonly nansenProfile?: NansenProfileSource | undefined;
 }
 
 /** Every read endpoint, on one router. */

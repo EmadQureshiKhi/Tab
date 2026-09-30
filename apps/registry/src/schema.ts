@@ -21,9 +21,11 @@
 import { sql } from "drizzle-orm";
 import {
   bigint,
+  bigserial,
   boolean,
   index,
   integer,
+  jsonb,
   numeric,
   pgSchema,
   primaryKey,
@@ -498,4 +500,36 @@ export const BOOKKEEPING_TABLES = {
   event_log: eventLog,
   indexed_block: indexedBlock,
   indexer_cursor: indexerCursor,
+} as const;
+
+/**
+ * The Nansen overlay, declared in `sql/0002_nansen_profile.sql`. Not indexed from
+ * the chain, so neither table keys on the envelope or cascades from `event_log`.
+ */
+export const nansenProfile = registrySchema.table("nansen_profile", {
+  address: text("address").primaryKey(),
+  chain: text("chain").notNull(),
+  fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull(),
+  profile: jsonb("profile").notNull(),
+});
+
+export const nansenPayment = registrySchema.table(
+  "nansen_payment",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    address: text("address").notNull(),
+    endpoint: text("endpoint").notNull(),
+    amount: numeric("amount", UINT256).notNull(),
+    asset: text("asset").notNull(),
+    txHash: text("tx_hash"),
+    paidAt: timestamp("paid_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+  },
+  (table) => [index("nansen_payment_paid_at_idx").on(table.paidAt)],
+);
+
+export const OVERLAY_TABLES = {
+  nansen_profile: nansenProfile,
+  nansen_payment: nansenPayment,
 } as const;

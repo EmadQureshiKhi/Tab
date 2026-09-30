@@ -66,6 +66,12 @@ export interface RegistryConfig {
    * every chain that shares the address format.
    */
   readonly nansen: { readonly apiKey: string; readonly chain: string } | null;
+  /**
+   * The Nansen profile, bought per call over x402 in Mainnet USDC and kept for a
+   * week. `payerKey` is null when unset, and stored profiles are still served;
+   * `dailyBudget` is the most spent on it over any 24 hours, in USDC base units.
+   */
+  readonly nansenProfile: { readonly payerKey: string | null; readonly dailyBudget: bigint };
   readonly databaseUrl: string;
   readonly port: number;
   /**
@@ -193,6 +199,18 @@ function loadNansen(env: EnvironmentMap): RegistryConfig["nansen"] {
   return { apiKey, chain };
 }
 
+function loadNansenProfile(env: EnvironmentMap): RegistryConfig["nansenProfile"] {
+  const payerKey = optional(env, "NANSEN_X402_PRIVATE_KEY");
+  if (payerKey !== null && !/^0x[0-9a-fA-F]{64}$/.test(payerKey)) {
+    throw new ConfigError("config: NANSEN_X402_PRIVATE_KEY must be a 32-byte hex private key");
+  }
+  const budget = optional(env, "NANSEN_DAILY_BUDGET_BASE_UNITS") ?? "250000";
+  if (!/^[0-9]+$/.test(budget)) {
+    throw new ConfigError("config: NANSEN_DAILY_BUDGET_BASE_UNITS must be a whole number of USDC base units");
+  }
+  return { payerKey, dailyBudget: BigInt(budget) };
+}
+
 /**
  * Reads the configuration.
  *
@@ -215,6 +233,7 @@ export function loadConfig(env: EnvironmentMap): RegistryConfig {
     erc8004: loadErc8004(env, chainId),
     hypersync: loadHypersync(env),
     nansen: loadNansen(env),
+    nansenProfile: loadNansenProfile(env),
     databaseUrl: required(env, "DATABASE_URL"),
     port: integer(env, "REGISTRY_PORT", 8787, 1),
     startBlock: integer(env, "REGISTRY_START_BLOCK", 0, 0),
@@ -285,6 +304,8 @@ export const readProcessEnvironment = (): EnvironmentMap => ({
   HYPERSYNC_CHUNK_BLOCKS: process.env.HYPERSYNC_CHUNK_BLOCKS,
   NANSEN_API_KEY: process.env.NANSEN_API_KEY,
   NANSEN_CHAIN: process.env.NANSEN_CHAIN,
+  NANSEN_X402_PRIVATE_KEY: process.env.NANSEN_X402_PRIVATE_KEY,
+  NANSEN_DAILY_BUDGET_BASE_UNITS: process.env.NANSEN_DAILY_BUDGET_BASE_UNITS,
   TEAM_ADDRESSES_PATH: process.env.TEAM_ADDRESSES_PATH,
 });
 

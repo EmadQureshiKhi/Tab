@@ -39,6 +39,8 @@ import { REGISTRY_INTERFACE, decodeLog, type IndexedEventName, type RawLog } fro
 import { encodeCursor } from "../src/cursor.js";
 import { createClassifier } from "../src/adoption.js";
 import { PostgresReads } from "../src/queries.js";
+import { PostgresNansenStore } from "../src/nansen-store.js";
+import { createNansenProfiles, type PaidFetch } from "../src/nansen-profile.js";
 import { PostgresSink } from "../src/postgres-sink.js";
 import { toTypedInsert } from "../src/rows.js";
 import type { CreditChainReader, Erc8004ChainReader } from "../src/chain-reads.js";
@@ -784,6 +786,102 @@ test("each tab row carries its id, its last observation, and TabBook.tabOf at th
   const plainBody = (await plain.json()) as { assets: { openTab: { tabs: { tabId: string; live: unknown }[] } }[] };
   assert.equal(plainBody.assets[0]?.openTab.tabs[0]?.tabId, tabA1);
   assert.equal(plainBody.assets[0]?.openTab.tabs[0]?.live, null);
+});
+
+// ------------------------------------------------------------------ the Nansen profile
+
+test("the Nansen store knows an Agent from the index, keeps a profile, and counts what was paid", { skip }, async () => {
+  if (databaseUrl === null) throw new Error("test: no database");
+  const store = PostgresNansenStore.open(databaseUrl);
+  const admin = postgres(databaseUrl, { max: 1, onnotice: () => undefined });
+  try {
+    await admin`DELETE FROM registry.nansen_profile`;
+    await admin`DELETE FROM registry.nansen_payment`;
+    assert.equal(await store.isAgent(AGENT_A), true, "AGENT_A has deliveries and Settlements in the fixture");
+    assert.equal(await store.isAgent(`0x${"ab".repeat(20)}`), false);
+
+    const since = new Date(Date.now() - 60_000);
+    assert.equal(await store.spentSince(since), 0n);
+    await store.recordPayment({ address: AGENT_A, endpoint: "transactions", amount: 10_000n, asset: ASSET_A, txHash: null });
+    await store.recordPayment({ address: AGENT_A, endpoint: "current-balance", amount: 10_000n, asset: ASSET_A, txHash: `0x${"12".repeat(32)}` });
+    assert.equal(await store.spentSince(since), 20_000n);
+    assert.equal(await store.spentSince(new Date(Date.now() + 60_000)), 0n);
+
+    assert.equal(await store.read(AGENT_A), null);
+    const fetchedAt = new Date("2026-09-30T18:00:00.000Z");
+    const profile = {
+      paid: { asset: ASSET_A, totalBaseUnits: "20000", payments: [] },
+      holdings: { totalUsd: 1.5, tokens: [{ symbol: "MON", amount: 2, valueUsd: 1.5 }] },
+      funding: { unavailable: { code: "NANSEN_UPSTREAM_ERROR" as const, message: "related-wallets: Nansen answered 500" } },
+      activity: { windowDays: 30, transactions: 0, more: false, volumeUsd: null, lastAt: null, counterparties: [] },
+    };
+    await store.write(AGENT_A, fetchedAt, profile);
+    await store.write(AGENT_A, fetchedAt, profile);
+    const back = await store.read(AGENT_A);
+    assert.equal(back?.fetchedAt.toISOString(), fetchedAt.toISOString());
+    assert.deepEqual(back?.profile, profile, "the JSON comes back as it went in, one row per address");
+  } finally {
+    await admin.end({ timeout: 5 });
+    await store.close();
+  }
+});
+
+test("GET /agents/:agent/nansen buys once and serves the stored profile after, and refuses a stranger", { skip }, async () => {
+  if (databaseUrl === null || reads === null) throw new Error("test: no database");
+  const store = PostgresNansenStore.open(databaseUrl);
+  const admin = postgres(databaseUrl, { max: 1, onnotice: () => undefined });
+  const paid: string[] = [];
+  const paidFetch: PaidFetch = async (url) => {
+    paid.push(url.slice(url.lastIndexOf("/") + 1));
+    return { ok: true, value: { status: 200, body: { pagination: { is_last_page: true }, data: [] }, payment: { amount: 10_000n, asset: ASSET_A, txHash: "" } } };
+  };
+  try {
+    await admin`DELETE FROM registry.nansen_profile`;
+    await admin`DELETE FROM registry.nansen_payment`;
+    const app = createApp({
+      status: () => IDLE_STATUS,
+      databaseReachable: () => reads.ping(),
+      reads,
+      nansenProfile: createNansenProfiles({ chainId: 143, store, paidFetch, warn: () => {} }),
+    });
+
+    const first = await app.request(`/agents/${AGENT_A}/nansen`);
+    assert.equal(first.status, 200);
+    const body = (await first.json()) as { agent: string; nansen: { fetchedAt: string; stale: boolean; paid: { totalBaseUnits: string }; activity: { transactions: number } } };
+    assert.equal(body.agent, AGENT_A);
+    assert.equal(body.nansen.paid.totalBaseUnits, "30000");
+    assert.equal(body.nansen.activity.transactions, 0);
+    assert.equal(paid.length, 3);
+
+    // A second process, with nothing in memory, is served the stored row: a redeploy pays nothing.
+    const restarted = createApp({
+      status: () => IDLE_STATUS,
+      databaseReachable: () => reads.ping(),
+      reads,
+      nansenProfile: createNansenProfiles({ chainId: 143, store, paidFetch, warn: () => {} }),
+    });
+    const again = (await (await restarted.request(`/agents/${AGENT_A}/nansen`)).json()) as { nansen: { fetchedAt: string } };
+    assert.equal(again.nansen.fetchedAt, body.nansen.fetchedAt);
+    assert.equal(paid.length, 3, "nothing more was bought");
+    const ledger = await admin<{ count: string }[]>`SELECT COUNT(*)::text AS count FROM registry.nansen_payment`;
+    assert.equal(ledger[0]?.count, "3", "every payment is on the ledger");
+
+    const stranger = (await (await app.request(`/agents/0x${"cd".repeat(20)}/nansen`)).json()) as { nansen: { unavailable: { code: string } } };
+    assert.equal(stranger.nansen.unavailable.code, "NANSEN_NOT_AN_AGENT");
+    assert.equal(paid.length, 3);
+
+    const malformed = await app.request(`/agents/not-an-address/nansen`);
+    assert.equal(malformed.status, 400);
+
+    // Without a profile source the route still answers, with the reason.
+    const bare = (await (await request(`/agents/${AGENT_A}/nansen`)).json()) as { nansen: { unavailable: { code: string } } };
+    assert.equal(bare.nansen.unavailable.code, "NANSEN_PAYER_MISSING");
+  } finally {
+    await admin`DELETE FROM registry.nansen_profile`;
+    await admin`DELETE FROM registry.nansen_payment`;
+    await admin.end({ timeout: 5 });
+    await store.close();
+  }
 });
 
 test("a witness the index cannot fold is refused whole, never served short", { skip }, async () => {

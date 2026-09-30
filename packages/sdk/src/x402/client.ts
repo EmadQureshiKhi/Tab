@@ -433,6 +433,21 @@ export function createX402Client<Res extends X402Response = X402Response>(
       });
     }
 
+    // A payment exists only where the server settled one. A response that
+    // carries no settlement and failed, a rate limit on the paid retry for
+    // instance, was turned away before the facilitator moved anything: the
+    // signed authorization was never submitted, so nothing was paid and there
+    // is no receipt to report or to charge anyone for.
+    const settled = settlement.value === undefined ? response.status < 400 : settlement.value.success;
+    if (!settled) {
+      logger.warn("the paid request was answered without a settlement, so nothing was paid", {
+        url,
+        status: response.status,
+        ...(settlement.value?.errorReason === undefined ? {} : { reason: settlement.value.errorReason }),
+      });
+      return ok({ response });
+    }
+
     const receipt: X402PaymentReceipt = {
       txHash: settlement.value?.transaction ?? "",
       network: accepted.value.network,

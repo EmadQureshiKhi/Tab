@@ -16,6 +16,7 @@
  * - `BondMeter` - the escrowed Bond per Asset, with no pooled figure anywhere
  * - `IdentityCard` - one ERC-8004 agent, each block labelled with its source
  * - `LabelsStrip` - Nansen's labels, said to be an overlay and never a figure
+ * - `NansenProfile` - Nansen's weekly profile of an Agent, bought per call over x402
  *
  * The shared rules they are built on are exported too, because routes need them
  * directly: the numeric rule in `format`, the tier vocabulary in `tier`, and the
@@ -41,6 +42,11 @@ export {
   type LabelsStripProps,
   type LabelsStripView,
 } from "./labels-strip";
+export {
+  NansenProfile,
+  type NansenProfileProps,
+  type NansenProfileSectionView,
+} from "./nansen-profile";
 export {
   SettlementCard,
   explorerTxHref,

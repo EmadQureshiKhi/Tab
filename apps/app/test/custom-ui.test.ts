@@ -319,7 +319,7 @@ test("an amount always carries its exact base-unit value in a title", () => {
   assert.match(amount, /\{amount\.symbol\}/);
 });
 
-test("all eight composites are present and exported", () => {
+test("all nine composites are present and exported", () => {
   const index = readFileSync(join(DIRECTORY, "index.ts"), "utf8");
   for (const composite of [
     "SettlementCard",
@@ -330,6 +330,7 @@ test("all eight composites are present and exported", () => {
     "BondMeter",
     "IdentityCard",
     "LabelsStrip",
+    "NansenProfile",
   ]) {
     assert.match(index, new RegExp(`\\b${composite}\\b`), `${composite} is exported`);
   }

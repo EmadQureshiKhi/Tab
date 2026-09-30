@@ -23,7 +23,7 @@ import { test } from "node:test";
 import { getTableConfig } from "drizzle-orm/pg-core";
 
 import { INDEXED_EVENT_NAMES } from "../src/events.js";
-import { BOOKKEEPING_TABLES, TYPED_TABLES } from "../src/schema.js";
+import { BOOKKEEPING_TABLES, OVERLAY_TABLES, TYPED_TABLES } from "../src/schema.js";
 
 /**
  * Every migration, concatenated in lexical order.
@@ -130,6 +130,7 @@ const sqlByName = new Map(sqlTables.map((table) => [table.name, table]));
 const drizzleTables = [
   ...Object.values(BOOKKEEPING_TABLES),
   ...Object.values(TYPED_TABLES),
+  ...Object.values(OVERLAY_TABLES),
 ].map((table) => {
   const config = getTableConfig(table);
   return {
@@ -140,10 +141,11 @@ const drizzleTables = [
 });
 
 test("the parser found every table, so the comparison is not vacuous", () => {
-  // 3 bookkeeping tables and 22 typed tables, one per indexed event: 18 from Tab's
-  // contracts and 4 from the ERC-8004 Identity registry.
-  assert.equal(sqlTables.length, 25, "3 bookkeeping tables and 22 typed tables");
-  assert.equal(drizzleTables.length, 25);
+  // 3 bookkeeping tables, 22 typed tables, one per indexed event (18 from Tab's
+  // contracts and 4 from the ERC-8004 Identity registry), and the 2 Nansen overlay
+  // tables, which are not indexed from the chain.
+  assert.equal(sqlTables.length, 27, "3 bookkeeping tables, 22 typed tables and 2 overlay tables");
+  assert.equal(drizzleTables.length, 27);
 });
 
 test("agent_identity is a view over the four identity tables, never a table of its own", () => {

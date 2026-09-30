@@ -24,31 +24,34 @@
  * runs this address as an agent, with the registration file fetched beside it.
  * The reputation is the Reputation registry's summary for that agent, read
  * live: what Tab Services wrote after each Settlement they received, and what
- * every client wrote, kept apart. The Nansen labels
- * are an off-chain overlay with a named source and a fetch time. Neither feeds
- * the gauge above them, and the labels strip says so in one sentence on every
- * render. A deployment with no Identity registry or no Nansen key is told so in
- * words, because "not configured" and "nothing found" are different answers.
+ * every client wrote, kept apart. The Nansen profile is an off-chain overlay
+ * with a named source, a fetch time and the x402 payments that bought it: the
+ * registry buys it once a week per Agent and serves that answer to every
+ * visitor. None of these feeds the gauge above them, and the Nansen section
+ * says so in one sentence on every render. A deployment with no Identity
+ * registry or no Nansen payer is told so in words, because "not configured" and
+ * "nothing found" are different answers.
  */
 
 import { CreditGauge } from "../../../components/custom-ui/credit-gauge";
 import { AssetAmount } from "../../../components/custom-ui/asset-amount";
-import { LabelsStrip } from "../../../components/custom-ui/labels-strip";
+import { Suspense } from "react";
+
 import { Link } from "../../../components/ui/link";
+import { Skeleton } from "../../../components/ui/skeleton";
 import { EmptyChain } from "../../../components/views/empty-chain";
 import { IdentitySection } from "../../../components/views/identity-section";
 import { ReputationSection } from "../../../components/views/reputation-section";
 import { SettlementTable } from "../../../components/views/settlement-table";
 import {
-  LABELS_OFFCHAIN_STATEMENT,
   REPUTATION_DERIVED_STATEMENT,
   toCreditView,
   toIdentityView,
-  toLabelsView,
   toReputationSectionView,
   toSettlementViews,
 } from "../../../src/dashboard/views";
 import { routeContext } from "../../_lib/context";
+import { NansenSection } from "./_nansen";
 
 export const dynamic = "force-dynamic";
 
@@ -77,7 +80,6 @@ export default async function AgentDetailPage({
 
   const identity = toIdentityView(detail.value.identity);
   const reputation = toReputationSectionView(detail.value.identity);
-  const labels = toLabelsView(detail.value.labels);
 
   return (
     <section className="flex flex-col gap-8">
@@ -179,10 +181,13 @@ export default async function AgentDetailPage({
         )}
         {/*
           Under the gauges rather than beside them, and after the figures the
-          page is about. A label is context for reading the credit picture, not
-          part of it, and the strip says so itself.
+          page is about. Nansen's view is context for reading the credit
+          picture, not part of it, and the section says so itself. Suspended,
+          because the first read of the week buys it and takes a few seconds.
         */}
-        <LabelsStrip view={labels} offchainStatement={LABELS_OFFCHAIN_STATEMENT} />
+        <Suspense fallback={<Skeleton className="h-40 w-full" />}>
+          <NansenSection context={context} agent={detail.value.agent} labels={detail.value.labels} />
+        </Suspense>
       </div>
 
       <div className="flex flex-col gap-3">

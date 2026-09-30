@@ -23,6 +23,7 @@ import type { CreditChainReader } from "./chain-reads.js";
 import type { Classifier } from "./adoption.js";
 import type { IdentityDependencies } from "./identity-service.js";
 import type { LabelSource } from "./nansen.js";
+import type { NansenProfileSource } from "./nansen-profile.js";
 import { createAdoptionRoutes } from "./routes/adoption.js";
 import { createReadRoutes } from "./routes/index.js";
 import type { IndexerStatus } from "./service.js";
@@ -60,6 +61,11 @@ export interface ServerDependencies {
    * `NANSEN_KEY_MISSING` rather than an empty list.
    */
   readonly labels?: LabelSource;
+  /**
+   * The Nansen profile served at `/agents/:agent/nansen`. Absent, that route
+   * answers with a stated refusal and pays for nothing.
+   */
+  readonly nansenProfile?: NansenProfileSource;
   readonly buildInfo?: { readonly version: string; readonly commit: string };
   /**
    * The adoption classifier, when the allowlist could be read.
@@ -145,7 +151,7 @@ export function createApp(deps: ServerDependencies): Hono {
   // prefix: this service is deployed and consumed as one unit by the Dashboard, and
   // a prefix that nothing ever varies is a path segment every caller has to repeat
   // for no benefit.
-  app.route("/", createReadRoutes(deps.reads, { chain: deps.chain, identity: deps.identity, labels: deps.labels }));
+  app.route("/", createReadRoutes(deps.reads, { chain: deps.chain, identity: deps.identity, labels: deps.labels, nansenProfile: deps.nansenProfile }));
   if (deps.adoption !== undefined) {
     app.route("/", createAdoptionRoutes(deps.reads, deps.adoption.classifier, deps.adoption.allowlistPath));
   }

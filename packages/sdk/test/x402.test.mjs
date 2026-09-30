@@ -277,6 +277,32 @@ test("the x402 client pays a 402 once and reports the settlement the server retu
   assert.deepEqual(client.payments(), [payment]);
 });
 
+test("a paid repeat turned away without a settlement reports no payment, because none was made", async () => {
+  // Nansen answered a paid request with 429 and no PAYMENT-RESPONSE: the
+  // facilitator was never asked, and the payer's balance did not move.
+  const { calls, impl } = recordingFetch([
+    new Response("{}", { status: 402, headers: { [X402_HEADER.paymentRequired]: encodedRequired() } }),
+    new Response(JSON.stringify({ error: "rate limited" }), { status: 429 }),
+  ]);
+  const client = createX402Client({ signer: SIGNER, fetchImpl: impl, logger: silent });
+  const result = await client.fetch("https://svc.example/meter/quote", { headers: {} });
+  assert.equal(result.ok, true, "the answer is the caller's to read");
+  assert.equal(result.value.response.status, 429);
+  assert.equal(result.value.payment, undefined, "no receipt for a payment that did not happen");
+  assert.deepEqual(client.payments(), []);
+  assert.equal(calls.length, 2);
+
+  // A settlement the server reports as failed is no payment either.
+  const failed = { success: false, errorReason: "settle_failed", transaction: "", network: "eip155:10143" };
+  const second = recordingFetch([
+    new Response("{}", { status: 402, headers: { [X402_HEADER.paymentRequired]: encodedRequired() } }),
+    new Response("{}", { status: 500, headers: { [X402_HEADER.paymentResponse]: Buffer.from(JSON.stringify(failed)).toString("base64") } }),
+  ]);
+  const other = await createX402Client({ signer: SIGNER, fetchImpl: second.impl, logger: silent }).fetch("https://svc.example/meter/quote", { headers: {} });
+  assert.equal(other.ok, true);
+  assert.equal(other.value.payment, undefined);
+});
+
 test("a 402 that stands after the payment is a LIMIT error carrying the server's reason", async () => {
   const refusal = { success: false, errorReason: "insufficient_funds", transaction: "", network: "eip155:10143" };
   const { calls, impl } = recordingFetch([

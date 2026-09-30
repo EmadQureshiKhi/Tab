@@ -28,6 +28,7 @@ import type {
   IdentityAgentRow,
   IdentityRow,
   LabelsRow,
+  NansenProfileRow,
   ReputationRow,
   SettlementRow,
 } from "./client.js";
@@ -649,6 +650,188 @@ export function toLabelsView(row: LabelsRow | undefined): LabelsView {
     fetchedAt: row.fetchedAt,
     entity: row.entity,
     labels,
+  };
+}
+
+/* ------------------------------------------------------------ Nansen profile */
+
+/**
+ * The Nansen profile section.
+ *
+ * `status` says which of the registry's answers this is, and `statement` is the
+ * sentence for it. Every figure in it is Nansen's, bought per call and kept by
+ * the registry for a week, and the section says both on every render.
+ */
+export interface NansenProfileView {
+  readonly status: "served" | "stale" | "testnet" | "not-an-agent" | "not-configured" | "budget" | "unavailable" | "not-served";
+  readonly statement: string;
+  readonly fetchedAt: string | undefined;
+  readonly refreshesAt: string | undefined;
+  /** What the registry paid Nansen for this answer, e.g. `$0.03`. */
+  readonly paidText: string | undefined;
+  readonly payments: readonly { readonly endpoint: string; readonly amountText: string; readonly txHash: string | undefined }[];
+  readonly holdings: NansenPartView<{ readonly symbol: string; readonly amountText: string; readonly valueText: string | undefined }> & {
+    readonly totalText: string | undefined;
+  };
+  readonly funding: NansenPartView<{
+    readonly address: string;
+    readonly label: string | undefined;
+    readonly relation: string;
+    readonly txHash: string | undefined;
+    /** ISO, UTC. */
+    readonly at: string | undefined;
+  }>;
+  readonly activity: NansenPartView<{ readonly address: string; readonly label: string | undefined; readonly transactionsText: string }> & {
+    readonly summary: string | undefined;
+    /** The latest transaction in the window, ISO, UTC. */
+    readonly lastAt: string | undefined;
+  };
+}
+
+/** One block of the section: its rows, or the sentence for why there are none. */
+export interface NansenPartView<Row> {
+  readonly available: boolean;
+  readonly statement: string;
+  readonly rows: readonly Row[];
+}
+
+/** The sentence every Nansen section carries about what it is not. */
+export const NANSEN_OFFCHAIN_STATEMENT =
+  "Nansen's view is an offchain signal, bought per call over x402 and refreshed weekly. It changes nothing in the Credit Limit, which is computed only from onchain history.";
+
+/** US dollars as Nansen values them, to the cent, with a floor for dust. */
+export function usdText(value: number | null | undefined): string | undefined {
+  if (value === null || value === undefined || !Number.isFinite(value)) return undefined;
+  if (value > 0 && value < 0.01) return "<$0.01";
+  return `$${value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+const tokenAmountText = (value: number): string => value.toLocaleString("en-US", { maximumFractionDigits: 4 });
+
+/** Nansen writes some timestamps without a zone; they are UTC, and are made to say so. */
+const utcIso = (iso: string | null | undefined): string | undefined => {
+  if (iso === null || iso === undefined) return undefined;
+  return /[zZ]$|[+-]\d\d:?\d\d$/.test(iso) ? iso : `${iso}Z`;
+};
+
+const sectionMissing = (part: string, reason: { readonly message: string }) => ({
+  available: false,
+  statement: `Nansen's ${part} could not be read: ${reason.message}.`,
+  rows: [],
+});
+
+export function toNansenProfileView(row: NansenProfileRow | undefined, networkName: string): NansenProfileView {
+  const empty = {
+    fetchedAt: undefined,
+    refreshesAt: undefined,
+    paidText: undefined,
+    payments: [],
+    holdings: { available: false, statement: "", rows: [], totalText: undefined },
+    funding: { available: false, statement: "", rows: [] },
+    activity: { available: false, statement: "", rows: [], summary: undefined, lastAt: undefined },
+  } as const;
+  if (row === undefined) {
+    return { status: "not-served", statement: "The registry serves no Nansen profile, so nothing is known from Nansen.", ...empty };
+  }
+  if ("unavailable" in row) {
+    const { code, message } = row.unavailable;
+    if (code === "NANSEN_MAINNET_ONLY") {
+      return {
+        status: "testnet",
+        statement: "Nansen covers Monad Mainnet only. Switch the network to Mainnet to see an Agent's Nansen profile.",
+        ...empty,
+      };
+    }
+    if (code === "NANSEN_NOT_AN_AGENT") {
+      return {
+        status: "not-an-agent",
+        statement: `This address has no authorisation, delivery or Settlement on ${networkName}, so no Nansen profile is bought for it.`,
+        ...empty,
+      };
+    }
+    if (code === "NANSEN_PAYER_MISSING") {
+      return { status: "not-configured", statement: "Nansen profiles are not configured on this deployment.", ...empty };
+    }
+    if (code === "NANSEN_BUDGET_SPENT") {
+      return {
+        status: "budget",
+        statement: "Today's Nansen budget is spent, so this profile is bought on a later visit.",
+        ...empty,
+      };
+    }
+    return { status: "unavailable", statement: `The Nansen profile could not be read: ${message}.`, ...empty };
+  }
+
+  const paid = fixedPointText(row.paid.totalBaseUnits, 6);
+  const holdings =
+    "unavailable" in row.holdings
+      ? { ...sectionMissing("holdings", row.holdings.unavailable), totalText: undefined }
+      : {
+          available: true,
+          statement:
+            row.holdings.tokens.length === 0
+              ? "Nansen finds no token balance at this address."
+              : `${row.holdings.tokens.length} ${row.holdings.tokens.length === 1 ? "token" : "tokens"}, largest first.`,
+          rows: row.holdings.tokens.map((token) => ({
+            symbol: token.symbol,
+            amountText: tokenAmountText(token.amount),
+            valueText: usdText(token.valueUsd),
+          })),
+          totalText: usdText(row.holdings.totalUsd),
+        };
+  const funding =
+    "unavailable" in row.funding
+      ? sectionMissing("funding record", row.funding.unavailable)
+      : {
+          available: true,
+          statement: row.funding.wallets.length === 0 ? "Nansen names no wallet related to this address." : "The wallets Nansen relates to this address.",
+          rows: row.funding.wallets.map((wallet) => ({
+            address: wallet.address,
+            label: wallet.label ?? undefined,
+            relation: wallet.relation,
+            txHash: wallet.txHash ?? undefined,
+            at: utcIso(wallet.at),
+          })),
+        };
+  const activity =
+    "unavailable" in row.activity
+      ? { ...sectionMissing("activity", row.activity.unavailable), summary: undefined, lastAt: undefined }
+      : (() => {
+          const a = row.activity;
+          const count = `${a.transactions}${a.more ? "+" : ""} ${a.transactions === 1 && !a.more ? "transaction" : "transactions"}`;
+          const volume = usdText(a.volumeUsd);
+          return {
+            available: true,
+            statement:
+              a.counterparties.length === 0
+                ? `No counterparty in the last ${a.windowDays} days.`
+                : `The counterparties it dealt with most in the last ${a.windowDays} days, with Nansen's name where it has one.`,
+            rows: a.counterparties.map((party) => ({
+              address: party.address,
+              label: party.label ?? undefined,
+              transactionsText: `${party.transactions} ${party.transactions === 1 ? "transaction" : "transactions"}`,
+            })),
+            summary: `${count} in the last ${a.windowDays} days${volume === undefined ? "" : `, ${volume} in volume`}.`,
+            lastAt: utcIso(a.lastAt),
+          };
+        })();
+
+  return {
+    status: row.stale ? "stale" : "served",
+    statement: row.stale
+      ? "This profile is older than a week and could not be refreshed, so it is shown as it was."
+      : "Bought once a week and shown to every visitor until it is refreshed.",
+    fetchedAt: row.fetchedAt,
+    refreshesAt: row.refreshesAt,
+    paidText: paid === undefined ? undefined : `$${Number(paid).toFixed(2)}`,
+    payments: row.paid.payments.map((payment) => ({
+      endpoint: payment.endpoint,
+      amountText: `$${Number(fixedPointText(payment.amountBaseUnits, 6) ?? "0").toFixed(2)}`,
+      txHash: payment.txHash ?? undefined,
+    })),
+    holdings,
+    funding,
+    activity,
   };
 }
 

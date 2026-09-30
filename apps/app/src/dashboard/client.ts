@@ -268,6 +268,56 @@ export interface AgentDetail {
   readonly labels?: LabelsRow | undefined;
 }
 
+/** One section of the Nansen profile, or the reason it is missing. */
+export type NansenSection<T> = T | { readonly unavailable: UnavailableReason };
+
+/**
+ * What Nansen said about an address, bought per call over x402 and kept for a
+ * week by the registry. `stale` is true when the week is up and the refresh
+ * could not be made, so the old answer is served as it was.
+ */
+export type NansenProfileRow =
+  | {
+      readonly source: "nansen";
+      readonly chain: string;
+      readonly address: string;
+      readonly fetchedAt: string;
+      readonly refreshesAt: string;
+      readonly stale: boolean;
+      readonly paid: {
+        readonly asset: string;
+        readonly totalBaseUnits: string;
+        readonly payments: readonly { readonly endpoint: string; readonly amountBaseUnits: string; readonly txHash: string | null }[];
+      };
+      readonly holdings: NansenSection<{
+        readonly totalUsd: number | null;
+        readonly tokens: readonly { readonly symbol: string; readonly amount: number; readonly valueUsd: number | null }[];
+      }>;
+      readonly funding: NansenSection<{
+        readonly wallets: readonly {
+          readonly address: string;
+          readonly label: string | null;
+          readonly relation: string;
+          readonly txHash: string | null;
+          readonly at: string | null;
+        }[];
+      }>;
+      readonly activity: NansenSection<{
+        readonly windowDays: number;
+        readonly transactions: number;
+        readonly more: boolean;
+        readonly volumeUsd: number | null;
+        readonly lastAt: string | null;
+        readonly counterparties: readonly { readonly address: string; readonly label: string | null; readonly transactions: number }[];
+      }>;
+    }
+  | { readonly source: "nansen"; readonly unavailable: UnavailableReason };
+
+export interface AgentNansen {
+  readonly agent: string;
+  readonly nansen: NansenProfileRow;
+}
+
 export interface AgentSummaryRow {
   readonly agent: string;
   readonly settlementCount: number;
@@ -435,6 +485,8 @@ export interface RegistryClient {
   settlement(settlementId: string): Promise<Result<SettlementDetail>>;
   agents(limit?: number, cursor?: string): Promise<Result<AgentsPage>>;
   agent(address: string): Promise<Result<AgentDetail>>;
+  /** The Nansen profile of an Agent. The first read of the week buys it, so it is read apart from the credit picture. */
+  agentNansen(address: string): Promise<Result<AgentNansen>>;
   services(limit?: number): Promise<Result<ServicesPage>>;
   /** One Service by its 32-byte key, with the operator's identity on the row. */
   service(serviceId: string): Promise<Result<ServiceDetail>>;
@@ -542,6 +594,7 @@ export function createRegistryClient(options: RegistryClientOptions): RegistryCl
         `/agents${queryString({ ...(limit === undefined ? {} : { limit }), ...(cursor === undefined ? {} : { cursor }) })}`,
       ),
     agent: (address) => read<AgentDetail>(`/agents/${encodeURIComponent(address)}`),
+    agentNansen: (address) => read<AgentNansen>(`/agents/${encodeURIComponent(address)}/nansen`),
     services: (limit) =>
       read<ServicesPage>(`/services${limit === undefined ? "" : `?limit=${limit}`}`),
     service: async (serviceId): Promise<Result<ServiceDetail>> => {
