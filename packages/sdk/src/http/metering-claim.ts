@@ -52,10 +52,16 @@ export interface MeteringRequestClaim {
   readonly issuedAt: number;
 }
 
+/**
+ * The first line of every metering digest. A signing policy can allow
+ * `personal_sign` for messages that start with it and refuse the rest.
+ */
+export const METERING_DIGEST_PREFIX = "tab-metering-request" as const;
+
 /** The exact string a signer signs, with EIP-191 `personal_sign`. */
 export function meteringDigest(claim: MeteringRequestClaim): string {
   return [
-    "tab-metering-request",
+    METERING_DIGEST_PREFIX,
     claim.method.toUpperCase(),
     claim.path,
     claim.agent.toLowerCase(),

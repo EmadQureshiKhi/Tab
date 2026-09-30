@@ -194,6 +194,7 @@ The key is read at the moment a Settlement is built, and never from this file. `
 | `TAB_HOSTED_DEFAULTS` | `off` stops the hosted registry and demo Service from filling in what you did not configure |
 | `AGENT_ADDRESS` | the Agent a metered call lands on, when `tab.config` names none. Public, so `connect` copies it into the MCP stanza |
 | `AGENT_PRIVATE_KEY` | broadcasting a Settlement, signing a Permit2 witness, paying an x402 offer, or signing a call to the hosted demo Service, and nothing else. Never written to a configuration file |
+| `PRIVY_APP_ID`, `PRIVY_APP_SECRET`, `PRIVY_WALLET_ID`, `PRIVY_AUTHORIZATION_KEY` | the Agent's key in a Privy server wallet instead of `AGENT_PRIVATE_KEY`, read by the repository's `tab.config.mjs`. The secret and the authorization key are never written to a configuration file |
 
 ---
 
@@ -221,6 +222,7 @@ The main surfaces:
 | `createMonadStrategy`, `createStrategyRegistry` | The Monad payment strategy, and the registry that resolves strategies |
 | `createRelayedMonadStrategy`, `signSettlementPermit` | Gasless settlement: a Permit2 witness the Agent signs and a relay submits |
 | `createKuruFundedStrategy`, `createKuruOnchainRouter` | Settle in any asset: swap the shortfall in through Kuru before the Monad strategy settles |
+| `createPrivyAgentSigner`, `buildPrivyAgentPolicy`, `createPrivyAgentWallet` | An Agent key in a Privy server wallet, the policy that bounds it, and the wallet created under that policy |
 | `revertMappingFor` | The single table mapping a contract revert to a category, code, disposition and remedy |
 
 ### Running a metered Service
@@ -253,6 +255,41 @@ export interface PaymentStrategy {
 ```
 
 A receipt carries the transaction hash and, once the receipt is read, the `settlementId`, `applied` and `toPrepaid` figures straight off the `Settled` event. `settleBatch` maps onto `TabSettlement.settleBatch`, which settles several tabs in one transaction.
+
+### An Agent key in a Privy server wallet
+
+`createPrivyAgentSigner` is an ethers signer whose key lives in a Privy server wallet, so the key never sits in the Agent's environment.
+Every signature is a request to Privy's wallet API, and Privy's policy engine decides whether to sign it, so a compromised Agent process can sign only what the policy allows.
+It goes wherever this package takes a signer: `createMonadStrategy`, `createRelayedMonadStrategy`, `agentSignedMetering` and the x402 client.
+
+```ts
+import { JsonRpcProvider } from "ethers";
+import { agentSignedMetering, createMonadStrategy, createPrivyAgentSigner } from "@tabai/sdk";
+
+const privy = createPrivyAgentSigner({
+  appId: process.env.PRIVY_APP_ID,
+  appSecret: process.env.PRIVY_APP_SECRET,          // never logged
+  walletId: process.env.PRIVY_WALLET_ID,
+  authorizationKey: process.env.PRIVY_AUTHORIZATION_KEY, // the Agent's signer key, `wallet-auth:...`
+  chainId: 10143n,
+  provider: new JsonRpcProvider("https://testnet-rpc.monad.xyz", 10143, { staticNetwork: true }),
+});
+if (!privy.ok) throw new Error(privy.error.message);
+
+const headers = agentSignedMetering(() => privy.value);           // personal_sign
+const strategy = createMonadStrategy({ signer: privy.value, tabSettlement, assets }); // eth_signTransaction
+```
+
+`signMessage` is `personal_sign`, `signTypedData` is `eth_signTypedData_v4`, and a transaction is signed with `eth_signTransaction` and broadcast through the provider you pass; `transactions: "privy"` has Privy send it with `eth_sendTransaction` on the chain's `caip2` instead.
+Every signature is recovered, and every signed transaction decoded and compared with the request, before either is used.
+A policy refusal throws `PrivyError` with code `PRIVY_POLICY_DENIED`, which a strategy reports as its error's `cause`, and the message names the call that was refused and the rules the policy has for that method.
+
+`buildPrivyAgentPolicy` writes the policy for one chain: transactions only to `TabSettlement` (`settle`, `settleBatch`), `TabBook` (`authorise`), an accepted Asset (`approve` with `TabSettlement` or Permit2 as spender) and Permit2 (`invalidateUnorderedNonces`), with a value of zero; typed data only as a Permit2 `PermitWitnessTransferFrom` to `TabSettlement`; and `personal_sign` only for a metering claim.
+`createPrivyAgentWallet` creates that policy and an `ethereum` wallet, both owned by an owner key, and adds the Agent's own authorization key as a signer bound to the policy, so the credentials on the Agent's machine cannot loosen it.
+`scripts/privy-agent.mjs` in the repository drives both, and the loop, against the live deployment.
+
+It needs a Privy app (an app id and secret).
+Privy enforces the policy off chain, in its signing enclave, at the moment it signs; the contracts treat the wallet like any other account.
 
 ---
 
