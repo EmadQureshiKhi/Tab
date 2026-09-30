@@ -19,8 +19,9 @@
  * - **{@link createTabBookClient}** records the delivery, simulating first so a
  *   refusal is read for free rather than paid for as a revert.
  * - **{@link verifyMeteringRequest}** authenticates the caller as the Service
- *   operator or as the Agent being metered, since the gateway holds the key that
- *   can charge any Agent up to its authorisation ceiling.
+ *   operator, as the Agent being metered, or as a delegate that Agent registered
+ *   (checked by {@link createMeteringDelegateReader}), since the gateway holds the
+ *   key that can charge any Agent up to its authorisation ceiling.
  *
  * `server.ts` mounts the SDK's post-paid plugin over these, and `main.ts` is the
  * process that serves it.
@@ -38,5 +39,6 @@ export * from "./config.js";
 export * from "./witness.js";
 export * from "./tab-book.js";
 export * from "./authorisation.js";
+export * from "./delegates.js";
 export * from "./asset.js";
 export * from "./x402.js";

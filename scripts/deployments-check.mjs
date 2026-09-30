@@ -57,6 +57,11 @@
  *   can be exercised without a faucet for the Asset. Absent from a Mainnet
  *   deployment, where the Assets are the canonical stablecoins.
  *
+ *   `MeteringDelegates`, where it is deployed. Created by its own script after
+ *   the core, wired to nothing, and recorded under the same record once it
+ *   exists. A network that has not had it deployed yet is not a stale record,
+ *   so, like the test token, its absence is allowed per network.
+ *
  *   The curation authority. Not a contract, and it would be easy to file it as
  *   a configuration input and leave it out. That would be wrong: it is a
  *   `ServiceRegistry` constructor immutable, never settable afterwards, and
@@ -190,6 +195,17 @@ const CLASSIFICATION = new Map([
       why:
         "the test token the deploy script ships to Testnet; created by this deployment, so it can go stale " +
         "like any other address, and absent from a Mainnet record where the Assets are the canonical stablecoins",
+    },
+  ],
+  [
+    "METERING_DELEGATES_ADDRESS",
+    {
+      recorded: true,
+      perNetwork: true,
+      why:
+        "a Monad contract a deployment creates with script/06_DeployMeteringDelegates.s.sol, on its own and " +
+        "wired to nothing, so a network may run Tab before it has one; once deployed it is a transaction " +
+        "result like the rest and goes stale the same way",
     },
   ],
   [

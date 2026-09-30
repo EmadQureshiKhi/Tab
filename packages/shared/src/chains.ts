@@ -6,7 +6,9 @@
  * targets and which Assets it settles in.
  *
  * Addresses of Tab's own contracts are deployment output and live in
- * `deployments.json`, never here.
+ * `deployments.json`. The one exception is {@link METERING_DELEGATES}, which
+ * the published SDK and the Agent Wallet plugin read at run time on a machine
+ * with no copy of the repository; its test holds it to `deployments.json`.
  */
 import type { Address, Bytes32 } from "./hex.js";
 
@@ -101,6 +103,29 @@ export const PERMIT2_ADDRESS = "0x000000000022D473030F116dDEE9F6B43aC78BA3" as c
 
 /** The x402 facilitator that verifies and settles `exact` payments on Monad. */
 export const X402_FACILITATOR_URL = "https://x402-facilitator.molandak.org" as const;
+
+/**
+ * `MeteringDelegates` on each network, or `undefined` where it is not deployed.
+ *
+ * An Agent names a session key there to sign its metering claims; a gateway
+ * reads it to accept that key's signature. `undefined` means delegates are
+ * unsupported on that network, and every consumer treats it that way: the
+ * plugin refuses `mm tab delegate` by name and signs no call with a delegate.
+ *
+ * Filling one in is a one-line change once the contract is deployed and
+ * recorded under `contracts.MeteringDelegates` in `deployments.json`; the
+ * test in `test/chains.test.mjs` fails until the two agree.
+ */
+export const METERING_DELEGATES: Readonly<Record<MonadChainId, Address | undefined>> = {
+  [MONAD_MAINNET.chainId]: undefined,
+  [MONAD_TESTNET.chainId]: undefined,
+};
+
+/** The `MeteringDelegates` address on a network, or `undefined` where there is none. */
+export function meteringDelegatesFor(chainId: number | bigint): Address | undefined {
+  const narrowed = typeof chainId === "bigint" ? Number(chainId) : chainId;
+  return isMonadChainId(narrowed) ? METERING_DELEGATES[narrowed] : undefined;
+}
 
 /** A Service this project hosts, and where it is reached. */
 export interface HostedService {

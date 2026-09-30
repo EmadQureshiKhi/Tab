@@ -8,6 +8,8 @@
  */
 
 import assert from "node:assert/strict";
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import test from "node:test";
 
 import {
@@ -16,11 +18,14 @@ import {
   ERC8004_REGISTRIES,
   ERC8004_REPUTATION_REGISTRY_ABI,
   MAINNET_ASSETS,
+  METERING_DELEGATES,
+  METERING_DELEGATES_ABI,
   MONAD_MAINNET,
   MONAD_TESTNET,
   TESTNET_ASSETS,
   X402_FACILITATOR_URL,
   erc8004RegistriesFor,
+  meteringDelegatesFor,
   isAddress,
 } from "../dist/index.js";
 
@@ -83,6 +88,38 @@ test("the ERC-8004 fragments carry what the scripts and the indexer call", () =>
   // Every fragment is a single declaration with balanced parentheses.
   for (const fragment of [...ERC8004_IDENTITY_REGISTRY_ABI, ...ERC8004_REPUTATION_REGISTRY_ABI]) {
     assert.match(fragment, /^(function|event) [A-Za-z0-9_]+\(/);
+    assert.equal(fragment.split("(").length, fragment.split(")").length);
+  }
+});
+
+test("MeteringDelegates is known on a network exactly when deployments.json records it there", () => {
+  const path = resolve(import.meta.dirname, "..", "..", "..", "deployments.json");
+  if (!existsSync(path)) return;
+  const networks = JSON.parse(readFileSync(path, "utf8")).networks;
+  for (const chainId of [MONAD_MAINNET.chainId, MONAD_TESTNET.chainId]) {
+    const recorded = networks[String(chainId)]?.contracts?.MeteringDelegates;
+    const known = METERING_DELEGATES[chainId];
+    if (recorded === undefined) {
+      assert.equal(known, undefined, `chain ${chainId}: no MeteringDelegates is recorded, so none may be assumed`);
+    } else {
+      assert.ok(known !== undefined, `chain ${chainId}: deployments.json records MeteringDelegates; fill it in here`);
+      assert.equal(known.toLowerCase(), recorded.address.toLowerCase(), `chain ${chainId}`);
+      assert.equal(recorded.envKey, "METERING_DELEGATES_ADDRESS");
+    }
+    assert.equal(meteringDelegatesFor(chainId), known);
+    assert.equal(meteringDelegatesFor(BigInt(chainId)), known);
+  }
+  assert.equal(meteringDelegatesFor(1), undefined, "not a Monad network");
+});
+
+test("the MeteringDelegates fragments carry what the gateway and the plugin call", () => {
+  const has = (prefix) => METERING_DELEGATES_ABI.some((fragment) => fragment.startsWith(prefix));
+  assert.ok(has("function setDelegate(address delegate, uint64 expiry)"));
+  assert.ok(has("function revokeDelegate(address delegate)"));
+  assert.ok(has("function isDelegate(address agent, address delegate) view returns (bool)"));
+  assert.ok(has("function expiryOf(address agent, address delegate) view returns (uint64"));
+  for (const fragment of METERING_DELEGATES_ABI) {
+    assert.match(fragment, /^(function|event|error) [A-Za-z0-9_]+\(/);
     assert.equal(fragment.split("(").length, fragment.split(")").length);
   }
 });

@@ -1,11 +1,11 @@
 /**
  * The metering claim: what a signed metered request binds, and who may sign it.
  *
- * ## Two signers, one digest
+ * ## Three signers, one digest
  *
  * A metered call records a delivery on chain and spends the Service operator's
  * gas, so a metering endpoint anyone can reach must know the call was meant.
- * Two parties can say so, and the digest they sign is the same string:
+ * Three parties can say so, and the digest they sign is the same string:
  *
  *   - **The operator**, from the Service's own front, which has authenticated
  *     its caller however it likes. `Tab-Operator-Signature` carries it.
@@ -13,6 +13,19 @@
  *     carries it, recovered against the address in `Tab-Agent`, so the one
  *     party that pays for the call is the one that asked for it, and a
  *     stranger who knows an Agent's address can put nothing on its tab.
+ *   - **A delegate the Agent named**, a session key registered on chain in
+ *     `MeteringDelegates` with an expiry. `Tab-Delegate-Signature` carries it,
+ *     recovered against the address in `Tab-Delegate`, and the gateway then
+ *     checks `MeteringDelegates.isDelegate(agent, delegate)`. The claim still
+ *     names the Agent in `Tab-Agent`, so the charge lands where it always
+ *     would. This is for an Agent whose wallet can submit a transaction but
+ *     cannot sign a message: one transaction names the key, and the key signs
+ *     from then on.
+ *
+ * A delegate signs claims and nothing else. It cannot move funds, because no
+ * Settlement path reads `MeteringDelegates`, and every charge it causes still
+ * passes the Agent's own `TabBook.authorise` ceiling and expiry for that
+ * Service and Asset. The Agent revokes it with one transaction.
  *
  * The digest binds the method, the path, the Agent, the tool, the unit count
  * and a timestamp. Binding the Agent and the units is the point: a signature
@@ -38,6 +51,10 @@ export const METERING_HEADER = {
   operatorIssuedAt: "Tab-Operator-Issued-At",
   agentSignature: "Tab-Agent-Signature",
   agentIssuedAt: "Tab-Agent-Issued-At",
+  /** The session key's address, which the gateway recovers the signature against. */
+  delegate: "Tab-Delegate",
+  delegateSignature: "Tab-Delegate-Signature",
+  delegateIssuedAt: "Tab-Delegate-Issued-At",
 } as const;
 
 /** The fields a metering request signature binds. */
@@ -117,6 +134,56 @@ export function agentSignedMetering(
     return {
       [METERING_HEADER.agentSignature]: await wallet.signMessage(digest),
       [METERING_HEADER.agentIssuedAt]: String(issuedAt),
+    };
+  };
+}
+
+/** A session key the Agent registered in `MeteringDelegates`, and the Agent it signs for. */
+export interface MeteringDelegate {
+  /** The Agent that named this key. The key signs only for it. */
+  readonly agent: string;
+  readonly signer: MeteringSigner;
+}
+
+/**
+ * A header provider that signs every metered call with a delegate key.
+ *
+ * The digest is the one the Agent would sign, naming the Agent, and the key
+ * signs it; the call carries `Tab-Delegate`, `Tab-Delegate-Signature` and
+ * `Tab-Delegate-Issued-At`. The gateway recovers the signature against
+ * `Tab-Delegate` and then asks `MeteringDelegates` whether the Agent named
+ * that key and the name has not lapsed, so a key the Agent never registered
+ * is refused however well it signs.
+ *
+ * Like {@link agentSignedMetering}, a factory: the key is loaded only when a
+ * call is made, and one that returns nothing sends the call unsigned. It signs
+ * only for the Agent the delegate belongs to, because a delegate's signature
+ * for any other Agent could only be refused.
+ */
+export function delegateSignedMetering(
+  delegate: () => MeteringDelegate | undefined,
+  options: { readonly now?: () => number } = {},
+): ServiceHeaderProvider {
+  const now = options.now ?? (() => Date.now());
+  return async (request: ServiceHeaderRequest) => {
+    const named = delegate();
+    if (named === undefined) return {};
+    const agent = named.agent.toLowerCase();
+    if (agent !== request.agent.toLowerCase()) return {};
+    const address = (await named.signer.getAddress()).toLowerCase();
+    const issuedAt = now();
+    const digest = meteringDigest({
+      method: request.method,
+      path: new URL(request.url).pathname,
+      agent,
+      tool: toolKeyOf(request.tool),
+      units: 1,
+      issuedAt,
+    });
+    return {
+      [METERING_HEADER.delegate]: address,
+      [METERING_HEADER.delegateSignature]: await named.signer.signMessage(digest),
+      [METERING_HEADER.delegateIssuedAt]: String(issuedAt),
     };
   };
 }

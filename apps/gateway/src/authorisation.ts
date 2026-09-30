@@ -5,7 +5,7 @@
  * them is how a metering endpoint becomes a way to drain every Agent that ever
  * authorised the Service.
  *
- * ## The caller is authenticated by signature, the operator's or the Agent's
+ * ## The caller is authenticated by signature: the operator's, the Agent's, or its delegate's
  *
  * `TabBook.recordDelivery` is gated on the Service operator, so the gateway holds
  * that key and every request it accepts spends the operator's authority. An
@@ -16,7 +16,12 @@
  * caller however it likes. Or the Agent signs with its own key, which is the
  * shape a public gateway takes: the one party that pays for the call is the one
  * that asked for it, and a stranger who knows an Agent's address can put nothing
- * on its tab. {@link verifyMeteringRequest} recovers the address either way.
+ * on its tab. Or a delegate signs: a session key the Agent named on chain in
+ * `MeteringDelegates`, for an Agent whose wallet can submit a transaction but
+ * cannot sign a message. The claim still names the Agent, so the charge lands
+ * where it always would, and the gateway checks the registration after the
+ * signature; see `delegates.ts`. {@link verifyMeteringRequest} recovers the
+ * address in every case.
  *
  * The digest binds the method, the path, the Agent, the tool, the unit count, and
  * a timestamp. Binding the Agent and the units is the point: a signature over the
@@ -56,12 +61,21 @@ export const AUTHORISATION_ABI = [
 const AUTHORISATION_INTERFACE = new Interface([...AUTHORISATION_ABI]);
 
 
+/** How a signature by the wrong key is refused, per the party it claimed to be. */
+const MISMATCH = {
+  operator: { code: "METERING_SIGNATURE_NOT_OPERATOR", who: "the Service operator", suffix: "" },
+  agent: { code: "METERING_SIGNATURE_NOT_AGENT", who: "the Agent", suffix: " it is metered against" },
+  delegate: { code: "METERING_SIGNATURE_NOT_DELEGATE", who: "the delegate", suffix: " named in Tab-Delegate" },
+} as const;
+
 /**
  * Recovers the signer and checks it is the party expected, inside the window.
  *
- * `expected` is the Service operator for `Tab-Operator-Signature` and the
- * Agent named in `Tab-Agent` for `Tab-Agent-Signature`; `role` only names the
- * refusal. The freshness check is what stops a captured signature being
+ * `expected` is the Service operator for `Tab-Operator-Signature`, the
+ * Agent named in `Tab-Agent` for `Tab-Agent-Signature`, and the key named in
+ * `Tab-Delegate` for `Tab-Delegate-Signature`; `role` only names the refusal.
+ * A delegate's signature proves only that the key signed, and whether the
+ * Agent named that key is a separate read the caller makes after this. The freshness check is what stops a captured signature being
  * replayed forever. It is deliberately two-sided: a timestamp far in the
  * future is refused as well, because accepting one would let a caller mint a
  * signature that stays valid long after the key is rotated.
@@ -72,7 +86,7 @@ export function verifyMeteringRequest(
   expected: string,
   nowMs: number,
   windowMs: number = SIGNATURE_WINDOW_MS,
-  role: "operator" | "agent" = "operator",
+  role: "operator" | "agent" | "delegate" = "operator",
 ): Result<{ readonly signer: string }> {
   const skew = Math.abs(nowMs - claim.issuedAt);
   if (!Number.isFinite(claim.issuedAt) || skew > windowMs) {
@@ -100,11 +114,8 @@ export function verifyMeteringRequest(
   if (recovered.toLowerCase() !== expected.toLowerCase()) {
     return err({
       category: "AUTHORISATION",
-      code: role === "agent" ? "METERING_SIGNATURE_NOT_AGENT" : "METERING_SIGNATURE_NOT_OPERATOR",
-      message:
-        role === "agent"
-          ? `the metering request was signed by ${recovered}, which is not the Agent ${expected} it is metered against`
-          : `the metering request was signed by ${recovered}, which is not the Service operator ${expected}`,
+      code: MISMATCH[role].code,
+      message: `the metering request was signed by ${recovered}, which is not ${MISMATCH[role].who} ${expected}${MISMATCH[role].suffix}`,
       retryable: false,
       details: { recovered, expected },
     });
