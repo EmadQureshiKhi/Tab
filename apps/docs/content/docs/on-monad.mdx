@@ -100,12 +100,17 @@ Its wallet-backed commands need `mm login`, and on Testnet only its reads and dr
 | --- | --- |
 | `mm tab discover` | Services, Assets, prices and Bonds, from the read API |
 | `mm tab status` | An Agent's Open Tab, headroom and Settlements per Asset |
-| `mm tab call` | One metered call, on credit, against a Service that accepts unsigned metered calls |
+| `mm tab call` | One metered call, on credit, signed by the wallet's registered metering delegate |
 | `mm tab authorise` | Builds `TabBook.authorise` and hands it to the wallet |
+| `mm tab delegate` | Makes a local session key and builds `MeteringDelegates.setDelegate` for it, or `revokeDelegate`, and hands it to the wallet |
 | `mm tab settle` | Builds the approval where the allowance falls short and `TabSettlement.settle`, and hands each to the wallet in turn |
 
 Every write is handed over with a one-sentence intent, so the wallet's own policy decides what is signed, and a wallet refusal on the approval stops before the Settlement is submitted.
-`mm tab call` is the one command bounded by the host: a metered request must be signed by the operator or by the Agent, and the CLI exposes no message signing to a plugin, so a Service that requires one answers with its own named refusal.
+`mm tab call` is the one command the host bounds: a metered request must be signed, and the CLI exposes no message signing to a plugin.
+So `mm tab delegate` has the wallet submit one transaction naming a local key in `MeteringDelegates`, and `mm tab call` signs each metering claim with that key while the chain says it is registered.
+The key signs claims and nothing else: it cannot move funds, and every charge it causes stays within the ceilings the wallet set with `mm tab authorise`.
+It lapses at its expiry, at most a year ahead, and `mm tab delegate --revoke --broadcast` withdraws it in one transaction.
+This needs `MeteringDelegates` deployed on the network and read by the Service's gateway; where it is not, the call goes unsigned as before and a Service that requires a signature refuses it by name.
 
 ## Chainlink CRE, and the keeper
 

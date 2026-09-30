@@ -237,6 +237,11 @@ Mount it under `/meter/`: `tab_call` sends a call to `<endpoint>/meter/<tool>`, 
 
 A gateway anyone can reach requires a signature on every metered call, and the Agent gives its own: put `headers: agentSignedMetering(agentSigner)` on the Service entry in `tab.config` and `tab_call` signs a digest of the method, path, Agent, tool, units and a timestamp with the Agent's key, sent as `Tab-Agent-Signature`. The key is built per call and never for a read, and it signs only when it is the Agent the call is metered against; for anyone else it adds nothing and the Service decides. A Service's own front can sign the same digest with the operator key instead.
 
+An Agent whose wallet cannot sign a message can name a session key in `MeteringDelegates` once, on chain, and put `headers: delegateSignedMetering(() => ({ agent, signer }))` on the entry instead.
+The key signs the same digest, sent as `Tab-Delegate-Signature` beside `Tab-Delegate`, and the gateway accepts it only while the chain says the Agent registered that key.
+A delegate signs claims and nothing else, cannot move funds, and stays within the Agent's `TabBook.authorise` ceilings.
+`METERING_DELEGATES` carries each network's address, `undefined` until deployed.
+
 ### Adding a strategy
 
 A strategy is how an agent pays. On Monad a tab is paid through `TabSettlement`, by `settle` with the Agent's key or by `settleWithPermit2` with its signature, and the shipped strategies do one each. The seam exists so that a different signer, a smart account, a session key, or a test double can stand behind the same call without the SDK caring which.

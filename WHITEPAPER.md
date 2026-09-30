@@ -146,6 +146,7 @@ That inversion, rather than a feature count, is the honest measure of whether a 
 | `TabSettlement` | The one way a tab is paid. Moves the Asset and applies the Settlement in one transaction. Holds nothing |
 | `LimitLib` | Pure credit arithmetic. Zero storage reads, zero external calls, linked at compile time |
 | `CurationMultisig` | An m-of-n owner set with an immutable owner list, for the one privileged role |
+| `MeteringDelegates` | Session keys an Agent names, each until an expiry, to sign its metering claims. Wired to nothing and read only by gateways; deployed on its own, after the rest |
 
 Nothing in `TabBook`, `Bond` or `TabSettlement` is owned, pausable, or upgradeable; the one privileged act among them is the one-shot wiring of the settlement surface at deployment.
 
@@ -159,7 +160,7 @@ Nothing in `TabBook`, `Bond` or `TabSettlement` is owned, pausable, or upgradeab
 | SDK | Strategies, the 402 client, server plugins, the MCP server and the CLI | Hold a key it was not handed, or persist one |
 | Dashboard | Keyless reads of every Service, Agent, Settlement and overdue tab; a wallet only to sign `authorise`, `registerService`, or the allowance and deposit that fund a Bond | Anything the connected wallet did not sign |
 
-The gateway is the component most systems would make trusted, and it is not: every metering request it accepts must carry a signature over the Agent, the tool and the unit count, from the Service operator or from the Agent itself, so the gateway is the operator's key and no more.
+The gateway is the component most systems would make trusted, and it is not: every metering request it accepts must carry a signature over the Agent, the tool and the unit count, from the Service operator, from the Agent itself, or from a delegate the Agent registered on chain, so the gateway is the operator's key and no more.
 Its liveness affects whether a Service gets paid for a delivery, and the correctness of any tab or limit not at all.
 
 ### 4.3 Client surface
@@ -175,6 +176,7 @@ A failure returns `ok: false` with a `category`, a `code` and a `message`, so a 
 Two more strategies sit beside the direct one: `monad-relayed` signs a Permit2 Settlement and hands it to the gateway to submit, so an Agent needs the Asset and no MON, and a Kuru-funded strategy swaps in a shortfall from another token before settling.
 With nothing configured, the SDK reads the project's hosted registry and knows the hosted demo Service for the chosen network, so a fresh install can discover at once, and with `AGENT_ADDRESS` and `AGENT_PRIVATE_KEY` set it can call as well, signing each metered call with the Agent's own key.
 The same four operations are a MetaMask Agent Wallet plugin, `mm tab`, which builds each transaction and hands it to the wallet with a one-sentence intent, so the wallet's own policy decides what is signed.
+That wallet lends a plugin no message signing, so `mm tab delegate` has it submit one transaction naming a local key in `MeteringDelegates`, and `mm tab call` signs each metered call with that key (Section 7.5).
 
 ### 4.4 Around the core: the rest of Monad's agent stack
 
@@ -468,6 +470,12 @@ The intended holder is `CurationMultisig`: an m-of-n owner set with an immutable
 
 The registry read API and the Dashboard's routes are unauthenticated by decision, because every field they serve restates a public chain fact.
 The gateway's metering endpoint is different: it must authenticate every call by the Service operator's or the Agent's signature and identify the Agent by the `Tab-Agent` header, because an unauthenticated metering endpoint would let anyone charge any Agent up to its authorisation ceiling.
+A third signer exists for an Agent whose wallet can submit a transaction but cannot sign a message: a delegate, a session key the Agent names in `MeteringDelegates` with `setDelegate(delegate, expiry)`.
+The delegate signs the same digest in `Tab-Delegate-Signature`, the gateway recovers it against `Tab-Delegate` and then checks `isDelegate(agent, delegate)` on chain, and the claim still names the Agent.
+The bound is the argument for it.
+A delegate signs metering claims and nothing else; it can never move funds, because no Settlement path reads `MeteringDelegates`.
+Every charge it causes still passes `recordDelivery`, so it stays within the Agent's own `authorise` ceiling and expiry for that Service and Asset and within the Credit Limit.
+Its expiry is required and at most 365 days ahead, and the Agent revokes it with one transaction; a gateway holds a positive answer for at most a minute and never past the expiry.
 Inside the SDK, `Tab-Agent` and `Tab-Authorisation` are treated as claims and never as authentication; `TabBook` derives the authorisation key itself, so a header cannot redirect a charge.
 
 ---
@@ -493,7 +501,7 @@ The off-chain rail is hosted for both networks: a registry and a metering gatewa
 
 ### 8.2 The test suite
 
-`forge test` in `packages/contracts` runs 165 tests across 11 suites, all passing:
+`forge test` in `packages/contracts` runs 179 tests across 12 suites, all passing:
 
 | Suite | Tests | What it covers |
 | --- | --- | --- |
@@ -503,7 +511,8 @@ The off-chain rail is hosted for both networks: a registry and a metering gatewa
 | `MockUsdc.t.sol` | 16 | The test token, including EIP-3009 under the same EIP-712 domain as Circle's USDC |
 | `TabSettlement.t.sol` | 15 | `settle`, `settleBatch` and `settleWithPermit2` against Permit2's canonical bytecode, and the unwinding of a failed transfer |
 | `ServiceRegistryTimelock.t.sol` | 14 | Queue, apply, cancel, the 48-hour hold, and refusal at queue time |
-| `DeploymentScripts.t.sol` | 11 | The deploy, verify and registration scripts against a local chain |
+| `MeteringDelegates.t.sol` | 13 | Setting, the expiry bounds, lapse at the expiry, revocation, and a fuzzed expiry |
+| `DeploymentScripts.t.sol` | 12 | The deploy, verify and registration scripts against a local chain |
 | `ServiceRegistryRegistration.t.sol` | 9 | Permissionless registration, prices, Collections, Windows |
 | `Bond.t.sol` | 8 | Deposit, `depositFor`, withdrawal, and `freeOf` |
 | `property/Concentration.t.sol` | 6 | The concentration cap across every share and count |
@@ -680,7 +689,7 @@ cd packages/contracts && set -a && source ../../.env.verify-mainnet && set +a
 forge script script/02_VerifyDeployment.s.sol:VerifyDeployment --rpc-url monad --sig "run()"
 cd ../..
 
-# 165 contract tests, including the property tests; add --gas-report for Section 8.4
+# 179 contract tests, including the property tests; add --gas-report for Section 8.4
 pnpm --filter @tabai/contracts test
 
 # the whole workspace
