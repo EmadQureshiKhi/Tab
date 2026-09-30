@@ -33,7 +33,7 @@
     "build": "tsc -b && node scripts/manifest.mjs",
     "typecheck": "tsc -b",
     "test": "tsc -b && node scripts/manifest.mjs && node --test test/*.test.mjs",
-    "prepack": "tsc -b --force && node scripts/manifest.mjs"
+    "prepack": "rm -rf dist && tsc -b --force && node scripts/manifest.mjs"
   },
   "oclif": {
     "bin": "mm",

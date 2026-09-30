@@ -59,7 +59,7 @@
     "typecheck": "tsc -b",
     "test": "tsc -b && node --test test/*.test.mjs",
     "bundle": "node scripts/bundle-shared.mjs",
-    "prepack": "tsc -b --force && node scripts/bundle-shared.mjs"
+    "prepack": "rm -rf dist && tsc -b --force && node scripts/bundle-shared.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.30.0",
