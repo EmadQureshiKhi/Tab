@@ -11,9 +11,10 @@
  * being read after the first, and the claim it made, that nothing here holds a
  * key, is better made by the pages themselves never asking for one.
  *
- * The only destinations that leave the site are the documentation and the Monad
- * explorer, and both arrive as props from the environment rather than being
- * written here, so a deployment on another network links to its own explorer.
+ * The destinations that leave the site are the documentation, the Monad
+ * explorer and Tab's account on X. The first two arrive as props from the
+ * environment rather than being written here, so a deployment on another
+ * network links to its own explorer; the X account is the same on every one.
  */
 
 import { Moon, Sun } from "lucide-react";
@@ -25,6 +26,18 @@ export interface FooterProps {
   readonly docsUrl: string;
   /** The Monad explorer for the configured chain. */
   readonly explorerUrl: string;
+}
+
+/** Tab's account on X. */
+export const TAB_X_URL = "https://x.com/TryTabAI";
+
+/** The X mark, drawn in the current text colour. */
+function XMark() {
+  return (
+    <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-current">
+      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+    </svg>
+  );
 }
 
 const LINK_CLASSES =
@@ -82,6 +95,16 @@ export function Footer({ docsUrl, explorerUrl }: FooterProps) {
             </a>
             <a href={explorerUrl} target="_blank" rel="noreferrer" className={LINK_CLASSES}>
               MONAD
+            </a>
+            <a
+              href={TAB_X_URL}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Tab on X, @TryTabAI (opens in a new tab)"
+              className={`${LINK_CLASSES} gap-1.5`}
+            >
+              <XMark />
+              @TRYTABAI
             </a>
           </div>
         </div>

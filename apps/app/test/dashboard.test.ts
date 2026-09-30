@@ -1246,3 +1246,12 @@ test("the credit gauge's Open Tab is the live TabBook read, not the lower bound 
   const withoutChain = toCreditView({ ...row, headroom: { value: null, openTab: null } });
   assert.equal(withoutChain.openTabBaseUnits, 0n, "a registry with no chain reader leaves only the observation");
 });
+
+test("the footer links Tab's account on X, in a new tab, on every page", () => {
+  const footer = readFileSync(join(APP_ROOT, "components", "shell", "footer.tsx"), "utf8");
+  assert.match(footer, /export const TAB_X_URL = "https:\/\/x\.com\/TryTabAI";/);
+  assert.match(footer, /href=\{TAB_X_URL\}\s+target="_blank"\s+rel="noreferrer"/);
+  assert.match(footer, /aria-label="Tab on X, @TryTabAI \(opens in a new tab\)"/);
+  const chrome = readFileSync(join(APP_ROOT, "app", "_lib", "chrome.tsx"), "utf8");
+  assert.match(chrome, /<Footer docsUrl=\{docsUrl\} explorerUrl=\{explorerUrl\} \/>/, "the page chrome renders the footer on every page");
+});
