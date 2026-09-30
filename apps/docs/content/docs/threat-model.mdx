@@ -108,6 +108,12 @@ Inside the SDK, the server-side plugin treats `Tab-Agent` and `Tab-Authorisation
 - A Service's endpoint URL is not on chain, so an Agent's `tab.config` is the authority on where a Service runs, and a wrong endpoint there reaches a wrong host with no charge, because only the registered operator can meter to the Agent's tab.
 - The 48-hour timelock protects Agents from a price moving under them and equally delays a Service rotating a compromised Collection address; in the meantime `TabSettlement` pays the address on chain, so an Agent settling against a compromised Service pays the attacker until the change applies.
 
+## Static analysis
+
+The contracts in scope here have been through Slither, and every result is triaged in the [Slither report](https://github.com/EmadQureshiKhi/Tab/blob/main/packages/contracts/audit/slither.md).
+Slither reports 56 results and none is an exploitable vulnerability: one is a gas optimization, 29 are false positives, and 26 are accepted by design, such as the timestamp comparisons behind the 48-hour timelock and the Settlement Window.
+The report also records one liveness limit found by hand: past 512 Settlements in one Asset, the history bound above stops every delivery to that Agent in that Asset, including one prepaid credit would cover.
+
 ## Keys and secrets
 
 No private key appears in any tracked file; `.env.example` carries shape hints only.
