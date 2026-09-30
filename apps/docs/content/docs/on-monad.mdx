@@ -14,7 +14,7 @@ An x402 payment, an identity, a label, a passkey, a swap: each is stated on the 
 | x402, V2 | The prepaid fallback on a credit refusal, and the currency Tab fronts on credit |
 | Monad API Hub | Buy now, pay later for pay-per-request data services |
 | Permit2 | Gasless Settlement: the Agent signs, anyone submits |
-| ERC-8004 | Identities for the demo Service and Agent, indexed and shown |
+| ERC-8004 | Identities for the demo Service and Agent, indexed and shown, and reputation feedback a Service writes after each Settlement it receives |
 | Envio HyperSync | The indexer's cold start, past the public RPC's log cap |
 | Nansen | Address labels beside an Agent's identity |
 | Mera passkeys | A Dashboard account with no extension and no seed phrase |
@@ -71,6 +71,27 @@ The demo Service is agent `10254` on Mainnet and `1913` on Testnet, and the demo
 The registry indexes the Identity Registry's `Transfer`, `Registered`, `URIUpdated` and `MetadataSet` events into one row per agent, reads each agent's registration file and its reputation summary, and serves them: an Agent's page opens with every identity whose owner or wallet is that address, and a Service's row carries its operator's.
 Each section states the block it was read at and the registry it was read from.
 An identity is a name, not a credential: the Credit Limit reads none of it.
+
+## ERC-8004 reputation: the repayment record, where anyone can read it
+
+With `GATEWAY_REPUTATION_ENABLED=true`, a Service's gateway writes one feedback entry to the Reputation registry after each Settlement it receives, about the Agent that paid it.
+The entry is `giveFeedback(agentId, 100, 0, "tab", "settled", endpoint, feedbackURI, feedbackHash)`, sent from the operator key once the Settlement is indexed.
+The value is the same for every Settlement, so the count is the signal: how many Settlements an Agent has made to Tab Services, readable with `getSummary` by anyone who reads ERC-8004 and never reads Tab's contracts.
+`feedbackURI` is `<GATEWAY_PUBLIC_URL>/reputation/<settlementId>`, a document the gateway serves naming the amount, the Asset, the time and the transaction, and `feedbackHash` is the keccak-256 of exactly those bytes.
+Anyone can check an entry against the `Settled` event in that transaction.
+
+The registry accepts feedback from anyone except the agent's own owner or operator, and needs no signature from the Agent.
+So an Agent is rated only when it holds an ERC-8004 identity itself, as its owner or its `agentWallet`, and a Service whose operator key also owns the Agent's identity is refused by the registry; the gateway reads that refusal from a simulation and writes nothing.
+The writer counts what it has already written about each agent under its two tags rather than keeping state of its own, so a restart writes nothing twice, and `scripts/reputation-backfill.mjs` writes the entries for Settlements made before it was switched on, as a dry run unless given `--broadcast`.
+
+An Agent's page shows the summary in its own section, from Tab Services (the operators of registered Services, under `tab` and `settled`) apart from every client, and `GET /agents/:agent/reputation` serves the same per agentId.
+
+<Bounded
+  title="Reputation restates Settlements; it does not replace them"
+  bound="The feedback is written by the Service after the Settlement, from facts already on chain. The Credit Limit never reads it."
+>
+  It makes an Agent's repayment record portable, not stronger: a reader who wants the record itself reads the `Settled` events each entry names.
+</Bounded>
 
 ## HyperSync, and the log cap
 

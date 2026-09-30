@@ -416,6 +416,7 @@ An integrator needs a much smaller set than a developer does.
 | `X402_ENABLED`, `X402_FACILITATOR_URL` | the offer on a `402` and the prepaid path, and the facilitator that settles them |
 | `GATEWAY_HUB_UPSTREAMS`, `GATEWAY_X402_PRIVATE_KEY` | the upstreams the gateway fronts, and an optional dedicated key that pays them |
 | `GATEWAY_RELAY_ENABLED` | `false` turns `/relay/settle` off. On whenever `TAB_SETTLEMENT_ADDRESS` is set otherwise |
+| `GATEWAY_REPUTATION_ENABLED`, `GATEWAY_PUBLIC_URL`, `GATEWAY_REPUTATION_INTERVAL_MS` | ERC-8004 feedback about the paying Agent after each Settlement, off unless `true`; the public URL the feedback documents are served under at `/reputation/:settlementId`; how often new Settlements are looked for. See [On Monad](/on-monad) |
 
 The deployed addresses were read back off the chain by a script that holds no key, so they are checkable by anyone with an RPC endpoint rather than only by whoever deployed them.
 
