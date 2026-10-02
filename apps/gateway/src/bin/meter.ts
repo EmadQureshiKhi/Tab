@@ -35,6 +35,7 @@
 import { JsonRpcProvider, Wallet, Interface, encodeBytes32String } from "ethers";
 
 import { loadGatewayConfig, requireOperatorKey } from "../config.js";
+import { createHistorySource, headReadFailed } from "../history.js";
 import { buildWitness, createWitnessReader, SERVICE_FIELD } from "../witness.js";
 import {
   createTabBookClient,
@@ -159,16 +160,32 @@ async function main(): Promise<number> {
     // The witness first, because it is the thing most likely to be wrong and it
     // costs nothing to find out. A witness that does not fold to the on-chain
     // commitment is refused here rather than by a paid-for revert.
-    const reader = createWitnessReader(
-      provider,
-      {
-        tabBook: config.value.tabBook,
-        bond: config.value.bond,
-        serviceRegistry: config.value.serviceRegistry,
+    // The history comes from the registry when one is configured, as the gateway
+    // reads it, and is folded against TabBook's commitment either way: a scan from
+    // the deployment block through a 100-block RPC window grows with the chain.
+    const registryUrl = process.env.NEXT_PUBLIC_REGISTRY_API_URL?.trim();
+    const reader = createHistorySource({
+      chain: createWitnessReader(
+        provider,
+        {
+          tabBook: config.value.tabBook,
+          bond: config.value.bond,
+          serviceRegistry: config.value.serviceRegistry,
+        },
+        BLOCK_TAG,
+        historyFromBlock,
+      ),
+      fromBlock: historyFromBlock,
+      head: async () => {
+        try {
+          return { ok: true, value: await provider.getBlockNumber() };
+        } catch (error) {
+          return { ok: false, error: headReadFailed(error) };
+        }
       },
-      BLOCK_TAG,
-      historyFromBlock,
-    );
+      registryUrl: registryUrl === undefined || registryUrl.length === 0 ? undefined : registryUrl,
+      logger: { warn: (message) => console.error(`meter: ${message}`) },
+    });
     const built = await buildWitness(reader, agent, asset, { authorised: [serviceId.toLowerCase()] });
     if (!built.ok) {
       console.error(`meter: ${built.error.code}: ${built.error.message}`);

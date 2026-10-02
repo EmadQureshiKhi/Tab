@@ -164,7 +164,7 @@ for (const service of SERVICES) {
   const metered = spawnSync(
     process.execPath,
     ["apps/gateway/dist/bin/meter.js", "--agent", agent.address, "--service", service.id, "--asset", assetAddress, "--units", "1", ...(broadcast ? ["--broadcast"] : [])],
-    { env: { ...env, GATEWAY_PRIVATE_KEY: need(service.key), GATEWAY_SERVICE_ID: service.id, REGISTRY_START_BLOCK: fromBlock }, encoding: "utf8" },
+    { env: { ...env, GATEWAY_PRIVATE_KEY: need(service.key), GATEWAY_SERVICE_ID: service.id, REGISTRY_START_BLOCK: fromBlock, NEXT_PUBLIC_REGISTRY_API_URL: registryUrl }, encoding: "utf8" },
   );
   const lines = `${metered.stdout}\n${metered.stderr}`.split("\n").filter((line) => /charge|tab|recorded|refused|error|delivery/i.test(line));
   for (const line of lines.slice(0, 4)) show("", line.trim());
