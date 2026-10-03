@@ -108,6 +108,7 @@ The registry serves a Credit Limit only where its own recomputation agrees with 
 Every address below is read back off the chain by [`script/02_VerifyDeployment.s.sol`](./packages/contracts/script/02_VerifyDeployment.s.sol), which holds no key and sends nothing.
 `MeteringDelegates` is wired to nothing, so it was deployed on its own by [`script/06_DeployMeteringDelegates.s.sol`](./packages/contracts/script/06_DeployMeteringDelegates.s.sol), which checks the recorded address when run again.
 Every contract is source-verified through Monad's Sourcify: a full creation and runtime match on Mainnet, a runtime match on Testnet.
+The Mainnet contracts are verified on MonadScan as well.
 
 | | Monad Mainnet, chain id `143` | Monad Testnet, chain id `10143` |
 | --- | --- | --- |
@@ -168,7 +169,7 @@ x402 and Hub payments are prepaid and outside the credit history; the Credit Lim
 
 | | |
 | --- | --- |
-| Live | Contracts on both networks, verified keylessly and on Sourcify; a hosted registry, gateway and keeper per network; the Dashboard and the docs; both npm packages |
+| Live | Contracts on both networks, verified keylessly, on Sourcify and, on Mainnet, on MonadScan; a hosted registry, gateway and keeper per network; the Dashboard and the docs; both npm packages |
 | Pending | Credit growth above the baseline on Testnet once the queued Curated tier applies on 2026-10-02, when [`scripts/credit-growth.mjs`](./scripts/credit-growth.mjs) shows a fresh Agent rising from the 5 mUSDC baseline toward 20 mUSDC; the CRE workflow on a DON, which has run under the CRE simulator and waits on Chainlink deploy access |
 | Tests | 179 contract tests, including property tests, and 809 TypeScript tests across eight packages |
 
@@ -233,7 +234,7 @@ Contributor detail and the traps worth knowing before you spend gas are in [`CON
 
 - **Published security scan.** [Slither](https://github.com/crytic/slither) 0.11.6 ran all 102 detectors over the core contracts, and every result is triaged in [`packages/contracts/audit/slither.md`](./packages/contracts/audit/slither.md): none is an exploitable vulnerability.
   `pnpm --filter @tabai/contracts audit:slither` re-runs it.
-- **Verified on Monad.** Every contract's source is verified through Monad's Sourcify, a full creation and runtime match on Mainnet and a runtime match on Testnet, and a keyless script reads every deployed address and setting back from the chain on both networks.
+- **Verified on Monad.** Every contract's source is verified through Monad's Sourcify, a full creation and runtime match on Mainnet and a runtime match on Testnet, the Mainnet contracts are verified on MonadScan too, and a keyless script reads every deployed address and setting back from the chain on both networks.
 - **Checked on every push.** A secret scan over the whole git history and the working tree with a pinned, checksum-verified scanner; a dependency audit that reports no known vulnerabilities; property-based fuzz and invariant suites; coverage floors on the money-handling contracts; and a read-only reproduction job that holds no secrets.
 - **Curation behind a multisig and a timelock.** On Mainnet the Curated tier is set by a 2-of-3 [`CurationMultisig`](./packages/contracts/src/CurationMultisig.sol), and every registry change waits 48 hours behind a public event before it applies.
 - **Who is trusted, for what.** The [threat model](https://trytabai-docs.vercel.app/threat-model) and [the whitepaper's security analysis](./WHITEPAPER.md#7-security-analysis).

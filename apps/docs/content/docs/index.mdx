@@ -165,6 +165,7 @@ The contracts on Mainnet:
 Every one of those addresses, on either network, can be read back with no key and no funded account, and the verification script in the contracts package does exactly that.
 `MeteringDelegates` is the exception, because nothing is wired to it: it was deployed on its own, at block `66860629` on Testnet and `109211361` on Mainnet, and its own deploy script checks a recorded address and deploys nothing when run again.
 Every contract is also source-verified through Monad's Sourcify, a full creation and runtime match on Mainnet and a runtime match on Testnet, so an explorer shows the code in the repository beside the bytecode it matches.
+The Mainnet contracts are verified on MonadScan as well.
 The demo Service `tab.demo` is registered on both: on Testnet with a Bond of 50 mUSDC and 20 USDC and prices in both Testnet Assets, holding ERC-8004 identity `1913` beside the demo Agent's `1914`; on Mainnet with a 1 USDC Bond and prices in both USDC and AUSD, holding `10254` beside the Agent's `10255`.
 On Testnet two more Services, `tab.demo.b` and `tab.demo.c`, are registered and bonded with 50 mUSDC each, and the Curated tier for all three is queued with eta `2026-10-02T02:44:06Z`.
 Once it applies, `scripts/credit-growth.mjs` is prepared to show a Credit Limit rising from the 5 mUSDC baseline toward 20 mUSDC.

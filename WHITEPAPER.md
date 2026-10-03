@@ -513,6 +513,7 @@ Once it applies, `scripts/credit-growth.mjs` is prepared to show a fresh Agent's
 Both deployments record a `BASELINE` of `5000000` base units, 5.00 of a six-decimal Asset, and a `GROWTH_FACTOR_BPS` of `5000`.
 The addresses are in Appendix A and every transaction hash is in `deployments.json`.
 Every contract on both networks is source-verified through Monad's Sourcify, with a full creation and runtime match on Mainnet and a runtime match on Testnet, so MonadVision shows the source.
+The Mainnet contracts are verified on MonadScan as well.
 
 The off-chain rail is hosted for both networks: a registry, a metering gateway and a delinquency keeper per network, each registry indexing through HyperSync into its own database, and one Dashboard that serves either network, chosen by the reader.
 Both gateways accept delegate-signed metered calls and write an ERC-8004 reputation entry about the paying Agent after each Settlement to `tab.demo`; the demo Agent's identities are owned by the Agent address itself, not by the `tab.demo` operator, because the registry refuses feedback from an identity's own owner, and they carry 20 such entries on Testnet and 2 on Mainnet.
