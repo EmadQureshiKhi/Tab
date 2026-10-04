@@ -237,6 +237,7 @@ A Settlement restores headroom in the block it lands, so the retry after one suc
 `tab_settle` takes `dryRun` for exactly this moment.
 It resolves the Service's Collection address, checks the Asset is accepted, and reports what it would broadcast without broadcasting it.
 The answer names the strategy it would settle through as `strategyId`, and carries that strategy's own account of the Settlement as `note`: the gas, and for a funded strategy the shortfall and what it would bring in first.
+Once a Settlement lands, `tab_settle` waits up to 20 seconds for the registry to index it and says whether it did as `indexed`, so a `tab_status` straight after reads the tab as paid rather than as it was a block earlier.
 
 The other answer to a refusal is to pay for that one call.
 When the Service's `402` carries an x402 `PAYMENT-REQUIRED` offer and `tab.config` names an `x402` signer, `tab_call` signs an EIP-3009 authorization for the charge, repeats the request with `PAYMENT-SIGNATURE`, and returns the result with an `x402` block naming the transaction.

@@ -222,6 +222,12 @@ export interface TabSettleOutput {
   readonly appliedBaseUnits?: string | null;
   readonly prepaidBaseUnits?: string | null;
   readonly explorerUrl?: string | null;
+  /**
+   * Whether the registry had indexed this Settlement when the tool answered. True means
+   * `tab_status` now reads the tab as paid; false means the read API is a few blocks
+   * behind and the chain, not a second Settlement, is the place to look.
+   */
+  readonly indexed?: boolean | null;
   readonly error?: TabToolError;
 }
 
@@ -256,6 +262,11 @@ export interface TabToolsetOptions {
   readonly cwd?: string;
   readonly logger?: Logger;
   readonly now?: () => number;
+  /**
+   * How long `tab_settle` waits, after a Settlement lands, for the registry to index it,
+   * so a status read straight after it is current. Defaults to 20 seconds; 0 skips the wait.
+   */
+  readonly settleIndexWaitMs?: number;
   /**
    * The environment the Asset table is read from: on Testnet `MOCK_USDC_ADDRESS`
    * names the token this deployment settles in. Defaults to the process
@@ -739,6 +750,7 @@ export function createTabToolset(options: TabToolsetOptions): TabToolset {
     }
     const receipt = await strategy.value.settle(request);
     if (!receipt.ok) return failure(receipt.error);
+    const indexed = await settlementIndexed(request.agent, receipt.value.txHash);
     return {
       ok: true,
       dryRun: false,
@@ -751,7 +763,30 @@ export function createTabToolset(options: TabToolsetOptions): TabToolset {
       appliedBaseUnits: receipt.value.applied === null ? null : receipt.value.applied.toString(10),
       prepaidBaseUnits: receipt.value.toPrepaid === null ? null : receipt.value.toPrepaid.toString(10),
       explorerUrl: explorerTx(settings.explorerUrl, receipt.value.txHash),
+      indexed,
     };
+  };
+
+  /**
+   * Waits, briefly, until the registry lists a Settlement's transaction. An Agent that
+   * settles and then reads its status would otherwise see the tab as it was a few blocks
+   * earlier, still owing, and could pay the same bill twice. Null when there is no
+   * registry to ask.
+   */
+  const settlementIndexed = async (agent: string, txHash: string): Promise<boolean | null> => {
+    const registry = registryOf();
+    if (!registry.ok) return null;
+    const budget = options.settleIndexWaitMs ?? 20_000;
+    const deadline = Date.now() + budget;
+    const wanted = txHash.toLowerCase();
+    for (;;) {
+      const listed = await registry.value.settlements({ agent: agent.toLowerCase(), limit: 5 });
+      if (listed.ok && asArray(field(listed.value, "settlements")).some((row) => asString(jsonPath(row, "monad", "txHash"), "").toLowerCase() === wanted)) {
+        return true;
+      }
+      if (Date.now() >= deadline) return false;
+      await new Promise((resolve) => setTimeout(resolve, 1_500));
+    }
   };
 
   // -------------------------------------------------------------- dispatch

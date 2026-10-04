@@ -609,7 +609,8 @@ function stubStrategies() {
         value: {
           strategyId: "stub-usdc",
           chainId: request.asset.chainId,
-          txHash: `0x${"ee".repeat(32)}`,
+          // The transaction the stub registry already lists, so the wait for the index ends at once.
+          txHash: `0x${"22".repeat(32)}`,
           asset: request.asset,
           amount: request.amount,
           payer: request.agent,
@@ -686,18 +687,37 @@ test("tab_settle broadcasts through the strategy seam and reports what TabBook a
 
   assert.equal(output.ok, true);
   assert.equal(output.dryRun, false);
-  assert.equal(output.txHash, `0x${"ee".repeat(32)}`);
+  assert.equal(output.txHash, `0x${"22".repeat(32)}`);
   assert.equal(output.chainId, 10143);
   assert.equal(output.settlementId, SETTLEMENT_ID);
   assert.equal(output.appliedBaseUnits, "10000");
   assert.equal(output.prepaidBaseUnits, "0");
-  assert.equal(output.explorerUrl, `https://testnet.monadvision.com/tx/0x${"ee".repeat(32)}`);
+  assert.equal(output.explorerUrl, `https://testnet.monadvision.com/tx/0x${"22".repeat(32)}`);
+  assert.equal(output.indexed, true, "the registry lists the Settlement, so a status read now is current");
   assert.equal(output.strategyId, "stub-usdc", "the receipt names the strategy that settled");
   assert.equal(output.note, null);
   assert.equal(strategies.settled.length, 1);
   assert.equal(strategies.settled[0].amount, 10_000n, "an amount crosses the seam as a bigint, never a number");
   assert.equal(strategies.settled[0].agent, AGENT);
   assert.equal(strategies.settled[0].serviceId, SERVICE_ID);
+});
+
+test("tab_settle says when the registry has not caught up, rather than waiting forever", async () => {
+  const strategies = stubStrategies();
+  const toolset = createTabToolset({
+    settings: settings(),
+    registryFetch: stubRegistryFetch({ settlements: { ...SETTLEMENTS_BODY, settlements: [] } }),
+    strategies: strategies.registry,
+    env: ENV,
+    logger: silent,
+    settleIndexWaitMs: 50,
+  });
+  const started = Date.now();
+  const output = await toolset.settle({ serviceId: SERVICE_ID, asset: `10143:${TESTNET_MUSDC}`, amountBaseUnits: "10000" });
+  assertMatchesOutputSchema("tab_settle", output);
+  assert.equal(output.ok, true, "the Settlement landed; only the read API is behind");
+  assert.equal(output.indexed, false);
+  assert.ok(Date.now() - started < 5_000, "the wait is bounded");
 });
 
 test("tab_settle settles through the strategy it was asked for, not the first that fits", async () => {
@@ -717,7 +737,7 @@ test("tab_settle settles through the strategy it was asked for, not the first th
         value: {
           strategyId: id,
           chainId: request.asset.chainId,
-          txHash: `0x${"ee".repeat(32)}`,
+          txHash: `0x${"22".repeat(32)}`, // already listed by the stub registry
           asset: request.asset,
           amount: request.amount,
           payer: request.agent,

@@ -488,6 +488,7 @@ Live on Monad Mainnet and Monad Testnet.
 **With nothing configured, this package uses them.** `tab_discover` and `tab_status` read the hosted registry for the chosen network, so a fresh `npx -y @tabai/sdk connect` works before you set anything.
 The hosted gateways meter only a signed call, so `tab_call` to the demo Service needs `AGENT_ADDRESS` and `AGENT_PRIVATE_KEY` in the environment, and then signs each call with the Agent's own key.
 With no `tab.config`, the same key also settles: `tab_settle` pays through the direct Monad strategy against the deployment's `TabSettlement`, in that network's Assets, so a fresh install can call and pay with nothing but those two variables.
+Once a Settlement lands, `tab_settle` waits up to 20 seconds for the registry to index it and says whether it did as `indexed`, so a `tab_status` straight after reads the tab as paid rather than as it was a block earlier.
 Anything you configure wins, and `TAB_HOSTED_DEFAULTS=off` switches the defaults off entirely.
 They are exported as `TAB_HOSTED`.
 

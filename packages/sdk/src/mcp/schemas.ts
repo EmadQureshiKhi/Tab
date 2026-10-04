@@ -481,6 +481,11 @@ export const TAB_SETTLE_OUTPUT: JsonObjectSchema = {
     appliedBaseUnits: nullableString("How much lowered the Open Tab, from the receipt."),
     prepaidBaseUnits: nullableString("How much was banked as prepaid credit, from the receipt."),
     explorerUrl: nullableString("The transaction on the Monad explorer."),
+    indexed: {
+      type: ["boolean", "null"],
+      description:
+        "Whether the registry had indexed this Settlement when the tool answered. True: tab_status now reads the tab as paid. False: the read API is still catching up, so read the chain or wait; do not settle again.",
+    },
     error: ERROR_SCHEMA,
   },
   required: ["ok", "dryRun", "amountBaseUnits"],
