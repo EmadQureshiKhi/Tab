@@ -168,11 +168,15 @@ export function WalletProvider({
         const existing = await silentAccount(candidate.provider);
         if (!live) return;
         if (existing !== undefined) {
+          // The chain is read before anything is set: setting the provider re-runs this
+          // effect, and a read still in flight then would be dropped as stale, leaving
+          // the page showing an unknown chain for a wallet that is on the right one.
+          const chain = await currentChainId(candidate.provider);
+          if (!live) return;
           setProvider(candidate.provider);
           setWalletName(candidate.name);
           setInjectedAccount(existing);
-          const chain = await currentChainId(candidate.provider);
-          if (live && chain.ok) setInjectedChainId(chain.value);
+          if (chain.ok) setInjectedChainId(chain.value);
           return;
         }
       }
