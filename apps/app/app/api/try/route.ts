@@ -51,17 +51,20 @@ import { publishedDirectory } from "../../_lib/published";
 import { CHARGE_HEADERS } from "../../../src/dashboard/try-charge";
 
 export const dynamic = "force-dynamic";
+/** Longer than TIMEOUT_MS, so the route always answers with its own message rather than being cut off. */
+export const maxDuration = 60;
 
 /**
  * Long enough for a metered call, short enough that a hung Service is not this
  * page's problem.
  *
  * A metered delivery is one Monad write, and the Service does not answer until
- * the block has carried it. A Monad block is about a second, so thirty seconds
- * is many blocks of headroom and still short enough that a Service that has
- * stopped answering is reported as such rather than left spinning.
+ * the block has carried it. A warm call takes a few seconds, but the first call
+ * after a quiet spell also pays for a cold function and a cold read path, which
+ * has been measured at close to thirty seconds. Fifty-five seconds covers that
+ * and still reports a Service that has stopped answering rather than spinning.
  */
-const TIMEOUT_MS = 30_000;
+const TIMEOUT_MS = 55_000;
 
 /*
   One limiter per network, held in this module.
