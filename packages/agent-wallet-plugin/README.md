@@ -283,4 +283,4 @@ The contract addresses this plugin defaults to are the ones recorded in the repo
 MetaMask's gas service knows Mainnet and not Testnet, so `--broadcast` goes through on Mainnet only, where the whole loop has run; reads and dry runs work on both.
 That includes `mm tab delegate --broadcast`: on Testnet the registration is the dry run's printed transaction, which the same wallet has to submit by other means before `tab call` can sign.
 
-Source-available: free to read, run and evaluate, and any other use needs permission. Versions up to 0.1.1 were published under MIT and stay under it. See LICENSE.
+MIT License. See LICENSE.

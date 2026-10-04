@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "description": "Shared types, event signatures and Monad chain constants. Depends on nothing internal.",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",

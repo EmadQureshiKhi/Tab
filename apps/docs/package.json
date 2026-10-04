@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "description": "Documentation site, published separately from the dashboard.",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "scripts": {
     "build": "next build",
     "build:site": "next build",

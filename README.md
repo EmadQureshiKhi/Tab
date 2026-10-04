@@ -12,7 +12,7 @@
   <img alt="179 contract tests passing" src="https://img.shields.io/badge/contract%20tests-179%20passing-2f8132">
   <img alt="Live on Monad Mainnet and Testnet" src="https://img.shields.io/badge/status-live%20on%20Mainnet%20%26%20Testnet-2f8132">
   <a href="https://www.npmjs.com/package/@tabai/sdk"><img alt="npm @tabai/sdk" src="https://img.shields.io/npm/v/@tabai/sdk?label=%40tabai%2Fsdk&color=0D7676"></a>
-  <a href="./LICENSE"><img alt="Source-available licence" src="https://img.shields.io/badge/license-source--available-444"></a>
+  <a href="./LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-444"></a>
   <a href="https://x.com/TryTabAI"><img alt="Follow @TryTabAI on X" src="https://img.shields.io/badge/follow-%40TryTabAI-000000?logo=x&logoColor=white"></a>
 </p>
 
@@ -23,7 +23,7 @@
   <a href="https://www.npmjs.com/package/@tabai/agent-wallet-plugin"><b>@tabai/agent-wallet-plugin</b></a> ·
   <a href="https://x.com/TryTabAI"><b>X @TryTabAI</b></a> ·
   <a href="#launch-video"><b>Launch video</b></a> ·
-  <b>Demo video</b> (coming soon)<!-- demo-video: link goes here -->
+  <a href="https://youtu.be/k8_eo5tZoFI"><b>Demo video</b></a>
 </p>
 
 # Tab
@@ -43,6 +43,13 @@ No facilitator, oracle, bridge or API key sits between the payment and the ledge
 An autonomous agent cannot open a bank account or hold a card, so today every way it pays is a prepayment.
 Post-paid billing needs a repayment record, and on Monad the payment and the record are the same state change.
 
+## The problem, and who it is for
+
+An AI agent that wants a paid tool today has to pay before it gets anything: a funded wallet, an API key bought in advance, or a person approving every charge.
+No service can bill an agent after delivering, because nothing tells it the bill will be paid.
+Tab is for services that sell tools, data or APIs to agents (MCP servers, x402 endpoints, any HTTP API) and want to charge after they deliver.
+It is also for developers building those agents, who want them to call paid tools on credit and settle with their own key.
+
 Built by **Emad Qureshi**.
 
 ## Live
@@ -53,7 +60,7 @@ Built by **Emad Qureshi**.
 | Documentation | [trytabai-docs.vercel.app](https://trytabai-docs.vercel.app) |
 | X | [@TryTabAI](https://x.com/TryTabAI) |
 | Launch video | [at the top of this README](#launch-video) |
-| Demo video | coming soon |
+| Demo video | [Watch on YouTube](https://youtu.be/k8_eo5tZoFI), the whole product end to end, about 18 minutes |
 | SDK, CLI and MCP server | [`@tabai/sdk`](https://www.npmjs.com/package/@tabai/sdk): `npx -y @tabai/sdk connect` |
 | MetaMask Agent Wallet plugin | [`@tabai/agent-wallet-plugin`](https://www.npmjs.com/package/@tabai/agent-wallet-plugin): `mm plugins install @tabai/agent-wallet-plugin` (a first install on CLI 7.0.0 needs [the workaround in its README](packages/agent-wallet-plugin/README.md#install)) |
 | Registry read API | Mainnet `https://registry-mainnet-production.up.railway.app`, Testnet `https://registry-testnet-production.up.railway.app` |
@@ -102,6 +109,29 @@ To unlock `X` of credit, a colluding ring must lock strictly more than `X` in Bo
 <img src="./assets/readme/architecture.png" alt="System architecture: the SDK, MCP server, MetaMask plugin and Dashboard on the left; the gateway, registry and keeper off chain in the middle; ServiceRegistry, Bond, TabBook, TabSettlement, LimitLib, MeteringDelegates and CurationMultisig on Monad on the right, the only layer that moves money or changes a tab" width="960">
 
 The registry serves a Credit Limit only where its own recomputation agrees with the chain, and the Dashboard asks for a wallet only when you are about to sign.
+
+## Technology stack
+
+| Layer | Built with |
+| --- | --- |
+| Contracts | Solidity 0.8.23, Foundry, OpenZeppelin, Uniswap Permit2 |
+| Off-chain services | TypeScript on Node 22, Hono, ethers v6, Postgres with Drizzle ORM, Envio HyperSync |
+| SDK and agents | TypeScript, the Model Context Protocol SDK, x402, ethers v6 |
+| Dashboard and docs | Next.js, React, Tailwind CSS, Radix UI, Three.js, fumadocs |
+| Automation | Chainlink CRE |
+| Hosting | Vercel, Railway |
+| Chain | Monad Mainnet and Testnet |
+
+## Built with
+
+Tab builds on these projects and services:
+
+- **Contracts:** OpenZeppelin Contracts (`SafeERC20`), Uniswap Permit2 (its canonical bytecode is used in tests), forge-std and Foundry.
+- **Libraries:** ethers, Hono, Next.js, React, fumadocs, the Model Context Protocol SDK, x402 (`@x402/core`), Drizzle ORM, postgres.js, zod, `@scure/bip32` and `@scure/bip39`, Radix UI, Three.js and React Three Fiber, GSAP, Lenis and lucide.
+- **Monad:** the network, its passkey library `@category-labs/mera`, Monad's Sourcify verifier and the MonadScan explorer.
+- **Integrations:** the MetaMask Agent Wallet CLI, NEAR Intents 1Click, Nansen over x402, Envio HyperSync, ERC-8004, Chainlink CRE, Privy and Kuru.
+
+**AI tools used:** Claude Code, Kiro, Kane CLI.
 
 ## Deployed on chain
 
@@ -251,7 +281,5 @@ The terms are defined in the [glossary](https://trytabai-docs.vercel.app/glossar
 
 ## License
 
-Source-available, all rights reserved.
-You may read, run and evaluate Tab, including judging and auditing it, and any other use needs written permission first.
-The Solidity sources deployed on Monad stay under MIT, because their published source must match what is on chain.
-See [LICENSE](./LICENSE) for the exact terms.
+MIT, for the whole repository: the contracts, the off-chain services, the SDK, the plugin, the Dashboard and the docs.
+See [LICENSE](./LICENSE).

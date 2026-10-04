@@ -498,4 +498,4 @@ The Dashboard, which shows either network, is at `https://trytabai.vercel.app`, 
 
 ## Built by
 
-Emad Qureshi. Source-available: free to read, run and evaluate, and any other use needs permission. Versions up to 0.2.0 were published under MIT and stay under it. See LICENSE.
+Emad Qureshi. MIT License. See LICENSE.

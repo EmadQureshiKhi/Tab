@@ -1,6 +1,7 @@
 {
   "name": "@tabai/contracts",
   "version": "0.0.0",
+  "license": "MIT",
   "private": true,
   "description": "Foundry project holding the Tab contracts on Monad: registry, bond escrow, tab book and the settlement surface. Solidity toolchain only, so it carries no TypeScript tasks.",
   "scripts": {

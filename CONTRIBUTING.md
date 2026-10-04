@@ -146,4 +146,4 @@ A commit message says what changed and why, in prose.
 
 ## License
 
-By contributing you agree to the contribution terms in [LICENSE](./LICENSE): the copyright holder may use, modify and license your contribution under any terms.
+Tab is under the MIT License, and by contributing you agree that your contribution is licensed under it too. See [LICENSE](./LICENSE).

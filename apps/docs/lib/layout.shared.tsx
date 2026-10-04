@@ -22,6 +22,7 @@ export function baseOptions(appUrl: string): BaseLayoutProps {
     links: [
       { text: "Dashboard", url: appUrl, external: true },
       { text: "Explorer", url: `${appUrl}/explorer`, external: true },
+      { text: "Demo video", url: "https://youtu.be/k8_eo5tZoFI", external: true },
       {
         type: "icon",
         text: "X",

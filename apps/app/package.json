@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "description": "Dashboard. Every read-only route resolves without a wallet connection.",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "scripts": {
     "build": "tsc -b tsconfig.json tsconfig.ui.json tsconfig.custom-ui.json && tsc -p tsconfig.next.json",
     "build:site": "next build",

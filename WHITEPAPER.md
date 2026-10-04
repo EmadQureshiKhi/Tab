@@ -740,10 +740,10 @@ The verification is a `view` run and reverts on the first wired slot that disagr
 8. EIP-712: Typed structured data hashing and signing, the format of the Permit2 and EIP-3009 signatures.
 9. Uniswap Permit2, the `PermitWitnessTransferFrom` that `settleWithPermit2` consumes.
 10. The x402 protocol, V2, the offer a credit refusal carries and the prepaid path a Service accepts.
-11. Tab source, documentation and deployment record. This repository, source-available under its LICENSE.
+11. Tab source, documentation and deployment record. This repository, under the MIT License.
 
 ---
 
 <p align="center">
-  <sub>Tab · Emad Qureshi · Source-available</sub>
+  <sub>Tab · Emad Qureshi · MIT License</sub>
 </p>
