@@ -82,6 +82,7 @@ import type { MeteringDelegateReader } from "./delegates.js";
 import { toSdkTabBookClient, type GatewayTabBookClient } from "./tab-book.js";
 import type { SettlementRelay } from "./relay.js";
 import type { FeedbackDocuments } from "./reputation.js";
+import { quoteFor, topicOf } from "./quote.js";
 
 /** The x402 header a prepaid caller carries its payment in. */
 const X402_PAYMENT_SIGNATURE_HEADER = "PAYMENT-SIGNATURE";
@@ -511,7 +512,12 @@ export function createApp(options: GatewayOptions): Hono {
     const path = new URL(c.req.url).pathname;
     if (options.deliver !== undefined) return options.deliver(path);
     // A stand-in for whatever this Service actually sells. It matters only that it
-    // is produced before anything is metered, which the plugin guarantees.
+    // is produced before anything is metered, which the plugin guarantees. The demo's
+    // own tool hands over a real quote, so a paid call returns something usable.
+    if (path.endsWith("/quote.generate")) {
+      const body: unknown = await c.req.json().catch(() => undefined);
+      return c.json({ ok: true, delivered: path, at: now(), quote: quoteFor(topicOf(body)) });
+    }
     return c.json({ ok: true, delivered: path, at: now() });
   });
 

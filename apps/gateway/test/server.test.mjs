@@ -94,6 +94,32 @@ test("a delivered response carries the charge block the 402 client parses", asyn
   assert.equal(response.headers.get("Tab-Charge-Asset"), `10143:${ASSET}`);
 });
 
+test("quote.generate delivers a quote on the topic asked, the same line every time", async () => {
+  const events = [];
+  const app = createApp(
+    baseOptions({ tabBook: recordingClient({ events, receipt: { charged: 10_000n, openAfter: 10_000n, headroomAfter: 4_740_000n, recordedAt: NOW } }) }),
+  );
+  const ask = async (body) => {
+    const path = "/meter/quote.generate";
+    const claim = { method: "POST", path, agent: AGENT, tool: TOOL, units: 1, issuedAt: NOW };
+    const signature = await OPERATOR.signMessage(meteringDigest(claim));
+    const response = await app.request(path, {
+      method: "POST",
+      headers: { [SIGNATURE_HEADER]: signature, [ISSUED_AT_HEADER]: String(NOW), "Tab-Agent": AGENT, "content-type": "application/json" },
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    });
+    assert.equal(response.status, 200);
+    return (await response.json()).quote;
+  };
+  const credit = await ask({ prompt: "credit" });
+  assert.equal(credit.topic, "credit");
+  assert.match(credit.text, /credit/i, "a credit question gets a line about credit");
+  assert.deepEqual(await ask({ prompt: "credit" }), credit, "the same topic draws the same line");
+  const none = await ask(undefined);
+  assert.equal(none.topic, "anything");
+  assert.ok(none.text.length > 0, "no topic still gets a quote");
+});
+
 test("LimitExceeded is the one 402, and it names the shortfall", async () => {
   const events = [];
   const app = createApp(
