@@ -544,7 +544,7 @@ The quote's slippage tolerance was kept rather than refunded, so the funding ste
 | `property/BondInvariant.t.sol` | 5 | Credit strictly under the Bond sum, and zero Bond yielding zero credit |
 
 The property suites run at 256 fuzz runs each under the default profile, covering the claims the credit model rests on: the limit never exceeds the bond cap, the concentration and bond rules compose, a zero Bond sum yields zero credit for any history, and the escrow balance equals the sum of free stake.
-Beside them, 809 tests cover the eight TypeScript packages: the SDK, the shared constants, the gateway, the registry, the two keepers, the plugin and the Dashboard.
+Beside them, 811 tests cover the eight TypeScript packages: the SDK, the shared constants, the gateway, the registry, the two keepers, the plugin and the Dashboard.
 
 ### 8.3 Keyless verification
 
