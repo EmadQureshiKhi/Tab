@@ -155,6 +155,31 @@
       ],
       "role": "MetaMask Agent Wallet that ran the plugin on Mainnet",
       "why": "the owner's mm server wallet after re-provisioning on 2026-09-30; it registered a metering delegate, authorised tab.demo, made a delegate-signed call and settled it through mm tab"
+    },
+    {
+      "address": "0x389c91db8aF83880c0e8e5914Bfedfd8f80430eD",
+      "chainIds": [
+        143
+      ],
+      "role": "demonstration Agent (passkey session key)",
+      "why": "session key 1 of the demo passkey account, used on camera in the demo video to call and settle from Claude Code"
+    },
+    {
+      "address": "0xb4E222306fA3115AE1A1f8C409666231d0a78d72",
+      "chainIds": [
+        143
+      ],
+      "role": "passkey account owner",
+      "why": "owner key of the demo passkey account whose session keys act as demonstration Agents"
+    },
+    {
+      "address": "0x450F2512B55a4eABf18e78F27aE6B159D614C342",
+      "chainIds": [
+        143,
+        10143
+      ],
+      "role": "demo MetaMask wallet",
+      "why": "the browser wallet the demo video connects to authorise tab.demo on Mainnet and to register a Service on Testnet"
     }
   ],
   "networks": [
