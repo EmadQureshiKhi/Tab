@@ -195,9 +195,28 @@ export interface CatalogueEntry {
   readonly published: PublishedService | undefined;
   /** What the tool does, where the directory says. Never invented. */
   readonly description: string | undefined;
+  /**
+   * A tool that fronts an upstream API (the Hub's `.run`, or any tool the directory routes
+   * under `/hub/`). Its on-chain price is one base unit a unit and the upstream's price rides
+   * in the unit count, so a card quotes the upstream's price plus this margin, never the unit.
+   */
+  readonly frontedMarginBps: number | undefined;
 }
 
 /** Flattens the directory into one row per tool per Asset. */
+/**
+ * The margin a fronted tool adds to its upstream's price, or undefined for a tool priced per
+ * call on chain. Fronted means the directory's Hub tool, or a tool it describes as routed
+ * under `/hub/` (the gateway fronts Nansen the same way, at the same margin).
+ */
+function frontedMargin(listing: PublishedService | undefined, toolName: string | undefined): number | undefined {
+  const hub = listing?.hub;
+  if (hub === undefined || toolName === undefined) return undefined;
+  const hubTool = hub.tool ?? `${hub.prefix}.run`;
+  const routed = /\/hub\//.test(listing?.tools[toolName] ?? "");
+  return toolName === hubTool || routed ? (hub.marginBps ?? 0) : undefined;
+}
+
 export function toCatalogue(
   services: readonly ServiceRow[],
   published: readonly PublishedService[],
@@ -252,6 +271,7 @@ export function toCatalogue(
         freeBondBaseUnits: freeOf.get(price.asset.toLowerCase()) ?? (refused.has(price.asset.toLowerCase()) ? undefined : 0n),
         published: listing,
         description: toolName === undefined ? undefined : listing?.tools[toolName],
+        frontedMarginBps: frontedMargin(listing, toolName),
       });
     }
   }

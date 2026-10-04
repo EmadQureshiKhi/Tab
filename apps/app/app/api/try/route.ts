@@ -48,6 +48,7 @@ import {
 } from "../../../src/dashboard/trial-limit";
 import { requestChainId, tryItAgent } from "../../_lib/context";
 import { publishedDirectory } from "../../_lib/published";
+import { CHARGE_HEADERS } from "../../../src/dashboard/try-charge";
 
 export const dynamic = "force-dynamic";
 
@@ -223,10 +224,14 @@ export async function POST(request: Request): Promise<Response> {
       signal: stop,
     });
     const text = await response.text();
-    return new Response(text, {
-      status: response.status,
-      headers: { "content-type": response.headers.get("content-type") ?? "text/plain" },
-    });
+    // The charge block rides in the gateway's response headers (the SDK's TAB_HEADER names), and
+    // the panel shows it under the answer, so they are passed through beside the content type.
+    const passed: Record<string, string> = { "content-type": response.headers.get("content-type") ?? "text/plain" };
+    for (const name of CHARGE_HEADERS) {
+      const value = response.headers.get(name);
+      if (value !== null) passed[name] = value;
+    }
+    return new Response(text, { status: response.status, headers: passed });
   } catch (cause) {
     const reason =
       cause instanceof Error && cause.name === "TimeoutError"

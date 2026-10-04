@@ -36,6 +36,7 @@ import { cn } from "../../components/ui/cn";
 import { FOCUS_RING } from "../../components/ui/focus-ring";
 import { MONAD_MAINNET_CHAIN } from "../../components/wallet/eip1193";
 import { recipeFor } from "../../src/dashboard/catalogue";
+import { chargeFrom, readableBody, type TryCharge } from "../../src/dashboard/try-charge";
 
 type Tab = "terms" | "connect" | "try";
 
@@ -141,7 +142,15 @@ function Terms({
 
       <dl className="flex flex-col rounded-lg border border-border/60 bg-[var(--panel)] px-4">
         <Fact label="Price">
-          <AssetAmount baseUnits={price} asset={entry.asset} /> per call
+          {entry.frontedMarginBps === undefined ? (
+            <>
+              <AssetAmount baseUnits={price} asset={entry.asset} /> per call
+            </>
+          ) : (
+            <>
+              the upstream&apos;s price + {entry.frontedMarginBps / 100}% per call, in {entry.asset.symbol}
+            </>
+          )}
         </Fact>
         <Fact label="Service">{entry.serviceName}</Fact>
         <Fact label="Tier">
@@ -279,7 +288,14 @@ function Step({
 type Attempt =
   | { readonly kind: "idle" }
   | { readonly kind: "calling" }
-  | { readonly kind: "answered"; readonly status: number; readonly body: string; readonly fromService: boolean }
+  | {
+      readonly kind: "answered";
+      readonly status: number;
+      readonly body: string;
+      readonly fromService: boolean;
+      /** The charge the Service reported in its headers, when the call was metered. */
+      readonly charge: TryCharge | undefined;
+    }
   | { readonly kind: "failed"; readonly message: string };
 
 /**
@@ -308,7 +324,13 @@ function TryIt({ entry, networkName }: { readonly entry: WireEntry; readonly net
       const body = await response.text();
       // The route marks what it refused itself, so a refusal that never left
       // this deployment is not shown as the Service's answer.
-      setAttempt({ kind: "answered", status: response.status, body, fromService: response.headers.get("Tab-Try-Origin") !== "dashboard" });
+      setAttempt({
+        kind: "answered",
+        status: response.status,
+        body,
+        fromService: response.headers.get("Tab-Try-Origin") !== "dashboard",
+        charge: chargeFrom(response.headers),
+      });
     } catch (cause) {
       setAttempt({
         kind: "failed",
@@ -376,8 +398,23 @@ function TryIt({ entry, networkName }: { readonly entry: WireEntry; readonly net
             {attempt.status}
           </p>
           <pre className="max-h-64 overflow-auto rounded-md border border-border/60 bg-background/60 p-3 font-mono text-[11px] leading-relaxed break-words whitespace-pre-wrap text-foreground">
-            {attempt.body.slice(0, 4000)}
+            {readableBody(attempt.body).slice(0, 4000)}
           </pre>
+          {attempt.fromService && attempt.charge !== undefined ? (
+            <p className="text-sm leading-relaxed text-foreground">
+              Charged <AssetAmount baseUnits={attempt.charge.amount} asset={entry.asset} /> to the Agent&apos;s Open Tab
+              {attempt.charge.openTab === undefined ? null : (
+                <>
+                  , which now stands at <AssetAmount baseUnits={attempt.charge.openTab} asset={entry.asset} />
+                </>
+              )}
+              {attempt.charge.headroom === undefined ? "." : (
+                <>
+                  , with <AssetAmount baseUnits={attempt.charge.headroom} asset={entry.asset} /> of headroom left.
+                </>
+              )}
+            </p>
+          ) : null}
           {attempt.fromService ? (
             <p className="text-xs leading-relaxed text-muted-foreground">
               That is the Service&apos;s own response, passed through unchanged. This page has read no

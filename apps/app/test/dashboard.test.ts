@@ -1069,6 +1069,56 @@ const HUB_ENDPOINTS: readonly HubEndpointInput[] = [
   },
 ];
 
+test("fronted cards quote the Asset the fronted tool is priced in, and a free endpoint sorts after the priced ones", () => {
+  const usd = "0x754704bc059f8c67012fed69bc8a327a5aafb603";
+  const ausd = "0x00000000efe302beaa2b3e6e1b18d08d69a9012a";
+  const apihubKey = `0x${Buffer.from("apihub.run").toString("hex").padEnd(64, "0")}`;
+  const row = {
+    ...SERVICE_ROW,
+    acceptedAssets: [
+      { asset: ausd, collection: SERVICE_ROW.operator },
+      { asset: usd, collection: SERVICE_ROW.operator },
+    ],
+    prices: [{ asset: usd, tool: apihubKey, baseUnits: "1" }],
+  } as ServiceRow;
+  const published = parsePublishedDirectory({
+    services: [{ serviceId: row.serviceId, name: "tab.demo", endpoint: "http://localhost:8788", hub: { provider: "defillama", prefix: "apihub", marginBps: 500 } }],
+  });
+  const endpoints: HubEndpointInput[] = [
+    { ...HUB_ENDPOINTS[0], endpoint: "/free", name: "Free", priceUsd: "0", priceBaseUnits: "0" },
+    { ...HUB_ENDPOINTS[0], endpoint: "/paid", name: "Paid", priceUsd: "0.01", priceBaseUnits: "10000" },
+  ];
+  const hub = toHubEntries([row], published, new Map([[row.serviceId, { ok: true as const, endpoints, total: 2 }]]), 143);
+  assert.deepEqual(hub.entries.map((entry) => entry.path), ["/paid", "/free"], "the free endpoint comes after the priced one");
+  for (const entry of hub.entries) {
+    assert.equal(entry.assetAddress?.toLowerCase(), usd, "the card quotes the Asset apihub.run is priced in, not the first accepted one");
+  }
+});
+
+test("a fronted tool is quoted as its upstream's price plus the margin, and a per-call tool by its price", () => {
+  const apihubKey = `0x${Buffer.from("apihub.run").toString("hex").padEnd(64, "0")}`;
+  const nansenKey = `0x${Buffer.from("nansen.query").toString("hex").padEnd(64, "0")}`;
+  const row = {
+    ...SERVICE_ROW,
+    prices: [...SERVICE_ROW.prices, { asset: TESTNET_MUSDC, tool: apihubKey, baseUnits: "1" }, { asset: TESTNET_MUSDC, tool: nansenKey, baseUnits: "1" }],
+  } as ServiceRow;
+  const published = parsePublishedDirectory({
+    services: [
+      {
+        serviceId: row.serviceId,
+        name: "tab.demo",
+        endpoint: "http://localhost:8788",
+        tools: { "quote.generate": "A quote.", "apihub.run": "Any Hub provider, through POST /hub/apihub/run.", "nansen.query": "Any Nansen endpoint, through /hub/nansen/<path>." },
+        hub: { provider: "defillama", prefix: "apihub", marginBps: 500 },
+      },
+    ],
+  });
+  const byTool = new Map(toCatalogue([row], published, 10143).map((entry) => [entry.tool, entry]));
+  assert.equal(byTool.get("apihub.run")?.frontedMarginBps, 500, "the Hub tool is fronted");
+  assert.equal(byTool.get("nansen.query")?.frontedMarginBps, 500, "a tool routed under /hub/ is fronted");
+  assert.equal(byTool.get("quote.generate")?.frontedMarginBps, undefined, "a per-call tool is quoted by its price");
+});
+
 test("the margin is applied with bigint arithmetic and rounds up", () => {
   assert.equal(withMargin("10000", 500), "10500");
   assert.equal(withMargin("10001", 500), "10502", "10501.05 rounds up: a catalogue must not understate");
@@ -1254,4 +1304,27 @@ test("the footer links Tab's account on X, in a new tab, on every page", () => {
   assert.match(footer, /aria-label="Tab on X, @TryTabAI \(opens in a new tab\)"/);
   const chrome = readFileSync(join(APP_ROOT, "app", "_lib", "chrome.tsx"), "utf8");
   assert.match(chrome, /<Footer docsUrl=\{docsUrl\} explorerUrl=\{explorerUrl\} \/>/, "the page chrome renders the footer on every page");
+});
+
+// ---------------------------------------------------------------- Try it
+
+test("a metered Try it answer carries its charge in headers, and an unmetered one carries none", async () => {
+  const { chargeFrom, readableBody, CHARGE_HEADERS } = await import("../src/dashboard/try-charge");
+  const metered = new Headers({
+    "Tab-Charge-Amount": "10000",
+    "Tab-Charge-Asset": "143:0x754704bc059f8c67012fed69bc8a327a5aafb603",
+    "Tab-Open-Tab": "10000",
+    "Tab-Headroom": "940000",
+  });
+  assert.deepEqual(chargeFrom(metered), {
+    amount: 10_000n,
+    asset: "143:0x754704bc059f8c67012fed69bc8a327a5aafb603",
+    openTab: 10_000n,
+    headroom: 940_000n,
+  });
+  assert.equal(chargeFrom(new Headers({ "content-type": "application/json" })), undefined, "no charge header, no charge");
+  assert.equal(chargeFrom(new Headers({ "Tab-Charge-Amount": "ten", "Tab-Charge-Asset": "143:0x0" })), undefined, "a malformed amount is not a charge");
+  assert.deepEqual([...CHARGE_HEADERS], ["Tab-Charge-Amount", "Tab-Charge-Asset", "Tab-Open-Tab", "Tab-Headroom"]);
+  assert.equal(readableBody('{"ok":true,"quote":{"text":"x"}}'), '{\n  "ok": true,\n  "quote": {\n    "text": "x"\n  }\n}');
+  assert.equal(readableBody("not json"), "not json");
 });

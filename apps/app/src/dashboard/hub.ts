@@ -26,6 +26,8 @@
  * understate a price. Nothing here passes a figure through `number`.
  */
 
+import { toolKeyOf } from "@tabai/sdk/metering";
+
 import type { ServiceRow } from "./client.js";
 import type { PublishedService } from "./catalogue.js";
 import { assetUnitFor, serviceNameOf, type AssetUnitView } from "./views.js";
@@ -183,9 +185,18 @@ export function toHubEntries(
       continue;
     }
 
-    const accepted = service.acceptedAssets[0];
-    const asset = accepted === undefined ? DOLLAR_UNIT : assetUnitFor(accepted.asset);
     const tool = hub.tool ?? `${hub.prefix}.run`;
+    // A fronted call is metered in the Asset its tool is priced in on chain, so that is the
+    // Asset its cards quote. The Service's first accepted Asset is only the fallback, for a
+    // tool not priced yet (every fronted delivery would revert then, which the page says).
+    const toolKey = toolKeyOf(tool);
+    const priced = service.prices.find((row) => row.tool.toLowerCase() === toolKey);
+    const accepted =
+      (priced === undefined
+        ? undefined
+        : service.acceptedAssets.find((row) => row.asset.toLowerCase() === priced.asset.toLowerCase())) ??
+      service.acceptedAssets[0];
+    const asset = accepted === undefined ? DOLLAR_UNIT : assetUnitFor(accepted.asset);
     const hubPath = `/hub/${hub.prefix}/run`;
 
     for (const endpoint of manifest.endpoints) {
@@ -226,10 +237,17 @@ export function toHubEntries(
 
   // Cheapest per-call first, then the ones with no fixed price, then by path,
   // so the order is stable between renders and a reader comparing prices is
-  // not made to do the comparison.
+  // not made to do the comparison. A zero price sorts with the unpriced ones:
+  // an endpoint the upstream gives away has nothing for a tab to carry, and
+  // leading with it would make the catalogue read as broken.
+  const fixedPrice = (entry: HubEntry): bigint | undefined => {
+    if (entry.tabPriceBaseUnits === undefined) return undefined;
+    const price = BigInt(entry.tabPriceBaseUnits);
+    return price === 0n ? undefined : price;
+  };
   entries.sort((left, right) => {
-    const leftPrice = left.tabPriceBaseUnits === undefined ? undefined : BigInt(left.tabPriceBaseUnits);
-    const rightPrice = right.tabPriceBaseUnits === undefined ? undefined : BigInt(right.tabPriceBaseUnits);
+    const leftPrice = fixedPrice(left);
+    const rightPrice = fixedPrice(right);
     if (leftPrice !== undefined && rightPrice !== undefined && leftPrice !== rightPrice) {
       return leftPrice < rightPrice ? -1 : 1;
     }

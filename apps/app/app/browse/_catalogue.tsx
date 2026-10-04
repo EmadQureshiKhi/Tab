@@ -399,8 +399,19 @@ function ListedCard({
       <Rule />
       <div className="flex flex-col gap-2.5 px-5 py-4">
         <Spec label="Price">
-          <AssetAmount baseUnits={price} asset={entry.asset} />
-          <span className="ms-1 text-[11px] text-muted-foreground">/ call</span>
+          {entry.frontedMarginBps === undefined ? (
+            <>
+              <AssetAmount baseUnits={price} asset={entry.asset} />
+              <span className="ms-1 text-[11px] text-muted-foreground">/ call</span>
+            </>
+          ) : (
+            <>
+              <span>the upstream&apos;s price</span>
+              <span className="ms-1 text-[11px] text-muted-foreground">
+                + {entry.frontedMarginBps / 100}% / call, in {entry.asset.symbol}
+              </span>
+            </>
+          )}
         </Spec>
         <Spec label="Service">{entry.serviceName}</Spec>
         <Spec label="Tier">{entry.tier}</Spec>
