@@ -32,7 +32,6 @@
 
 import type { ReactNode } from "react";
 import { Geist_Mono, Host_Grotesk, Inter } from "next/font/google";
-import Script from "next/script";
 
 import { SkipLink } from "../components/ui/skip-link";
 import { ThemeProvider, THEME_BOOT_SCRIPT } from "../components/providers/theme-context";
@@ -113,8 +112,14 @@ export default async function RootLayout({ children }: { readonly children: Reac
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        {/* Next runs a beforeInteractive script ahead of hydration without React rendering a <script>, so the theme still lands before first paint. */}
-        <Script id="theme-boot" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
+        {/*
+          Inline and synchronous, on purpose: it sets the theme class before the first paint.
+          next/script with beforeInteractive queues it behind the framework's own loader instead,
+          measured at about 0.9 s after first paint, which flashes the light theme at dark-mode
+          visitors. React's development-only "Encountered a script tag" message can appear when
+          a dev server re-creates this element on the client; by then the class is already set.
+        */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
       </head>
       <body
         className={`${inter.variable} ${hostGrotesk.variable} ${geistMono.variable} min-h-screen bg-background text-foreground antialiased`}
