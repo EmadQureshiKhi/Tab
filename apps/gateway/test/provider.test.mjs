@@ -6,10 +6,10 @@ import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { test } from "node:test";
 
-import { RetryingJsonRpcProvider } from "../dist/provider.js";
+import { RPC_REQUEST_TIMEOUT_MS, RetryingJsonRpcProvider } from "../dist/provider.js";
 
 /** A JSON-RPC node that answers from a script, one entry per request it receives. */
-async function node(script) {
+async function node(script, retry = {}) {
   const seen = [];
   const server = createServer((request, response) => {
     let body = "";
@@ -19,6 +19,8 @@ async function node(script) {
       const first = Array.isArray(payload) ? payload[0] : payload;
       seen.push(first.method);
       const step = script.shift() ?? { result: "0x1" };
+      // A connection the far side dropped while idle: the request is taken and never answered.
+      if (step.hang === true) return;
       if (step.status !== undefined) {
         response.writeHead(step.status).end("unavailable");
         return;
@@ -29,8 +31,13 @@ async function node(script) {
   });
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   const url = `http://127.0.0.1:${server.address().port}`;
-  const provider = new RetryingJsonRpcProvider(url, 10143, { staticNetwork: true, batchMaxCount: 1 }, { sleep: async () => {} });
-  return { provider, seen, close: () => new Promise((resolve) => server.close(resolve)) };
+  const provider = new RetryingJsonRpcProvider(url, 10143, { staticNetwork: true, batchMaxCount: 1 }, { sleep: async () => {}, ...retry });
+  const close = () => {
+    provider.destroy();
+    server.closeAllConnections();
+    return new Promise((resolve) => server.close(resolve));
+  };
+  return { provider, seen, close };
 }
 
 test("a read the node failed to answer is sent again, and succeeds", async () => {
@@ -80,5 +87,39 @@ test("a read that keeps failing gives up after the last retry", async () => {
     assert.equal(seen.length, 3, "one try and two retries");
   } finally {
     await close();
+  }
+});
+
+test("a request the node never answers times out and is sent again, rather than holding the call for minutes", { timeout: 10_000 }, async () => {
+  const { provider, seen, close } = await node([{ hang: true }, { result: "0x2a" }], { requestTimeoutMs: 300 });
+  try {
+    const started = Date.now();
+    assert.equal(await provider.getBlockNumber(), 42);
+    assert.ok(Date.now() - started < 3_000, "answered within a few timeouts, not after ethers' five-minute default");
+    assert.deepEqual(seen, ["eth_blockNumber", "eth_blockNumber"]);
+  } finally {
+    await close();
+  }
+});
+
+test("a transaction the node never answers fails at the timeout and is not sent twice", { timeout: 10_000 }, async () => {
+  const { provider, seen, close } = await node([{ hang: true }, { result: "0x" + "ab".repeat(32) }], { requestTimeoutMs: 300 });
+  try {
+    const started = Date.now();
+    await assert.rejects(provider.send("eth_sendRawTransaction", ["0x02"]));
+    assert.ok(Date.now() - started < 3_000);
+    assert.deepEqual(seen, ["eth_sendRawTransaction"], "it may have landed, so it is never resent");
+  } finally {
+    await close();
+  }
+});
+
+test("without an explicit timeout, a request is given the gateway's default rather than ethers' five minutes", () => {
+  const provider = new RetryingJsonRpcProvider("http://127.0.0.1:9", 10143, { staticNetwork: true });
+  try {
+    assert.equal(provider._getConnection().timeout, RPC_REQUEST_TIMEOUT_MS);
+    assert.ok(RPC_REQUEST_TIMEOUT_MS <= 30_000);
+  } finally {
+    provider.destroy();
   }
 });

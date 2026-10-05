@@ -14,9 +14,20 @@
  * read the node answered with an error, such as a revert, because asking again
  * gets the same answer. Only a transport failure, or a node that says it is
  * rate limited, earns another try.
+ *
+ * ## Every request has a short deadline
+ *
+ * ethers gives a request five minutes before it gives up. A gateway that sat
+ * idle for hours can find its kept-alive connection to the node silently
+ * dropped by something in between, and the first request written to it is then
+ * never answered: the metered call waited the full five minutes, long after
+ * the caller had gone, and every call queued behind it waited too. So each
+ * request here is abandoned after `RPC_REQUEST_TIMEOUT_MS`, which closes that
+ * connection; a read is then sent again on a fresh one, and a write fails
+ * with the timeout rather than being sent twice.
  */
 
-import { JsonRpcProvider, type JsonRpcError, type JsonRpcPayload, type JsonRpcResult } from "ethers";
+import { FetchRequest, JsonRpcProvider, type JsonRpcError, type JsonRpcPayload, type JsonRpcResult } from "ethers";
 
 /** The methods that change nothing, so sending one twice is harmless. */
 const READ_ONLY = new Set([
@@ -39,6 +50,9 @@ const READ_ONLY = new Set([
   "net_version",
 ]);
 
+/** How long one request may go unanswered before it is abandoned, in milliseconds. */
+export const RPC_REQUEST_TIMEOUT_MS = 15_000;
+
 /** The waits before the second and the third try, in milliseconds. */
 export const READ_RETRY_DELAYS_MS: readonly number[] = [250, 1_000];
 
@@ -54,9 +68,15 @@ export class RetryingJsonRpcProvider extends JsonRpcProvider {
     url: string,
     network: ConstructorParameters<typeof JsonRpcProvider>[1],
     options: ConstructorParameters<typeof JsonRpcProvider>[2],
-    retry: { readonly delaysMs?: readonly number[]; readonly sleep?: (ms: number) => Promise<void> } = {},
+    retry: {
+      readonly delaysMs?: readonly number[];
+      readonly sleep?: (ms: number) => Promise<void>;
+      readonly requestTimeoutMs?: number;
+    } = {},
   ) {
-    super(url, network, options);
+    const request = new FetchRequest(url);
+    request.timeout = retry.requestTimeoutMs ?? RPC_REQUEST_TIMEOUT_MS;
+    super(request, network, options);
     this.#delays = retry.delaysMs ?? READ_RETRY_DELAYS_MS;
     this.#sleep = retry.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
   }
