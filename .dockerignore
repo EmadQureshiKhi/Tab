@@ -12,3 +12,6 @@ packages/contracts/broadcast
 packages/contracts/cache
 packages/contracts/out
 .git
+
+# The bounty demo videos are for GitHub viewers, not for any image.
+bounty

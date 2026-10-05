@@ -12,3 +12,6 @@ packages/contracts/broadcast
 packages/contracts/cache
 packages/contracts/out
 packages/contracts/lib
+
+# The bounty demo videos are for GitHub viewers, not for any deployment.
+bounty
