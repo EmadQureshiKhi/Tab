@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tab bounty videos</title>
+<meta name="description" content="One short, narrated video per Monad Metropolis bounty Tab is entered for.">
+<style>
+  :root {
+    --bg: #f6f7f8;
+    --panel: #ffffff;
+    --text: #0d1117;
+    --muted: #57606a;
+    --border: #d8dee4;
+    --accent: #0f766e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0b0d10;
+      --panel: #14171c;
+      --text: #e6edf3;
+      --muted: #9aa4af;
+      --border: #2a3038;
+      --accent: #2dd4bf;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  }
+  main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 64px; }
+  h1 { font-size: clamp(28px, 5vw, 40px); line-height: 1.15; margin: 0 0 12px; letter-spacing: -0.02em; }
+  .lede { color: var(--muted); margin: 0 0 8px; max-width: 70ch; }
+  .links { display: flex; flex-wrap: wrap; gap: 8px 20px; margin: 16px 0 40px; font-size: 15px; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .grid { display: grid; gap: 28px; }
+  article {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .sponsor { font: 600 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin: 0 0 4px; }
+  h2 { font-size: 21px; line-height: 1.3; margin: 0 0 8px; }
+  article p { color: var(--muted); margin: 0 0 14px; }
+  video { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; border-radius: 8px; background: #000; }
+  .direct { display: inline-block; margin-top: 10px; font-size: 14px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Tab bounty videos</h1>
+  <p class="lede">One short video per Monad Metropolis bounty Tab is entered for, each narrated and captioned. Everything shown was recorded against the live deployment on Monad Mainnet and Testnet.</p>
+  <p class="lede">Tab is post-paid billing and credit for AI agents on Monad.</p>
+  <div class="links">
+    <a href="https://trytabai.vercel.app">Dashboard</a>
+    <a href="https://trytabai-docs.vercel.app">Docs</a>
+    <a href="https://github.com/EmadQureshiKhi/Tab">GitHub</a>
+    <a href="https://youtu.be/k8_eo5tZoFI">Full demo video</a>
+    <a href="https://youtu.be/WUVndQZD4xI">Pitch video</a>
+  </div>
+
+  <div class="grid">
+    <article id="chainlink-cre">
+      <p class="sponsor">Chainlink</p>
+      <h2>Best workflow with CRE</h2>
+      <p>A real <code>cre workflow simulate</code> run of the delinquency keeper workflow: cron trigger, overdue tabs read under consensus, the secret, and the mark landing on Monad Testnet.</p>
+      <video controls preload="metadata" playsinline poster="posters/chainlink-cre.jpg" src="chainlink-cre.mp4"></video>
+      <a class="direct" href="chainlink-cre.mp4">Open the video on its own</a>
+    </article>
+
+    <article id="nansen">
+      <p class="sponsor">Nansen AI</p>
+      <h2>Best use of Nansen</h2>
+      <p>The Nansen profile the registry buys over x402 for each Agent, its three Mainnet payments, and Nansen fronted on credit under <code>/hub/nansen</code>.</p>
+      <video controls preload="metadata" playsinline poster="posters/nansen.jpg" src="nansen.mp4"></video>
+      <a class="direct" href="nansen.mp4">Open the video on its own</a>
+    </article>
+
+    <article id="envio">
+      <p class="sponsor">Envio</p>
+      <h2>Best Use of Envio</h2>
+      <p>A timed cold catch-up of the registry, HyperSync against plain RPC, and the pages that index drives.</p>
+      <video controls preload="metadata" playsinline poster="posters/envio.jpg" src="envio.mp4"></video>
+      <a class="direct" href="envio.mp4">Open the video on its own</a>
+    </article>
+
+    <article id="privy">
+      <p class="sponsor">Privy</p>
+      <h2>Privy!</h2>
+      <p>An Agent whose key is a Privy server wallet: Privy's own policy refusal, then the whole loop signed by Privy and settled.</p>
+      <video controls preload="metadata" playsinline poster="posters/privy.jpg" src="privy.mp4"></video>
+      <a class="direct" href="privy.mp4">Open the video on its own</a>
+    </article>
+
+    <article id="aurora-intents">
+      <p class="sponsor">Aurora Intents</p>
+      <h2>Bring Any-Chain Liquidity to Monad</h2>
+      <p>The intents-funded Settlement that ran on Mainnet: USDC deposited on Arbitrum, delivered to Monad through the 1Click Swap API, and the tab settled.</p>
+      <video controls preload="metadata" playsinline poster="posters/aurora-intents.jpg" src="aurora-intents.mp4"></video>
+      <a class="direct" href="aurora-intents.mp4">Open the video on its own</a>
+    </article>
+
+    <article id="mera-ux">
+      <p class="sponsor">Monad Foundation</p>
+      <h2>Best Mera-Powered UX on Monad</h2>
+      <p>Mera as the whole account: a passkey account, its owner and session keys, an authorisation signed in the page, and the keys back after a reload.</p>
+      <video controls preload="metadata" playsinline poster="posters/mera-ux.jpg" src="mera-ux.mp4"></video>
+      <a class="direct" href="mera-ux.mp4">Open the video on its own</a>
+    </article>
+
+    <article id="mera-one-passkey">
+      <p class="sponsor">Monad Foundation</p>
+      <h2>Mera: One Passkey, Many Keys</h2>
+      <p>The agent book on <code>/keys</code>: the same passkey seals the owner's notes on each Agent under a PRF namespace of its own, which signs nothing.</p>
+      <video controls preload="metadata" playsinline poster="posters/mera-one-passkey.jpg" src="mera-one-passkey.mp4"></video>
+      <a class="direct" href="mera-one-passkey.mp4">Open the video on its own</a>
+    </article>
+  </div>
+</main>
+</body>
+</html>
