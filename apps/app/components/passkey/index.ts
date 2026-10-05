@@ -2,9 +2,11 @@
  * Passkey accounts: one passkey, many keys, no seed phrase, no custodian.
  *
  * The pure half (`derivation`, `account`, `storage`, `signer`, `chain`,
- * `support`) runs anywhere and is what `test/passkey.test.ts` exercises. The
- * browser half (`ceremony`, `use-passkey`) needs WebAuthn and is verified in
- * a browser. `components/wallet/wallet-context.tsx` is the one consumer of
+ * `support`, `agent-book`) runs anywhere and is what `test/passkey.test.ts`
+ * and `test/agent-book.test.ts` exercise. The browser half (`ceremony`,
+ * `agent-book-ceremony`, `use-passkey`) needs WebAuthn and is verified in a
+ * browser; the agent book's ceremonies also run in the tests against an
+ * authenticator double. `components/wallet/wallet-context.tsx` is the one consumer of
  * the hook; everything else reads the connection through `useWallet`.
  */
 
@@ -63,4 +65,26 @@ export {
   type PasskeyConnection,
   type SelectedNetwork,
 } from "./use-passkey";
+export {
+  AGENT_BOOK_FILE_KIND,
+  AGENT_BOOK_FILE_NAME,
+  AGENT_BOOK_KEY,
+  AGENT_BOOK_LIMITS,
+  clearSealedAgentBook,
+  emptyAgentBook,
+  encodeAgentBook,
+  entryFor,
+  namespaceFingerprint,
+  parseAgentBook,
+  parseSealedAgentBook,
+  readSealedAgentBook,
+  serialiseSealedAgentBook,
+  withEntry,
+  writeSealedAgentBook,
+  type AgentBook,
+  type AgentBookEntry,
+  type SealedAgentBook,
+} from "./agent-book";
+export { describeBookFailure, openAgentBook, sealAgentBook } from "./agent-book-ceremony";
+export { AgentBookView, type AgentBookViewProps } from "./agent-book-view";
 export { KeysView, type KeysViewProps } from "./keys-view";

@@ -175,7 +175,7 @@ Each has its own section on [On Monad](https://trytabai-docs.vercel.app/on-monad
 | **ERC-8004** | Identities indexed and shown; one Reputation entry per Settlement to `tab.demo`, naming its transaction | `apps/registry/src/erc8004.ts`, `apps/gateway/src/reputation.ts` |
 | **Envio HyperSync** | The indexer's cold start, past the public RPC's 100-block `eth_getLogs` cap | `apps/registry/src/hypersync.ts` |
 | **Nansen** | A weekly Agent profile bought over x402 for three cents; `/hub/nansen/*` fronts Nansen on credit | `apps/registry/src/nansen-profile.ts` |
-| **Mera passkeys** | `/keys` on the Dashboard: one passkey yields an owner key and a session key per Agent runtime | `apps/app/components/passkey` |
+| **Mera passkeys** | `/keys` on the Dashboard: one passkey yields an owner key and a session key per Agent runtime, and seals the agent book (the owner's notes on each Agent) under a second PRF namespace with Mera's secret vault | `apps/app/components/passkey` |
 | **MetaMask Agent Wallet** | `mm tab` with six commands; the wallet signs every write, and a metering delegate signs `call` | `packages/agent-wallet-plugin` |
 | **Privy server wallets** | The Agent's key in a Privy wallet whose policy allows only Tab's calls on one chain | `packages/sdk/src/signers`, `scripts/privy-agent.mjs` |
 | **Chainlink CRE** | The keeper's ten-minute schedule, compiled to WASM and run under the simulator | `apps/cre-keeper`, `apps/keeper` |
@@ -201,7 +201,7 @@ x402 and Hub payments are prepaid and outside the credit history; the Credit Lim
 | --- | --- |
 | Live | Contracts on both networks, verified keylessly, on Sourcify and, on Mainnet, on MonadScan; a hosted registry, gateway and keeper per network; the Dashboard and the docs; both npm packages |
 | Pending | Credit growth above the baseline on Testnet once the queued Curated tier applies on 2026-10-02, when [`scripts/credit-growth.mjs`](./scripts/credit-growth.mjs) shows a fresh Agent rising from the 5 mUSDC baseline toward 20 mUSDC; the CRE workflow on a DON, which has run under the CRE simulator and waits on Chainlink deploy access |
-| Tests | 179 contract tests, including property tests, and 814 TypeScript tests across eight packages |
+| Tests | 179 contract tests, including property tests, and 823 TypeScript tests across eight packages |
 
 Nothing is pinned to one network: `deployments.json` holds one entry per chain id, and `MONAD_CHAIN_ID` selects it.
 
@@ -250,7 +250,7 @@ The guides: [`packages/sdk/README.md`](./packages/sdk/README.md), [Integration](
 CI runs every one of these.
 
 ```bash
-pnpm build && pnpm typecheck && pnpm lint && pnpm test   # 814 TypeScript tests; lint includes the WCAG AA contrast gate
+pnpm build && pnpm typecheck && pnpm lint && pnpm test   # 823 TypeScript tests; lint includes the WCAG AA contrast gate
 cd packages/contracts && forge test                        # 179 contract tests, property tests, Permit2 against the canonical bytecode
 pnpm coverage              # 90% of lines on the money-handling contracts, 75% on the registry and the multisig
 pnpm lint:deps             # no import points the wrong way through the workspace

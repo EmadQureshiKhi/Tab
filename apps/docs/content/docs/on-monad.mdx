@@ -17,7 +17,7 @@ An x402 payment, an identity, a label, a passkey, a swap: each is stated on the 
 | ERC-8004 | Identities for the demo Service and Agent, indexed and shown, and reputation feedback a Service writes after each Settlement it receives |
 | Envio HyperSync | The indexer's cold start, past the public RPC's log cap |
 | Nansen | A weekly profile of each Agent, bought per call over x402, and data fronted on credit |
-| Mera passkeys | A Dashboard account with no extension and no seed phrase |
+| Mera passkeys | A Dashboard account with no extension and no seed phrase, and a sealed agent book under a second PRF namespace |
 | MetaMask Agent Wallet | `mm tab`, the rail as wallet plugin commands, run end to end on Mainnet |
 | Privy server wallets | An Agent key outside the Agent's process, bounded by a signing policy, run live on Testnet |
 | Chainlink CRE | The delinquency keeper's schedule, as a CRE workflow that has run under the simulator against the hosted keeper and is not deployed to a DON |
@@ -127,7 +127,8 @@ Everything here is an offchain signal, and the section says in one sentence on e
 `/keys` on the Dashboard is a passkey account.
 The seed is the WebAuthn PRF output of one passkey, the owner key is derived from it at `m/44'/60'/0'/0/0` and never shown, and each session key after it is the Agent for one runtime, revealed once for that runtime's environment.
 The same passkey always yields the same keys, so a runtime that loses its key has not lost the account, and a reader with no wallet extension can authorise a Service from the Dashboard with one touch.
-The [Dashboard page](/dashboard#keys-from-a-passkey) walks through it.
+The same passkey also does a job that is not an account's: it seals the agent book, the owner's private notes on each Agent, under a fresh PRF salt per seal, with an AES-256-GCM key that never signs and never leaves the touch that made it.
+The [Dashboard page](/dashboard#keys-from-a-passkey) walks through both.
 
 ## MetaMask Agent Wallet
 

@@ -27,6 +27,12 @@
  * With no wallet and no passkey the page is an explanation and two buttons.
  * With an injected wallet it says that wallet's keys are not this page's to
  * manage. No state draws a spinner where a fact will go.
+ *
+ * ## The agent book
+ *
+ * Under the keys sits the agent book (`agent-book-view.tsx`): the owner's
+ * notes on each Agent, sealed by the same passkey under a PRF namespace of its
+ * own. While it is open, each session key row shows the name it was given.
  */
 
 import Link from "next/link";
@@ -40,6 +46,8 @@ import { cn } from "../ui/cn";
 import { MON, MONAD_CHAINS } from "../wallet/eip1193";
 import { BalanceLine } from "../wallet/passkey-controls";
 import { useWallet } from "../wallet/wallet-context";
+import { type AgentBook, entryFor } from "./agent-book";
+import { AgentBookView } from "./agent-book-view";
 import { DERIVATION_ROOT } from "./derivation";
 import { SUPPORTED_AUTHENTICATORS, UNSUPPORTED_AUTHENTICATORS } from "./support";
 import type { KeyView } from "./use-passkey";
@@ -58,6 +66,11 @@ export function KeysView({ chainId, chainName, rpcUrl, explorerUrl }: KeysViewPr
   const wallet = useWallet();
   const { passkey } = wallet;
   const [note, setNote] = useState<string | undefined>(undefined);
+  // The open agent book. Plaintext, so it is dropped the moment the passkey session ends.
+  const [book, setBook] = useState<AgentBook | undefined>(undefined);
+  useEffect(() => {
+    if (!passkey.signedIn) setBook(undefined);
+  }, [passkey.signedIn]);
 
   /*
     The deployment's chain and endpoint, handed to the passkey account the way
@@ -94,7 +107,9 @@ export function KeysView({ chainId, chainName, rpcUrl, explorerUrl }: KeysViewPr
                 setNote(chosen.ok ? undefined : chosen.message);
               }}
               reveal={(index) => passkey.reveal(index)}
+              book={book}
             />
+            <AgentBookView sessionKeys={passkey.sessionKeys} book={book} onBook={setBook} />
           </>
         ) : (
           <Empty onNote={setNote} />
@@ -276,6 +291,7 @@ function SessionKeys({
   onDerive,
   onSelect,
   reveal,
+  book,
 }: {
   readonly keys: readonly KeyView[];
   readonly active: KeyView | undefined;
@@ -283,6 +299,7 @@ function SessionKeys({
   readonly onDerive: () => void;
   readonly onSelect: (index: number) => void;
   readonly reveal: (index: number) => { ok: true; value: string } | { ok: false; message: string };
+  readonly book: AgentBook | undefined;
 }) {
   // Index 0 is the owner and is never a session key. The list arrives that way
   // from the connection; the filter is a second guard the copy above depends on.
@@ -315,6 +332,7 @@ function SessionKeys({
             <SessionKeyRow
               key={key.index}
               view={key}
+              name={entryFor(book, key.address)?.name}
               isActive={active?.index === key.index}
               explorerUrl={explorerUrl}
               onSelect={() => onSelect(key.index)}
@@ -329,12 +347,15 @@ function SessionKeys({
 
 function SessionKeyRow({
   view,
+  name,
   isActive,
   explorerUrl,
   onSelect,
   reveal,
 }: {
   readonly view: KeyView;
+  /** The Agent's name from the open agent book, if it has one. */
+  readonly name: string | undefined;
   readonly isActive: boolean;
   readonly explorerUrl: string;
   readonly onSelect: () => void;
@@ -351,6 +372,7 @@ function SessionKeyRow({
     <li className={cn("flex flex-col gap-3 rounded-lg border bg-[var(--panel)] p-4", isActive ? "border-teal-700/25 dark:border-teal-400/20" : "border-border/60")}>
       <div className="flex flex-wrap items-center gap-2">
         <h3 className="font-mono text-sm font-semibold text-foreground">{view.label}</h3>
+        {name === undefined || name === "" ? null : <span className="text-sm text-foreground">{name}</span>}
         <Badge tone="neutral">{view.path}</Badge>
         {isActive ? <Badge tone="accent">Signing</Badge> : null}
         {view.revealed ? <Badge tone="notice">Revealed</Badge> : <Badge tone="muted">Not revealed</Badge>}
@@ -488,6 +510,16 @@ function Model() {
         works only under the host it was made for. Reveal a session key to its runtime while the
         passkey works. The derivation follows the Mera recipe published at mera.category.xyz, so
         it can be reproduced outside this page.
+      </p>
+      <h2 className="mt-2 font-host text-base font-semibold text-foreground sm:text-lg">
+        One passkey, a second job
+      </h2>
+      <p className="text-sm leading-relaxed text-muted-foreground">
+        The keys come from the passkey&apos;s PRF at Mera&apos;s fixed account salt. The agent book
+        asks the same passkey for its PRF at a different salt, a fresh random one on every seal,
+        and turns that output into an AES-256-GCM key that encrypts the book. That key never
+        signs, never becomes an address, and exists only during the touch that seals or opens
+        the book.
       </p>
     </section>
   );

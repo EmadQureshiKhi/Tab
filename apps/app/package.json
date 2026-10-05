@@ -13,7 +13,7 @@
     "start": "next start --port 3000",
     "serve": "node --env-file=../../.env node_modules/next/dist/bin/next start --port 3000",
     "typecheck": "tsc -b tsconfig.json tsconfig.ui.json tsconfig.custom-ui.json && tsc -p tsconfig.next.json",
-    "test": "tsc -b tsconfig.json tsconfig.ui.json tsconfig.custom-ui.json && node --test test/theme.test.mjs test/ui.test.mjs test/motion.test.mjs && TSX_TSCONFIG_PATH=tsconfig.test.json node --import tsx --test test/custom-ui.test.ts test/dashboard.test.ts test/dashboard-surfaces.test.ts test/registration.test.ts test/passkey.test.ts test/deployments.test.ts test/network-selection.test.ts",
+    "test": "tsc -b tsconfig.json tsconfig.ui.json tsconfig.custom-ui.json && node --test test/theme.test.mjs test/ui.test.mjs test/motion.test.mjs && TSX_TSCONFIG_PATH=tsconfig.test.json node --import tsx --test test/custom-ui.test.ts test/dashboard.test.ts test/dashboard-surfaces.test.ts test/registration.test.ts test/passkey.test.ts test/agent-book.test.ts test/deployments.test.ts test/network-selection.test.ts",
     "lint": "tsx src/theme/check-contrast.ts",
     "theme:tokens": "tsx src/theme/generate-tokens.ts",
     "audit:visual": "node test/visual/audit.mjs"

@@ -20,7 +20,7 @@ Signing takes a wallet extension or a passkey; the passkey needs nothing install
 | `/services/new` | Register a Service |
 | `/services/bond` | Post or withdraw a Bond |
 | `/authorise` | Set a spending authorisation for a Service |
-| `/keys` | A passkey account: the owner key and the session keys derived from it, one per agent runtime |
+| `/keys` | A passkey account: the owner key and the session keys derived from it, one per agent runtime, and the agent book, the owner's notes on each Agent sealed by the same passkey under a PRF namespace of its own |
 | `/analytics` | Settled volume and counts, split by whether the address they came from is one this project controls |
 
 ## What needs a wallet, and what does not
@@ -89,6 +89,16 @@ The Services page marks a Service that also offers x402 on a credit refusal, bes
 
 Ending the session zeroes the seed and every key with it.
 A reload forgets all of it, and one touch brings it back, identical.
+
+### The agent book
+
+Under the session keys sits the agent book: what each Agent is, where it runs and what it is for, in the owner's words.
+The same passkey seals it, but not with any key above.
+Sealing asks the passkey for its PRF at a fresh random salt, a namespace of its own that is never the account's, derives an AES-256-GCM key from that output, and encrypts the book with Mera's secret vault.
+That key never signs anything, never becomes an address, and exists only during the touch that seals or opens the book.
+The browser keeps only the sealed copy (the credential id, the salt, the nonce and the ciphertext), and the page shows exactly that under "What this browser stores".
+"Export the sealed file" saves it, and "Import a sealed file" on another device brings it back, where the same synced passkey opens it and no other passkey can.
+Nothing about the book is sent to a server.
 
 ## Authorising a Service
 
