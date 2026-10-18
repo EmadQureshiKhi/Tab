@@ -15,7 +15,7 @@ Signing takes a wallet extension or a passkey; the passkey needs nothing install
 | `/explorer` | Every Settlement by its `settlementId`, and the overdue tabs anyone may mark |
 | `/explorer/[settlementId]` | One Settlement: Agent, Service, Asset, amount, what applied to the tab and what banked as prepaid credit, and the Collection address it went to |
 | `/agents` | Every Agent the index has seen, with Open Tab per Asset |
-| `/agents/[agent]` | One Agent: its ERC-8004 identities, its reputation from the ERC-8004 Reputation registry, stated as a derived signal the Credit Limit never reads, then Credit Limit, Open Tab, prepaid credit and headroom per Asset, a Nansen profile the registry buys over x402 once a week, and its Settlement history |
+| `/agents/[agent]` | One Agent: its ERC-8004 identities, its reputation from the ERC-8004 Reputation registry, stated as a derived signal the Credit Limit never reads, then Credit Limit, Open Tab, prepaid credit and headroom per Asset with a chart of the Credit Limit over time (LimitLib recomputed at each Settlement and as the repayments age), a Nansen profile the registry buys over x402 once a week, and its Settlement history |
 | `/services` | Every registered Service, its terms, its Bond, its operator's ERC-8004 identity, and any queued change with the time left on its hold |
 | `/services/new` | Register a Service |
 | `/services/bond` | Post or withdraw a Bond |
@@ -56,7 +56,7 @@ Wherever a page can offer a command, the command carries the addresses of the se
     The second tab is the setup, filled in for that tool rather than shown as a template: the connect command, a prompt for any client that speaks MCP, and the call itself.
   </Step>
   <Step n="04" title="Or call it here">
-    The third tab, Try it, calls the Service for real. It needs no wallet, no balance and no approval, because the charge lands on the site's demonstration Agent. The delivery is recorded in `TabBook` before the Service answers, so the wait is a block rather than a queue. On Mainnet that charge and its gas are real, so trial calls there are limited to a few a minute and a fixed number a day.
+    The third tab, Try it, calls the Service for real. It needs no wallet, no balance and no approval, because the charge lands on the site's demonstration Agent. The delivery is recorded in `TabBook` before the Service answers, so the wait is a block rather than a queue. On Mainnet that charge and its gas are real, so trial calls there are limited to a few a minute and a fixed number a day. The demonstration Agent pays its own tab before a call when the tab has reached 0.10, is half way through its Settlement Window or was marked delinquent, so a trial call never finds it frozen, and the panel shows that Settlement with a link to it.
   </Step>
 </Steps>
 
