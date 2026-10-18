@@ -104,6 +104,7 @@ export function createApp(deps: ServerDependencies): Hono {
         "/agents",
         "/agents/:agent",
         "/agents/:agent/witness/:asset",
+        "/agents/:agent/credit-curve/:asset",
         ...(deps.adoption === undefined ? [] : ["/adoption"]),
         "/healthz",
         "/readyz",

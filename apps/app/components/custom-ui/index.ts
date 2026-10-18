@@ -28,6 +28,7 @@
 export { AssetAmount, type AssetAmountProps } from "./asset-amount";
 export { BondMeter, type BondMeterProps } from "./bond-meter";
 export { CopyButton } from "./copy-button";
+export { CreditCurveChart, type CreditCurveChartProps, type CreditCurvePointInput } from "./credit-curve";
 export { CreditGauge, type CreditGaugeProps } from "./credit-gauge";
 export {
   IdentityCard,

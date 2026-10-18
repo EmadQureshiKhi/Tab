@@ -1130,3 +1130,50 @@ test("the fixture is removed, leaving the database as it was found", { skip }, a
   const body = (await (await request(`/settlements?limit=200&${FROM_FIXTURE}`)).json()) as SettlementsBody;
   assert.equal(body.settlements.filter((row) => row.agent === AGENT_A || row.agent === AGENT_B).length, 0);
 });
+
+// ------------------------------------------------------------------ the credit curve
+
+/**
+ * The fixture replays into its own stream, so the default stream the routes read
+ * the horizon from never ticks here. The curve is evaluated at a horizon block,
+ * so these tests hand the app reads whose horizon has one, and nothing else changed.
+ */
+const primedCurveApp = (): ReturnType<typeof createApp> => {
+  if (reads === null) throw new Error("test: no reads");
+  const primed = Object.create(reads) as typeof reads;
+  primed.horizon = async (stream: string) => ({ ...(await reads.horizon(stream)), lastBlock: FIXTURE_FROM + 2 });
+  return createApp({ status: () => IDLE_STATUS, databaseReachable: () => reads.ping(), reads: primed, chain: AGREEING_CHAIN });
+};
+
+test("the credit curve answers with LimitLib's own figure now, and agrees with the cross-checked limit", { skip }, async () => {
+  const fresh = `0x${"33".repeat(20)}`;
+  const response = await primedCurveApp().request(`/agents/${fresh}/credit-curve/${ASSET_A}`);
+  assert.equal(response.status, 200);
+  const body = (await response.json()) as {
+    agent: string;
+    points: { at: number; limit: string; settlements: number; kind: string }[];
+    current: { value: string | null; agrees: boolean; delinquent: boolean };
+    basis: string;
+  };
+  assert.equal(body.agent, fresh);
+  assert.deepEqual(body.points, [{ at: 1_790_000_000, limit: "0", settlements: 0, kind: "now" }], "no history and no bond is a zero limit, at the horizon");
+  assert.equal(body.current.value, "0");
+  assert.equal(body.current.agrees, true, "the curve ends where TabBook.creditLimit says the limit is");
+  assert.equal(body.current.delinquent, false);
+  assert.match(body.basis, /free stake at the horizon/, "today's stake is stated, not passed off as history");
+});
+
+test("the credit curve refuses a malformed address, an unprimed index, and a process with no chain", { skip }, async () => {
+  // A history the index cannot fold is refused by the same rebuildWitness branch the witness route's test covers.
+  const primed = primedCurveApp();
+  const malformed = await primed.request(`/agents/0x1234/credit-curve/${ASSET_A}`);
+  assert.equal(malformed.status, 400);
+  assert.equal(((await malformed.json()) as { error: { code: string } }).error.code, "PARAMETER_MALFORMED");
+
+  if (chainApp === null) throw new Error("test: no app");
+  const unprimed = await chainApp.request(`/agents/0x${"33".repeat(20)}/credit-curve/${ASSET_A}`);
+  assert.equal(((await unprimed.json()) as { error: { code: string } }).error.code, "INDEX_NOT_PRIMED");
+
+  const unchained = await request(`/agents/${AGENT_A}/credit-curve/${ASSET_A}`);
+  assert.equal(((await unchained.json()) as { error: { code: string } }).error.code, "CHAIN_READER_UNCONFIGURED");
+});

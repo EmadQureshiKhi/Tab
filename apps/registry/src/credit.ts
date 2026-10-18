@@ -293,3 +293,77 @@ export function commitmentOf(history: readonly SettlementRecord[]): { root: stri
   for (const record of history) root = foldRoot(root, record);
   return { root, count: history.length };
 }
+
+// --------------------------------------------------------------- the curve
+
+/** One point of {@link creditCurve}: the limit `LimitLib` returns at `at` over the history settled by then. */
+export interface CurvePoint {
+  /** Unix seconds. */
+  readonly at: bigint;
+  readonly limit: bigint;
+  /** How many of the history's records had settled by `at`. */
+  readonly settlements: number;
+  /**
+   * `start` just before the first Settlement, `settlement` right after one,
+   * `aging` between them, where the limit moves only because the repayments
+   * it already counts have aged, and `now` at the evaluation time.
+   */
+  readonly kind: "start" | "settlement" | "aging" | "now";
+}
+
+/** Points a curve may have at most, so a long history still draws as a line rather than a payload. */
+export const CURVE_MAX_POINTS = 96;
+
+/**
+ * The Credit Limit over time: {@link creditLimit} evaluated at each Settlement and
+ * at evenly spaced moments between the first one and `now`, each time over the
+ * records that had settled by then.
+ *
+ * It is the same function the contract runs, called with the times moved, so the
+ * curve is not an estimate of the limit's history: every point is exactly what
+ * `LimitLib` would have returned at that moment for that history. One input is
+ * today's, not the past's, and the caller must say so: `bonds` are the free
+ * stakes as they stand at `now`, because `LimitLib` reads stake rather than
+ * history and the index keeps no stake per past block.
+ *
+ * A record only counts once it has settled, and growth ramps with each
+ * repayment's age (`ageWeightBps`), which is why the aging points matter: an
+ * Agent that stops paying still sees its limit rise for a while as what it
+ * already repaid matures.
+ */
+export function creditCurve(
+  history: readonly SettlementRecord[],
+  bonds: readonly BondEntry[],
+  params: Omit<LimitParams, "evaluatedAt">,
+  now: bigint,
+  maxPoints: number = CURVE_MAX_POINTS,
+): readonly CurvePoint[] {
+  const settled = [...history].filter((record) => record.settledAt <= now).sort((a, b) => (a.settledAt < b.settledAt ? -1 : a.settledAt > b.settledAt ? 1 : 0));
+  const at = (time: bigint, kind: CurvePoint["kind"]): CurvePoint => {
+    const prefix = settled.filter((record) => record.settledAt <= time);
+    return { at: time, limit: creditLimit(prefix, bonds, { ...params, evaluatedAt: time }), settlements: prefix.length, kind };
+  };
+
+  const first = settled[0];
+  if (first === undefined) return [at(now, "now")];
+
+  // The most recent Settlements, when there are more than the curve can draw.
+  const keptSettlements = settled.slice(-Math.max(1, Math.floor(maxPoints / 2)));
+  const times = new Map<bigint, CurvePoint["kind"]>();
+  times.set(first.settledAt - 1n, "start");
+  for (const record of keptSettlements) times.set(record.settledAt, "settlement");
+
+  const span = now - first.settledAt;
+  const agingSlots = Math.max(0, maxPoints - times.size - 1);
+  if (span > 0n && agingSlots > 0) {
+    for (let i = 1n; i <= BigInt(agingSlots); i += 1n) {
+      const time = first.settledAt + (span * i) / (BigInt(agingSlots) + 1n);
+      if (!times.has(time)) times.set(time, "aging");
+    }
+  }
+  times.set(now, "now");
+
+  return [...times.entries()]
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([time, kind]) => at(time, kind));
+}

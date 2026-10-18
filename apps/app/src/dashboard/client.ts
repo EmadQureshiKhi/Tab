@@ -318,6 +318,30 @@ export interface AgentNansen {
   readonly nansen: NansenProfileRow;
 }
 
+/** One point of an Agent's Credit Limit over time; see the registry's `/agents/:agent/credit-curve/:asset`. */
+export interface CreditCurvePoint {
+  /** Unix seconds. */
+  readonly at: number;
+  /** Base units of the Asset, as a decimal string. */
+  readonly limit: string;
+  readonly settlements: number;
+  readonly kind: "start" | "settlement" | "aging" | "now";
+}
+
+export interface AgentCreditCurve {
+  readonly index: IndexHorizon;
+  readonly agent: string;
+  readonly asset: string;
+  readonly points: readonly CreditCurvePoint[];
+  readonly current: {
+    readonly value: string | null;
+    readonly delinquent: boolean;
+    /** Whether the curve's last point is the limit TabBook itself returns at the horizon. */
+    readonly agrees: boolean;
+  };
+  readonly basis: string;
+}
+
 export interface AgentSummaryRow {
   readonly agent: string;
   readonly settlementCount: number;
@@ -487,6 +511,8 @@ export interface RegistryClient {
   agent(address: string): Promise<Result<AgentDetail>>;
   /** The Nansen profile of an Agent. The first read of the week buys it, so it is read apart from the credit picture. */
   agentNansen(address: string): Promise<Result<AgentNansen>>;
+  /** The Credit Limit over time for one Asset, recomputed with LimitLib at each Settlement and as the repayments age. */
+  agentCreditCurve(address: string, asset: string): Promise<Result<AgentCreditCurve>>;
   services(limit?: number): Promise<Result<ServicesPage>>;
   /** One Service by its 32-byte key, with the operator's identity on the row. */
   service(serviceId: string): Promise<Result<ServiceDetail>>;
@@ -595,6 +621,8 @@ export function createRegistryClient(options: RegistryClientOptions): RegistryCl
       ),
     agent: (address) => read<AgentDetail>(`/agents/${encodeURIComponent(address)}`),
     agentNansen: (address) => read<AgentNansen>(`/agents/${encodeURIComponent(address)}/nansen`),
+    agentCreditCurve: (address, asset) =>
+      read<AgentCreditCurve>(`/agents/${encodeURIComponent(address)}/credit-curve/${encodeURIComponent(asset)}`),
     services: (limit) =>
       read<ServicesPage>(`/services${limit === undefined ? "" : `?limit=${limit}`}`),
     service: async (serviceId): Promise<Result<ServiceDetail>> => {

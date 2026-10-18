@@ -97,6 +97,7 @@ import {
   type TabObservationRow,
 } from "../queries.js";
 import { DEFAULT_STREAM } from "../sink.js";
+import { creditCurve } from "../credit.js";
 
 const fail = (c: Context, error: TabError): Response =>
   c.json({ error }, httpStatusOf(error) as ContentfulStatusCode);
@@ -543,6 +544,106 @@ export function createAgentRoutes(reads: RegistryReads, options: AgentRouteOptio
       })),
       basis:
         "HistoryExtended records in commitment order and one Bond entry per counterparty, complete to index.lastBlock; fold the history and compare with TabBook.historyCommitment before trusting it",
+    });
+  });
+
+  /**
+   * The Credit Limit over time for one Agent and Asset, for the Dashboard's chart.
+   *
+   * Every point is `LimitLib.creditLimit` itself, recomputed here with the time
+   * moved: at each Settlement, between them as the repayments age, and at the
+   * index horizon (see `creditCurve`). The last point is the horizon's, and it is
+   * compared with the cross-checked figure the Agent read serves, so a curve that
+   * ends somewhere the chain disagrees with is never drawn as if it agreed. Two
+   * things the curve cannot know are stated rather than hidden: stake is today's
+   * free stake, and a delinquency, which sets the limit to zero while it stands,
+   * is reported beside the curve rather than drawn into its past.
+   */
+  app.get("/agents/:agent/credit-curve/:asset", async (c) => {
+    const agent = c.req.param("agent").toLowerCase();
+    const asset = c.req.param("asset").toLowerCase();
+    if (!isHexAddress(agent) || !isHexAddress(asset)) {
+      return fail(c, {
+        category: "VALIDATION",
+        code: "PARAMETER_MALFORMED",
+        message: "agent and asset must each be a 20-byte hex address",
+        retryable: false,
+        details: { field: isHexAddress(agent) ? "asset" : "agent" },
+      });
+    }
+    if (chain === undefined) {
+      return fail(c, {
+        category: "UPSTREAM",
+        code: "CHAIN_READER_UNCONFIGURED",
+        message: "this process has no Monad endpoint wired in, so the curve cannot be evaluated against TabBook's own parameters",
+        retryable: false,
+      });
+    }
+
+    const [index, rebuilt, delinquencies] = await Promise.all([
+      reads.horizon(DEFAULT_STREAM),
+      rebuildWitness(reads, agent, asset),
+      reads.delinquencies(agent),
+    ]);
+    if (!rebuilt.ok) {
+      return fail(c, {
+        category: "CONFLICT",
+        code: `WITNESS_${rebuilt.unavailable.code}`,
+        message: rebuilt.unavailable.message,
+        retryable: true,
+        details: { agent, asset },
+      });
+    }
+    if (index.lastBlock === null) {
+      return fail(c, {
+        category: "UPSTREAM",
+        code: "INDEX_NOT_PRIMED",
+        message: "the index has never ticked, so there is no block to evaluate the curve at",
+        retryable: true,
+      });
+    }
+
+    const delinquent = delinquencies.some((row) => row.asset === asset && !row.resolved);
+    let blockTime: bigint;
+    let governance: { baseline: bigint; growthFactorBps: bigint };
+    let current: AgentCreditView;
+    try {
+      [blockTime, governance, current] = await Promise.all([
+        chain.blockTimestamp(index.lastBlock),
+        chain.governance(index.lastBlock),
+        computeAgentCredit(reads, chain, { agent, asset, horizonBlock: index.lastBlock, delinquent }),
+      ]);
+    } catch (error) {
+      return fail(c, {
+        category: "UPSTREAM",
+        code: "CHAIN_READ_FAILED",
+        message: `the chain could not be read at block ${index.lastBlock}: ${error instanceof Error ? error.message : String(error)}`,
+        retryable: true,
+      });
+    }
+
+    const points = creditCurve(rebuilt.witness.history, rebuilt.witness.bonds, { asset, ...governance }, blockTime);
+    const last = points.at(-1);
+    const served = current.creditLimit.value;
+    return c.json({
+      index,
+      agent,
+      asset,
+      points: points.map((point) => ({
+        at: Number(point.at),
+        limit: point.limit.toString(),
+        settlements: point.settlements,
+        kind: point.kind,
+      })),
+      current: {
+        value: served,
+        delinquent,
+        agrees: served !== null && last !== undefined && (delinquent ? served === "0" : BigInt(served) === last.limit),
+        unavailable: current.creditLimit.unavailable,
+      },
+      bonds: rebuilt.witness.bonds.map((bond) => ({ serviceId: bond.serviceId, amount: bond.amount.toString() })),
+      basis:
+        "LimitLib.creditLimit recomputed at each Settlement, between them as repayments age, and at the index horizon, over the records settled by each moment; stake is the free stake at the horizon, not as it stood at each moment",
     });
   });
 

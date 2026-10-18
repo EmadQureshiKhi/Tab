@@ -51,6 +51,7 @@ import {
   toSettlementViews,
 } from "../../../src/dashboard/views";
 import { routeContext } from "../../_lib/context";
+import { CreditCurveSection } from "./_credit-curve";
 import { NansenSection } from "./_nansen";
 
 export const dynamic = "force-dynamic";
@@ -174,6 +175,15 @@ export default async function AgentDetailPage({
                       Checked against <code className="font-mono">TabBook.creditLimit</code> on chain, and the two agreed.
                     </p>
                   ) : null}
+
+                  <Suspense fallback={<Skeleton className="h-44 w-full" />}>
+                    <CreditCurveSection
+                      context={context}
+                      agent={detail.value.agent}
+                      asset={row.asset}
+                      unit={credit.asset}
+                    />
+                  </Suspense>
                 </div>
               );
             })}

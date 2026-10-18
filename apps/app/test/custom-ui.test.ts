@@ -369,3 +369,51 @@ test("a settlement card names the Settlement by its id and the one transaction t
   assert.match(card, /<CopyButton text=\{settlement\.txHash\}/);
   assert.match(card, /aria-labelledby=\{headingId\}/);
 });
+
+/* ------------------------------------------------------- the credit curve */
+
+test("the credit curve states where the limit started and where it is, and draws a dot per Settlement", async () => {
+  const { renderToStaticMarkup } = await import("react-dom/server");
+  const { createElement } = await import("react");
+  const { CreditCurveChart } = await import("../components/custom-ui/credit-curve");
+  const usdc = { symbol: "mUSDC", decimals: 6 };
+  const rising = renderToStaticMarkup(
+    createElement(CreditCurveChart, {
+      asset: usdc,
+      agrees: true,
+      points: [
+        { at: 1_790_000_000, limit: "5000000", settlements: 0, kind: "start" },
+        { at: 1_790_000_100, limit: "5000000", settlements: 1, kind: "settlement" },
+        { at: 1_790_086_400, limit: "5000000", settlements: 2, kind: "settlement" },
+        { at: 1_790_172_800, limit: "6200000", settlements: 3, kind: "settlement" },
+        { at: 1_791_000_000, limit: "11400000", settlements: 3, kind: "aging" },
+        { at: 1_792_000_000, limit: "14800000", settlements: 3, kind: "now" },
+      ],
+    }),
+  );
+  assert.match(rising, /5\.00/);
+  assert.match(rising, /14\.80/);
+  assert.match(rising, /aria-label="Credit Limit rose from 5\.00 to 14\.80 mUSDC across 3 Settlements/);
+  assert.equal((rising.match(/data-settlement-dot/g) ?? []).length, 3, "one dot per Settlement");
+  assert.match(rising, /aging in/);
+
+  const flat = renderToStaticMarkup(
+    createElement(CreditCurveChart, {
+      asset: usdc,
+      agrees: true,
+      points: [
+        { at: 1_790_000_000, limit: "950000", settlements: 0, kind: "start" },
+        { at: 1_790_000_100, limit: "950000", settlements: 1, kind: "settlement" },
+        { at: 1_792_000_000, limit: "950000", settlements: 1, kind: "now" },
+      ],
+    }),
+  );
+  assert.match(flat, /flat at/);
+  assert.match(flat, /below three curated, bonded counterparties/, "a flat line says why");
+
+  const disagreeing = renderToStaticMarkup(
+    createElement(CreditCurveChart, { asset: usdc, agrees: false, points: [{ at: 1, limit: "1", settlements: 0, kind: "now" }] }),
+  );
+  assert.doesNotMatch(disagreeing, /<svg/, "a curve that does not end at the cross-checked limit is not drawn");
+  assert.match(disagreeing, /not drawn/);
+});
