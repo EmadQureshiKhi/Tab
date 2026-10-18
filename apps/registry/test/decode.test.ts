@@ -394,3 +394,12 @@ test("the identity events file under the IdentityRegistry owner and carry the ca
   assert.equal(EVENT_TOPIC0.MetadataSet, ERC8004_EVENT_TOPIC0.MetadataSet);
   assert.equal(EVENT_TOPIC0.URIUpdated, ERC8004_EVENT_TOPIC0.URIUpdated);
 });
+
+test("a NUL byte in a decoded string is dropped, because PostgreSQL text cannot hold one", () => {
+  // A stranger's ERC-8004 URIUpdated on Mainnet (block 112321098) carried one, and every
+  // insert of that block failed with `invalid byte sequence for encoding "UTF8": 0x00`.
+  const log = encodeLog("URIUpdated", [7n, "ipfs://bafy\u0000example\u0000", AGENT], { address: IDENTITY_REGISTRY });
+  const insert = toTypedInsert(decodeLog(log)!);
+  assert.equal(insert.event, "URIUpdated");
+  assert.equal((insert.values as { newUri: string }).newUri, "ipfs://bafyexample", "the NUL bytes are gone, the rest is kept");
+});

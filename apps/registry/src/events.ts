@@ -367,7 +367,11 @@ export function stringField(event: DecodedEvent, field: string): string {
   if (typeof value !== "string") {
     throw new Error(`events: ${event.name}.${field} is not a string field`);
   }
-  return value;
+  // A Solidity `string` may hold a NUL byte and a PostgreSQL `text` may not: one
+  // stranger's ERC-8004 `URIUpdated` on Mainnet carried one (block 112321098),
+  // and every insert of that block failed, which stopped the whole index there.
+  // The byte has no meaning in a URI or a metadata key, so it is dropped.
+  return value.includes("\u0000") ? value.replaceAll("\u0000", "") : value;
 }
 
 /** A decoded `bool` field, or a failure naming what was missing. */
