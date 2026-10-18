@@ -49,6 +49,11 @@
  * history more than `MAX_CATCH_UP_BLOCKS` behind the head is re-read from the
  * registry, which is complete to a block or two from the head, and only the
  * gap past its horizon is scanned. Without a registry the scan runs as before.
+ *
+ * And a copy that already holds as many records as `historyCommitment` counts
+ * is complete, wherever its horizon is: a registry still catching up after a
+ * restart, a million blocks behind, serves an Agent whose last Settlement it has
+ * indexed without the gateway scanning a single block.
  */
 
 import { err, ok, type Result, type TabError } from "@tabai/shared";
@@ -252,6 +257,13 @@ export function createHistorySource(options: HistorySourceOptions): WitnessReade
       if (have === undefined || to.value - have.completeTo > MAX_CATCH_UP_BLOCKS) {
         const fresh = await fromRegistry(agent, asset);
         if (fresh !== undefined && (have === undefined || fresh.completeTo > have.completeTo)) base = fresh;
+      }
+      // A base that already holds every record the contract counts needs no scan at all,
+      // however far its horizon trails the head: the count only grows, so nothing is missing.
+      if (base !== undefined && base.records.length === onChain.value.count) {
+        const complete = { records: base.records, completeTo: Math.max(base.completeTo, to.value) };
+        held.set(key, complete);
+        return ok(complete.records);
       }
       const scanned = await scanSince(agent, asset, base, to.value);
       if (!scanned.ok) return scanned;

@@ -162,7 +162,10 @@ test("first sight reads the registry and scans from its horizon, not from the de
   assert.equal(built.value.witness.history.length, 3);
   assert.equal(built.value.rebuilt.root, built.value.onChain.root);
   assert.equal(calls[0], `http://registry.test/agents/${AGENT}/witness/${ASSET}`);
-  assert.equal(chain.state.reads.scannedBlocks, 10, "only the blocks past the index horizon");
+  // The registry's copy holds all three records the contract counts, so nothing past its
+  // horizon can be missing and no block is scanned; a copy one record short is topped up
+  // from the chain instead (see "a registry behind by one Settlement").
+  assert.equal(chain.state.reads.scannedBlocks, 0, "a complete copy needs no scan");
 });
 
 test("a registry that is down, refusing, behind or malformed falls back to the scan, and the witness is the same", async () => {
@@ -299,4 +302,23 @@ test("a held history only a little behind is topped up from the chain without as
   assert.equal(after.ok, true);
   assert.equal(after.value.witness.history.length, 2);
   assert.equal(calls.length, 1, "a short gap is cheaper to scan than to re-read");
+});
+
+test("a registry copy that holds every record the contract counts needs no scan, however far behind its horizon", async () => {
+  // A registry restarted and still catching up, a million blocks behind, holds all of
+  // this Agent's records because its last Settlement was long ago.
+  const records = [record(), record({ amount: 2n })];
+  const chain = fakeChain({ records, head: 1_000_000 });
+  const source = createHistorySource({
+    chain: chain.reader,
+    fromBlock: DEPLOYED_AT,
+    head: chain.head,
+    registryUrl: "http://registry.test",
+    fetchImpl: fakeRegistry({ records, lastBlock: 500 }),
+    logger: silent,
+  });
+  const built = await buildWitness(source, AGENT, ASSET);
+  assert.equal(built.ok, true);
+  assert.equal(built.value.rebuilt.root, built.value.onChain.root);
+  assert.equal(chain.state.reads.scannedBlocks, 0, "not one block scanned");
 });
