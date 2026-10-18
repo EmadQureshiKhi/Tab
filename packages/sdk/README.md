@@ -86,6 +86,14 @@ So a brand-new agent that authorises a bonded Service starts at `min(baseline, 9
 Anything above the baseline is earned, by settled history with at least three Curated, bonded Services.
 An agent that has authorised nobody has no counterparties and no limit.
 
+### Auto-settle: the agent pays its own tab
+
+Set `autoSettle: { atBaseUnits: "500000" }` in `tab.config`, or `TAB_AUTO_SETTLE_AT=500000` in the environment, and `tab_call` keeps the agent clear of both walls a post-paid tab has.
+Once a call leaves the Open Tab at or past that amount, the tool settles the whole tab.
+When the Credit Limit refuses a call, the tool settles first and makes the call once more; a second refusal is returned as it is, so it never loops.
+Each automatic Settlement is the same transaction `tab_settle` sends, from the agent's own key through its own strategy, and the call's output carries it as an `autoSettle` block with the reason: `threshold` or `limit`.
+Off unless you set it.
+
 ---
 
 ## The CLI
@@ -192,6 +200,7 @@ The key is read at the moment a Settlement is built, and never from this file. `
 | `TAB_BOOK_ADDRESS`, `TAB_SETTLEMENT_ADDRESS`, `SERVICE_REGISTRY_ADDRESS`, `BOND_ADDRESS` | resolving credit, Services and Bond |
 | `NEXT_PUBLIC_REGISTRY_API_URL` | the Service directory and an agent's history. Defaults to the project's hosted registry for the chosen network |
 | `TAB_HOSTED_DEFAULTS` | `off` stops the hosted registry and demo Service from filling in what you did not configure |
+| `TAB_AUTO_SETTLE_AT` | auto-settle: `tab_call` pays the whole Open Tab once it reaches this many base units, and settles before retrying a call its limit refused. `tab.config`'s `autoSettle.atBaseUnits` wins over it |
 | `AGENT_ADDRESS` | the Agent a metered call lands on, when `tab.config` names none. Public, so `connect` copies it into the MCP stanza |
 | `AGENT_PRIVATE_KEY` | broadcasting a Settlement, signing a Permit2 witness, paying an x402 offer, or signing a call to the hosted demo Service, and nothing else. Never written to a configuration file |
 | `PRIVY_APP_ID`, `PRIVY_APP_SECRET`, `PRIVY_WALLET_ID`, `PRIVY_AUTHORIZATION_KEY` | the Agent's key in a Privy server wallet instead of `AGENT_PRIVATE_KEY`, read by the repository's `tab.config.mjs`. The secret and the authorization key are never written to a configuration file |
@@ -225,6 +234,7 @@ The main surfaces:
 | `createIntentsFundedStrategy`, `createOneClickClient` | Fund from another chain: bring a USDC shortfall to Monad through NEAR Intents before the Monad strategy settles |
 | `createPrivyAgentSigner`, `buildPrivyAgentPolicy`, `createPrivyAgentWallet` | An Agent key in a Privy server wallet, the policy that bounds it, and the wallet created under that policy |
 | `revertMappingFor` | The single table mapping a contract revert to a category, code, disposition and remedy |
+| `decideAutoSettle`, `parseAutoSettleAt` | The auto-settle policy: whether to settle now and for how much, from the Open Tab, a refusal, delinquency and the tab's age in its window |
 
 ### Running a metered Service
 

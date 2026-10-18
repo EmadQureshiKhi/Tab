@@ -1328,3 +1328,52 @@ test("a metered Try it answer carries its charge in headers, and an unmetered on
   assert.equal(readableBody('{"ok":true,"quote":{"text":"x"}}'), '{\n  "ok": true,\n  "quote": {\n    "text": "x"\n  }\n}');
   assert.equal(readableBody("not json"), "not json");
 });
+
+/* ------------------------------------- the Try it Agent pays its own tab */
+
+test("before a trial call the demo Agent settles a tab that is due, leaves a clean one alone, and never blocks the call", async () => {
+  const { settleTryTabIfDue, autoSettleHeaders, TRY_SETTLE_POLICY } = await import("../src/dashboard/try-settle");
+  const { autoSettleFrom } = await import("../src/dashboard/try-charge");
+  const settled: bigint[] = [];
+  const deps = (tab: { open: bigint; oldestUnsettledAt: bigint; delinquent: boolean }, ok = true) => ({
+    now: () => 100_000n,
+    readTab: async () => ({ ...tab, windowSeconds: 21_600n }),
+    settle: async (amount: bigint) => {
+      settled.push(amount);
+      return ok ? ({ ok: true, txHash: `0x${"ab".repeat(32)}` } as const) : ({ ok: false, message: "insufficient balance" } as const);
+    },
+  });
+
+  assert.equal(TRY_SETTLE_POLICY.atBaseUnits, 100_000n);
+  assert.deepEqual(await settleTryTabIfDue(deps({ open: 0n, oldestUnsettledAt: 0n, delinquent: false })), { kind: "skipped" });
+  assert.deepEqual(await settleTryTabIfDue(deps({ open: 20_000n, oldestUnsettledAt: 99_000n, delinquent: false })), { kind: "skipped" }, "small and young: left alone");
+
+  const aged = await settleTryTabIfDue(deps({ open: 20_000n, oldestUnsettledAt: 100_000n - 10_800n, delinquent: false }));
+  assert.deepEqual(aged, { kind: "settled", reason: "window", amount: 20_000n, txHash: `0x${"ab".repeat(32)}` });
+  const frozen = await settleTryTabIfDue(deps({ open: 70_000n, oldestUnsettledAt: 99_000n, delinquent: true }));
+  assert.equal(frozen.kind === "settled" ? frozen.reason : undefined, "delinquent");
+  const large = await settleTryTabIfDue(deps({ open: 120_000n, oldestUnsettledAt: 99_000n, delinquent: false }));
+  assert.equal(large.kind === "settled" ? large.reason : undefined, "threshold");
+  assert.deepEqual(settled, [20_000n, 70_000n, 120_000n], "always the whole Open Tab");
+
+  const failed = await settleTryTabIfDue(deps({ open: 120_000n, oldestUnsettledAt: 99_000n, delinquent: false }, false));
+  assert.deepEqual(failed, { kind: "failed", reason: "threshold", message: "insufficient balance" });
+  const unreadable = await settleTryTabIfDue({ now: () => 1n, readTab: async () => { throw new Error("rpc down"); }, settle: async () => ({ ok: true, txHash: "0x" }) });
+  assert.equal(unreadable.kind, "failed");
+
+  // What the route sends is what the panel reads, both ways round.
+  const sent = new Headers(autoSettleHeaders(aged));
+  assert.deepEqual(autoSettleFrom(sent), { kind: "settled", reason: "window", amount: 20_000n, txHash: `0x${"ab".repeat(32)}` });
+  const sentFailure = new Headers(autoSettleHeaders(failed));
+  assert.deepEqual(autoSettleFrom(sentFailure), { kind: "failed", reason: "threshold", message: "insufficient balance" });
+  assert.deepEqual(autoSettleHeaders({ kind: "skipped" }), {}, "an ordinary call carries nothing new");
+  assert.equal(autoSettleFrom(new Headers()), undefined);
+});
+
+test("the Try it route settles before it calls, within its own budget, and reports it beside the call", () => {
+  const route = readFileSync(join(APP_ROOT, "app", "api", "try", "route.ts"), "utf8");
+  assert.match(route, /settleTryTabIfDue\(settleDeps\)/);
+  assert.match(route, /SETTLE_BUDGET_MS = 15_000/);
+  assert.match(route, /\.\.\.reported/, "the outcome rides on the passed-through response");
+  assert.ok(route.indexOf("settleTryTabIfDue") < route.indexOf("await fetch(target"), "the Settlement comes before the call");
+});

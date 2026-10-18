@@ -168,6 +168,17 @@ export function explorerBaseUrl(chainId: MonadChainId): string {
  * Each network's demo Agent is its own account with its own Open Tab, so each
  * has its own variable; the unsuffixed one stands in on the default network.
  */
+/**
+ * The Try it Agent's own key on a network, so it can settle its tab before a
+ * trial call needs it to (see `src/dashboard/try-settle.ts`). Undefined turns
+ * that off and leaves every trial call exactly as it was.
+ */
+export function tryItAgentKey(chainId: MonadChainId): string | undefined {
+  return configured(
+    isTestnet(chainId) ? process.env["TRY_IT_AGENT_PRIVATE_KEY_TESTNET"] : process.env["TRY_IT_AGENT_PRIVATE_KEY_MAINNET"],
+  );
+}
+
 export function tryItAgent(chainId: MonadChainId): string | undefined {
   const own = configured(
     isTestnet(chainId) ? process.env["TRY_IT_AGENT_TESTNET"] : process.env["TRY_IT_AGENT_MAINNET"],

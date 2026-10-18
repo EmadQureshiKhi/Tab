@@ -1,6 +1,6 @@
 {
   "name": "@tabai/sdk",
-  "version": "0.2.12",
+  "version": "0.2.13",
   "description": "Post-paid billing for autonomous agents on Monad. MCP server, CLI and TypeScript SDK: call a priced tool now, settle in USDC later, and let TabSettlement apply the payment to the tab in the same transaction.",
   "keywords": [
     "monad",
@@ -39,6 +39,10 @@
     "./x402/client": {
       "types": "./dist/x402/client.d.ts",
       "default": "./dist/x402/client.js"
+    },
+    "./settle": {
+      "types": "./dist/payments/settle-entry.d.ts",
+      "default": "./dist/payments/settle-entry.js"
     }
   },
   "bin": {

@@ -46,9 +46,10 @@ import {
   limitFromEnv,
   type TrialLimiter,
 } from "../../../src/dashboard/trial-limit";
-import { requestChainId, tryItAgent } from "../../_lib/context";
+import { monadRpcUrl, requestChainId, tryItAgent, tryItAgentKey } from "../../_lib/context";
 import { publishedDirectory } from "../../_lib/published";
 import { CHARGE_HEADERS } from "../../../src/dashboard/try-charge";
+import { autoSettleHeaders, liveTrySettleDeps, settleTryTabIfDue, type TrySettleOutcome } from "../../../src/dashboard/try-settle";
 
 export const dynamic = "force-dynamic";
 /** Longer than TIMEOUT_MS, so the route always answers with its own message rather than being cut off. */
@@ -65,6 +66,8 @@ export const maxDuration = 60;
  * and still reports a Service that has stopped answering rather than spinning.
  */
 const TIMEOUT_MS = 55_000;
+/** The most a pre-call Settlement may take before the call goes ahead without waiting for it. */
+const SETTLE_BUDGET_MS = 15_000;
 
 /*
   One limiter per network, held in this module.
@@ -187,7 +190,26 @@ export async function POST(request: Request): Promise<Response> {
     );
   }
 
-  const stop = AbortSignal.timeout(TIMEOUT_MS);
+  /*
+    The demonstration Agent pays its own tab first, when it is delinquent, half
+    way through its window, or past a small amount, so no trial call ever finds
+    it frozen. Bounded, and never in the way: a Settlement that fails or runs
+    long is reported beside the call, which goes ahead on credit regardless.
+  */
+  const started = Date.now();
+  const settleDeps = liveTrySettleDeps({ chainId, rpcUrl: monadRpcUrl(chainId), agent, serviceId, agentKey: tryItAgentKey(chainId) });
+  const settled: TrySettleOutcome =
+    settleDeps === undefined
+      ? { kind: "skipped" }
+      : await Promise.race([
+          settleTryTabIfDue(settleDeps),
+          new Promise<TrySettleOutcome>((resolve) =>
+            setTimeout(() => resolve({ kind: "failed", reason: "read", message: `no answer within ${SETTLE_BUDGET_MS / 1000} seconds; the call went ahead on credit` }), SETTLE_BUDGET_MS),
+          ),
+        ]);
+  const reported = autoSettleHeaders(settled);
+
+  const stop = AbortSignal.timeout(Math.max(10_000, TIMEOUT_MS - (Date.now() - started)));
   try {
     /*
       The gateway meters `/meter/*` and prices by path, and authenticates the
@@ -229,7 +251,7 @@ export async function POST(request: Request): Promise<Response> {
     const text = await response.text();
     // The charge block rides in the gateway's response headers (the SDK's TAB_HEADER names), and
     // the panel shows it under the answer, so they are passed through beside the content type.
-    const passed: Record<string, string> = { "content-type": response.headers.get("content-type") ?? "text/plain" };
+    const passed: Record<string, string> = { "content-type": response.headers.get("content-type") ?? "text/plain", ...reported };
     for (const name of CHARGE_HEADERS) {
       const value = response.headers.get(name);
       if (value !== null) passed[name] = value;
@@ -240,6 +262,6 @@ export async function POST(request: Request): Promise<Response> {
       cause instanceof Error && cause.name === "TimeoutError"
         ? `The Service did not answer within ${Math.round(TIMEOUT_MS / 1000)} seconds.`
         : `The Service could not be reached: ${cause instanceof Error ? cause.message : "no reason given"}.`;
-    return json({ error: reason, endpoint }, 502);
+    return json({ error: reason, endpoint }, 502, reported);
   }
 }

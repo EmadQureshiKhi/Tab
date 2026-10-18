@@ -164,6 +164,13 @@ export interface TabConfig {
    * `undefined` declines, which leaves that refusal the `LIMIT_EXCEEDED` it was.
    */
   readonly x402?: X402SignerFactory;
+  /**
+   * Auto-settle: `tab_call` pays the whole Open Tab for an Asset once it reaches
+   * `atBaseUnits`, and settles before retrying a call its Credit Limit refused,
+   * through the same strategy `tab_settle` uses. Off when absent. See
+   * `payments/auto-settle.ts`.
+   */
+  readonly autoSettle?: { readonly atBaseUnits: string | number | bigint };
 }
 
 /**

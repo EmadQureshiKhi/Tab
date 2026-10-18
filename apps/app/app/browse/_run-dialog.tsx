@@ -36,7 +36,15 @@ import { cn } from "../../components/ui/cn";
 import { FOCUS_RING } from "../../components/ui/focus-ring";
 import { MONAD_MAINNET_CHAIN } from "../../components/wallet/eip1193";
 import { recipeFor } from "../../src/dashboard/catalogue";
-import { chargeFrom, readableBody, type TryCharge } from "../../src/dashboard/try-charge";
+import {
+  AUTO_SETTLE_REASON_WORDS,
+  autoSettleFrom,
+  chargeFrom,
+  readableBody,
+  type TryAutoSettle,
+  type TryCharge,
+} from "../../src/dashboard/try-charge";
+import { explorerTxUrl, networkOptionFor, parseChainId } from "../../src/dashboard/network";
 
 type Tab = "terms" | "connect" | "try";
 
@@ -295,6 +303,8 @@ type Attempt =
       readonly fromService: boolean;
       /** The charge the Service reported in its headers, when the call was metered. */
       readonly charge: TryCharge | undefined;
+      /** The demonstration Agent settling its own tab before the call, when it did. */
+      readonly autoSettle: TryAutoSettle | undefined;
     }
   | { readonly kind: "failed"; readonly message: string };
 
@@ -330,6 +340,7 @@ function TryIt({ entry, networkName }: { readonly entry: WireEntry; readonly net
         body,
         fromService: response.headers.get("Tab-Try-Origin") !== "dashboard",
         charge: chargeFrom(response.headers),
+        autoSettle: autoSettleFrom(response.headers),
       });
     } catch (cause) {
       setAttempt({
@@ -400,6 +411,17 @@ function TryIt({ entry, networkName }: { readonly entry: WireEntry; readonly net
           <pre className="max-h-64 overflow-auto rounded-md border border-border/60 bg-background/60 p-3 font-mono text-[11px] leading-relaxed break-words whitespace-pre-wrap text-foreground">
             {readableBody(attempt.body).slice(0, 4000)}
           </pre>
+          {attempt.autoSettle?.kind === "settled" ? (
+            <p className="text-sm leading-relaxed text-foreground">
+              Before this call, the demo Agent paid its own tab:{" "}
+              <AssetAmount baseUnits={attempt.autoSettle.amount} asset={entry.asset} /> settled from its own key, because{" "}
+              {AUTO_SETTLE_REASON_WORDS[attempt.autoSettle.reason] ?? attempt.autoSettle.reason}.{" "}
+              <Link href={explorerTxUrl(attempt.autoSettle.txHash, networkOptionFor(parseChainId(String(entry.chainId))).explorerUrl)} external size="inherit">
+                See the Settlement
+              </Link>
+              .
+            </p>
+          ) : null}
           {attempt.fromService && attempt.charge !== undefined ? (
             <p className="text-sm leading-relaxed text-foreground">
               Charged <AssetAmount baseUnits={attempt.charge.amount} asset={entry.asset} /> to the Agent&apos;s Open Tab

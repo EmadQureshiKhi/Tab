@@ -492,6 +492,20 @@ export const TAB_SETTLE_OUTPUT: JsonObjectSchema = {
   additionalProperties: false,
 };
 
+// The Settlement tab_call sent on its own, when auto-settle is on. Declared here,
+// after tab_settle's output, because it is that output plus why it was sent.
+(TAB_CALL_OUTPUT.properties as Record<string, unknown>)["autoSettle"] = {
+  type: "object",
+  description:
+    "Present when auto-settle is on (tab.config `autoSettle` or env TAB_AUTO_SETTLE_AT) and tab_call paid the whole Open Tab itself: `threshold` when the tab reached the configured amount after this call, `limit` when the Credit Limit refused this call, in which case the call was made once more after the Settlement. The rest is tab_settle's own output for that Settlement.",
+  properties: {
+    reason: { type: "string", enum: ["threshold", "limit", "window", "delinquent"] },
+    ...(TAB_SETTLE_OUTPUT.properties as Record<string, unknown>),
+  },
+  required: ["reason", "ok", "dryRun", "amountBaseUnits"],
+  additionalProperties: false,
+};
+
 // ---------------------------------------------------------------- the declaration
 
 /** One tool as `tools/list` serves it. */

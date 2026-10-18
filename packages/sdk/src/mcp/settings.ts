@@ -43,6 +43,7 @@ import { loadTabConfig, type TabConfig } from "../payments/config.js";
 import { defaultLogger, type Logger } from "../logger.js";
 import { agentSignedMetering } from "../http/metering-claim.js";
 import type { X402SignerFactory } from "../x402/client.js";
+import { parseAutoSettleAt, type AutoSettlePolicy } from "../payments/auto-settle.js";
 
 /** The settings every tool reads. Each field is resolved or explicitly absent. */
 export interface TabMcpSettings {
@@ -73,6 +74,8 @@ export interface TabMcpSettings {
    * while settings are resolved; only when a refused call carries an offer.
    */
   readonly x402: X402SignerFactory | undefined;
+  /** When `tab_call` settles on its own. Undefined is off. */
+  readonly autoSettle: AutoSettlePolicy | undefined;
   /** Where each setting came from, so `doctor` can print it. */
   readonly sources: Readonly<Record<string, string>>;
 }
@@ -93,6 +96,8 @@ export interface TabMcpSettingsOptions {
   readonly services?: readonly TabServiceEntry[];
   readonly strategyId?: string;
   readonly x402?: X402SignerFactory;
+  /** Auto-settle once an Open Tab reaches this many base units. Beats `tab.config` and `TAB_AUTO_SETTLE_AT`. */
+  readonly autoSettleAt?: string | number | bigint;
   /** Where the `tab.config` walk starts. Defaults to the working directory. */
   readonly cwd?: string;
   /** `false` skips config discovery entirely, which is what a hermetic test wants. */
@@ -290,6 +295,30 @@ export async function resolveTabMcpSettings(
   const x402 = options.x402 ?? (typeof config.x402 === "function" ? config.x402 : undefined);
   if (x402 !== undefined) sources["x402"] = options.x402 === undefined ? "tab.config" : "options";
 
+  // Auto-settle: options, then tab.config, then TAB_AUTO_SETTLE_AT. A value that is not a
+  // whole number of base units is reported and leaves it off, like every other setting here.
+  const autoSettleSource =
+    options.autoSettleAt !== undefined
+      ? { value: options.autoSettleAt, source: "options" }
+      : config.autoSettle?.atBaseUnits !== undefined
+        ? { value: config.autoSettle.atBaseUnits, source: "tab.config" }
+        : trimmed(env["TAB_AUTO_SETTLE_AT"]) !== undefined
+          ? { value: trimmed(env["TAB_AUTO_SETTLE_AT"]), source: "env TAB_AUTO_SETTLE_AT" }
+          : undefined;
+  let autoSettle: AutoSettlePolicy | undefined;
+  if (autoSettleSource !== undefined) {
+    const parsed = parseAutoSettleAt(autoSettleSource.value, autoSettleSource.source);
+    if (parsed.ok) {
+      autoSettle = parsed.value;
+      if (autoSettle !== undefined) sources["autoSettle"] = autoSettleSource.source;
+    } else {
+      logger.warn("auto-settle is off: its amount is not a whole number of base units", {
+        code: parsed.error.code,
+        message: parsed.error.message,
+      });
+    }
+  }
+
   const hostedSettlement =
     hosted === undefined || !isMonadChainId(chainId)
       ? undefined
@@ -320,6 +349,7 @@ export async function resolveTabMcpSettings(
     services,
     strategyId,
     x402,
+    autoSettle,
     sources,
   };
 }

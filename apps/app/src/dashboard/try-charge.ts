@@ -31,6 +31,44 @@ export function chargeFrom(headers: { get(name: string): string | null }): TryCh
   return { amount, asset, openTab: digits(headers.get("Tab-Open-Tab")), headroom: digits(headers.get("Tab-Headroom")) };
 }
 
+/**
+ * The headers `/api/try` reports an automatic Settlement in: the demonstration
+ * Agent paying its own tab before the call (see `try-settle.ts`). Here rather
+ * than there because the panel reads them in the browser, and that module
+ * holds a signer.
+ */
+export const AUTO_SETTLE_HEADERS = {
+  reason: "Tab-Auto-Settle-Reason",
+  amount: "Tab-Auto-Settle-Amount",
+  txHash: "Tab-Auto-Settle-Tx",
+  error: "Tab-Auto-Settle-Error",
+} as const;
+
+/** Why the Agent settled, in words a reader of the panel uses. */
+export const AUTO_SETTLE_REASON_WORDS: Readonly<Record<string, string>> = {
+  delinquent: "its tab had been marked delinquent",
+  window: "half its Settlement Window had passed",
+  threshold: "its tab had reached 0.10",
+  limit: "its Credit Limit was reached",
+  read: "it checks its tab before every call",
+};
+
+export type TryAutoSettle =
+  | { readonly kind: "settled"; readonly reason: string; readonly amount: bigint; readonly txHash: string }
+  | { readonly kind: "failed"; readonly reason: string; readonly message: string };
+
+/** The automatic Settlement a trial call reported, or undefined when there was none. */
+export function autoSettleFrom(headers: { get(name: string): string | null }): TryAutoSettle | undefined {
+  const reason = headers.get(AUTO_SETTLE_HEADERS.reason)?.trim();
+  if (reason === undefined || reason === "") return undefined;
+  const error = headers.get(AUTO_SETTLE_HEADERS.error);
+  if (error !== null) return { kind: "failed", reason, message: error };
+  const amount = digits(headers.get(AUTO_SETTLE_HEADERS.amount));
+  const txHash = headers.get(AUTO_SETTLE_HEADERS.txHash)?.trim();
+  if (amount === undefined || txHash === undefined || !/^0x[0-9a-fA-F]{64}$/.test(txHash)) return undefined;
+  return { kind: "settled", reason, amount, txHash };
+}
+
 /** A JSON body laid out for reading, or the body as it came when it is not JSON. */
 export function readableBody(body: string): string {
   try {

@@ -69,6 +69,7 @@ import {
   tabToolByName,
 } from "./schemas.js";
 import type { TabMcpSettings } from "./settings.js";
+import { decideAutoSettle, type AutoSettleReason } from "../payments/auto-settle.js";
 
 // ---------------------------------------------------------------- output types
 
@@ -165,6 +166,8 @@ export interface TabCallOutput {
     readonly settlementDueIso?: string | null;
   };
   readonly x402?: TabCallX402Block;
+  /** The Settlement this call sent on its own, when auto-settle is on and it fired. */
+  readonly autoSettle?: TabSettleOutput & { readonly reason: AutoSettleReason };
   readonly error?: TabToolError;
 }
 
@@ -471,7 +474,32 @@ export function createTabToolset(options: TabToolsetOptions): TabToolset {
 
   // ---------------------------------------------------------------- tab_call
 
-  const call = async (raw: unknown): Promise<TabCallOutput> => {
+  /**
+   * `tab_call`, with auto-settle around it.
+   *
+   * With no policy this is the call and nothing more. With one, a call that left
+   * the Open Tab at or past the Agent's amount is followed by a Settlement of the
+   * whole tab, and a call the Credit Limit refused is settled for and made once
+   * more; a second refusal is returned as it is, so the loop cannot spin. The
+   * Settlement goes through `settle` below, the same path `tab_settle` takes, from
+   * the Agent's own key, and its output rides on the call's as `autoSettle`.
+   */
+  const call = async (raw: unknown, retried = false): Promise<TabCallOutput> => {
+    const out = await callOnce(raw);
+    const policy = settings.autoSettle;
+    if (policy === undefined || out.tab === undefined) return out;
+    const declined = !out.ok && out.error?.code === "LIMIT_EXCEEDED";
+    if (!out.ok && !declined) return out;
+    const decision = decideAutoSettle(policy, { openTab: BigInt(out.tab.openTabBaseUnits), declined });
+    if (!decision.settle) return out;
+    const serviceId = typeof (raw as { serviceId?: unknown } | null)?.serviceId === "string" ? (raw as { serviceId: string }).serviceId : "";
+    const settled = await settle({ serviceId, asset: out.tab.asset, amountBaseUnits: decision.amount.toString(10), dryRun: false });
+    const autoSettle = { reason: decision.reason, ...settled };
+    if (declined && settled.ok && !retried) return { ...(await call(raw, true)), autoSettle };
+    return { ...out, autoSettle };
+  };
+
+  const callOnce = async (raw: unknown): Promise<TabCallOutput> => {
     const input = readInput<{
       serviceId: string;
       tool: string;
