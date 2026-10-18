@@ -481,3 +481,17 @@ test("the Keys view renders with no wallet and no passkey as an explanation, not
   assert.doesNotMatch(markup, /0x[0-9a-fA-F]{40}/, "no address is invented");
   assert.doesNotMatch(markup, /connect (your )?wallet|please connect/i);
 });
+
+/* ------------------------------------------- what a signing button says */
+
+test("a signing button says the passkey is signing, and only a browser wallet is waited for", async () => {
+  const { signingLabel } = await import("../components/wallet/wallet-context");
+  assert.equal(signingLabel("passkey"), "Signing with your passkey");
+  assert.equal(signingLabel("injected"), "Waiting for the wallet");
+  assert.equal(signingLabel(undefined), "Waiting for the wallet");
+  // Every signing button takes its waiting words from signingLabel, so a passkey never sends the reader looking for a popup.
+  for (const file of ["app/authorise/_form.tsx", "app/services/new/_wizard.tsx", "app/services/bond/_flow.tsx"]) {
+    const source = readFileSync(join(ROOT, file), "utf8");
+    assert.match(source, /signingLabel\(wallet\.kind\)/, `${file} uses signingLabel`);
+  }
+});

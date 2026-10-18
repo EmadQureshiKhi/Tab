@@ -1,6 +1,6 @@
 /**
- * The two modules copied from the Dashboard must stay identical below their
- * provenance header. Apps may not depend on apps, so the copy is the seam, and
+ * The modules copied from the Dashboard and the gateway must stay identical
+ * below their provenance header. Apps may not depend on apps, so the copy is the seam, and
  * this is what keeps the keeper judging a tab exactly as the page does.
  */
 
@@ -28,3 +28,13 @@ for (const name of ["chain.ts", "overdue.ts"]) {
     assert.equal(ours.slice(HEADER_LINES).join("\n"), theirs);
   });
 }
+
+test("src/provider.ts is apps/gateway/src/provider.ts verbatim, under a four-line provenance header", () => {
+  const originalPath = resolve(here, "..", "..", "gateway", "src", "provider.ts");
+  assert.ok(existsSync(originalPath), "apps/gateway/src/provider.ts is missing, so the copy has nothing to match");
+  const ours = readFileSync(copy("provider.ts"), "utf8").split("\n");
+  const header = ours.slice(0, HEADER_LINES);
+  assert.ok(header.every((line) => line.startsWith("//")), "the header is comment lines only");
+  assert.match(header[0], /Copied verbatim from `apps\/gateway\/src\/provider\.ts`/);
+  assert.equal(ours.slice(HEADER_LINES).join("\n"), readFileSync(originalPath, "utf8"));
+});

@@ -65,6 +65,18 @@ import type { Result } from "./result";
 /** What stands behind the connected account. */
 export type ConnectionKind = "injected" | "passkey";
 
+/**
+ * What a signing button says while it waits for its signature.
+ *
+ * A browser wallet signs in its own popup, so the page is waiting for the
+ * wallet. A passkey account signs in this page, with a key it derived from the
+ * passkey, so there is no wallet to wait for and saying so would send the
+ * reader looking for a popup that never opens.
+ */
+export function signingLabel(kind: ConnectionKind | undefined): string {
+  return kind === "passkey" ? "Signing with your passkey" : "Waiting for the wallet";
+}
+
 export interface WalletState {
   /** True once the browser has been inspected. Before that nothing is known. */
   readonly ready: boolean;

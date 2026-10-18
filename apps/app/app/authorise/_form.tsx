@@ -35,7 +35,7 @@ import { cn } from "../../components/ui/cn";
 import { FOCUS_RING } from "../../components/ui/focus-ring";
 import { CopyButton } from "../../components/custom-ui/copy-button";
 import { MON, MONAD_CHAINS } from "../../components/wallet/eip1193";
-import { useWallet } from "../../components/wallet/wallet-context";
+import { signingLabel, useWallet } from "../../components/wallet/wallet-context";
 import { createChainReader } from "../../src/dashboard/chain";
 import { explorerTxUrl } from "../../src/dashboard/network";
 import {
@@ -368,7 +368,9 @@ export function AuthoriseForm({
                 disabled={wallet.connecting}
               >
                 {wallet.connecting
-                  ? "Waiting for the wallet"
+                  ? wallet.passkey.remembered !== undefined && !wallet.available
+                    ? "Waiting for your passkey"
+                    : "Waiting for the wallet"
                   : wallet.passkey.remembered !== undefined && !wallet.available
                     ? "Use your passkey"
                     : "Connect a wallet"}
@@ -470,7 +472,7 @@ export function AuthoriseForm({
         <div>
           <Button type="submit" variant="customTallPrimary" size="tall" disabled={busy}>
             {stage.kind === "sending"
-              ? "Waiting for the wallet"
+              ? signingLabel(wallet.kind)
               : stage.kind === "sent"
                 ? "Waiting for the block"
                 : "Sign the authorisation"}

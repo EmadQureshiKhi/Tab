@@ -39,7 +39,7 @@ import { CopyButton } from "../../../components/custom-ui/copy-button";
 import { FOCUS_RING } from "../../../components/ui/focus-ring";
 import { Link } from "../../../components/ui/link";
 import { MON, MONAD_CHAINS, type ChainSpec } from "../../../components/wallet/eip1193";
-import { useWallet } from "../../../components/wallet/wallet-context";
+import { signingLabel, useWallet } from "../../../components/wallet/wallet-context";
 import {
   encodeRegistration,
   type AssetTerm,
@@ -217,7 +217,7 @@ export function NewServiceWizard({
                   onClick={() => void send()}
                   disabled={!encoded.ok || sending || !connected}
                 >
-                  {sending ? "Waiting for the wallet" : `Register on ${chainName}`}
+                  {sending ? signingLabel(wallet.kind) : `Register on ${chainName}`}
                 </Button>
               )}
             </div>

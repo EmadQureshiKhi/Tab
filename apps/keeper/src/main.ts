@@ -13,12 +13,13 @@
  */
 
 import { serve } from "@hono/node-server";
-import { JsonRpcProvider, Wallet } from "ethers";
+import { Wallet } from "ethers";
 
 import { createChainReader } from "./chain.js";
 import { loadKeeperConfig, requireKeeperKey, type KeeperConfig } from "./config.js";
 import { walkDeliveryFeed } from "./feed.js";
 import { createEthersMarker } from "./marker.js";
+import { RetryingJsonRpcProvider } from "./provider.js";
 import { createKeeperApp } from "./server.js";
 import { runTick, type TickDeps, type TickReport } from "./tick.js";
 
@@ -31,7 +32,8 @@ const err = (line: string): void => {
 
 /** The dependencies one process shares between `once` and `serve`. */
 function depsFor(config: KeeperConfig, broadcast: boolean): { deps: TickDeps; canBroadcast: boolean; keeper: string | undefined } | { failure: string } {
-  const provider = new JsonRpcProvider(config.rpcUrl, config.chainId, { staticNetwork: true, batchMaxCount: 1 });
+  // Reads are retried when the public endpoint rate limits, and every request has a short deadline; see provider.ts.
+  const provider = new RetryingJsonRpcProvider(config.rpcUrl, config.chainId, { staticNetwork: true, batchMaxCount: 1 });
   let signer: Wallet | undefined;
   if (broadcast) {
     const key = requireKeeperKey(config);

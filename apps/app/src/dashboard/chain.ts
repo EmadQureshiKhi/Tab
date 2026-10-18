@@ -48,8 +48,14 @@ export interface RpcResponse {
 /** The `fetch` this reader posts with. The host's global is the default. */
 export type RpcFetch = (
   url: string,
-  init: { method: string; headers: Record<string, string>; body: string },
+  init: { method: string; headers: Record<string, string>; body: string; signal?: AbortSignal },
 ) => Promise<RpcResponse>;
+
+/** How long one request may go unanswered before it is abandoned, in milliseconds. */
+export const RPC_REQUEST_TIMEOUT_MS = 15_000;
+
+/** The waits before the second and the third try of a request that earns one, in milliseconds. */
+export const RPC_RETRY_DELAYS_MS: readonly number[] = [250, 1_000];
 
 export interface ChainReaderOptions {
   readonly rpcUrl: string;
@@ -62,6 +68,31 @@ export interface ChainReaderOptions {
    * here, it is what makes the scan finish at all.
    */
   readonly logWindow?: number;
+  /**
+   * Waits before each retry. Every call here is a read, so sending one again is
+   * harmless; only an answer that means "not now" earns another try (see
+   * `isWorthRetrying`). An empty list turns retries off.
+   */
+  readonly retryDelaysMs?: readonly number[];
+  readonly sleep?: (ms: number) => Promise<void>;
+  /** Per request. A request a dropped connection will never answer fails here rather than in minutes. */
+  readonly requestTimeoutMs?: number;
+}
+
+/**
+ * Whether a failed read is worth sending again.
+ *
+ * A public endpoint that is rate limiting answers HTTP 429 or a JSON-RPC error
+ * saying so, and one that is briefly down answers 5xx or not at all. Each of
+ * those is "not now", and a second try a moment later usually lands. A revert,
+ * a malformed answer or any other refusal is the endpoint's answer, and asking
+ * again gets the same one.
+ */
+function isWorthRetrying(error: TabError): boolean {
+  if (error.code === "RPC_UNREACHABLE") return true;
+  if (error.code === "RPC_STATUS") return /HTTP (429|5\d\d)\b/.test(error.message);
+  if (error.code === "RPC_ERROR") return /rate limit|too many requests|-32005|request limit/i.test(error.message);
+  return false;
 }
 
 /**
@@ -151,7 +182,19 @@ export function parseQuantity(value: unknown): number | undefined {
 export function createChainReader(options: ChainReaderOptions): ChainReader {
   const window = options.logWindow ?? DEFAULT_LOG_WINDOW;
 
+  const delays = options.retryDelaysMs ?? RPC_RETRY_DELAYS_MS;
+  const sleep = options.sleep ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
+  const timeoutMs = options.requestTimeoutMs ?? RPC_REQUEST_TIMEOUT_MS;
+
   const rpc = async (method: string, params: readonly unknown[]): Promise<Result<unknown>> => {
+    for (let attempt = 0; ; attempt += 1) {
+      const answer = await rpcOnce(method, params);
+      if (answer.ok || attempt >= delays.length || !isWorthRetrying(answer.error)) return answer;
+      await sleep(delays[attempt] ?? 0);
+    }
+  };
+
+  const rpcOnce = async (method: string, params: readonly unknown[]): Promise<Result<unknown>> => {
     const send = options.fetchImpl ?? hostFetch();
     if (send === undefined) {
       return err(upstream("FETCH_UNAVAILABLE", "this host has no global fetch, so the chain cannot be read"));
@@ -163,6 +206,7 @@ export function createChainReader(options: ChainReaderOptions): ChainReader {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+        signal: AbortSignal.timeout(timeoutMs),
       });
     } catch (cause) {
       return err(upstream("RPC_UNREACHABLE", `${method} could not reach ${options.rpcUrl}`, cause));
@@ -184,7 +228,8 @@ export function createChainReader(options: ChainReaderOptions): ChainReader {
     }
     const body = payload as { result?: unknown; error?: { message?: unknown } };
     if (body.error !== undefined && body.error !== null) {
-      const detail = typeof body.error.message === "string" ? body.error.message : "no message";
+      const code = typeof (body.error as { code?: unknown }).code === "number" ? ` (${(body.error as { code: number }).code})` : "";
+      const detail = (typeof body.error.message === "string" ? body.error.message : "no message") + code;
       // A JSON-RPC error is the endpoint answering, so it is reported as what it
       // is rather than as unreachability. `/api/health` distinguishes the two.
       return err(upstream("RPC_ERROR", `${method} was refused: ${detail}`));

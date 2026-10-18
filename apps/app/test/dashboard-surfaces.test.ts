@@ -152,6 +152,64 @@ test("a transport failure is reported as unreachable", async () => {
   assert.equal(result.error.code, "RPC_UNREACHABLE");
 });
 
+test("a read the endpoint rate limited is sent again and lands, and a revert is not asked twice", async () => {
+  const answers = [
+    { status: 429, json: async () => ({}) },
+    { status: 200, json: async () => ({ error: { code: -32005, message: "limit exceeded" } }) },
+    { status: 200, json: async () => ({ result: "0x279f" }) },
+  ];
+  let calls = 0;
+  const chain = createChainReader({
+    rpcUrl: "http://example.invalid",
+    sleep: async () => {},
+    fetchImpl: async () => {
+      calls += 1;
+      return answers.shift() ?? { status: 200, json: async () => ({ result: "0x1" }) };
+    },
+  });
+  const result = await chain.chainId();
+  assert.ok(result.ok, "the third try lands");
+  assert.equal(result.value, 10143);
+  assert.equal(calls, 3, "one try and two retries");
+
+  let reverts = 0;
+  const reverting = createChainReader({
+    rpcUrl: "http://example.invalid",
+    sleep: async () => {},
+    fetchImpl: async () => {
+      reverts += 1;
+      return { status: 200, json: async () => ({ error: { code: 3, message: "execution reverted" } }) };
+    },
+  });
+  assert.equal((await reverting.chainId()).ok, false);
+  assert.equal(reverts, 1, "a revert is an answer, so it is not asked again");
+});
+
+test("a request nobody answers is abandoned at the timeout instead of holding the read for minutes", async () => {
+  let calls = 0;
+  const chain = createChainReader({
+    rpcUrl: "http://example.invalid",
+    requestTimeoutMs: 50,
+    retryDelaysMs: [],
+    fetchImpl: (_url, init) => {
+      calls += 1;
+      return new Promise((_resolve, reject) => init.signal?.addEventListener("abort", () => reject(init.signal?.reason)));
+    },
+  });
+  // AbortSignal.timeout's timer does not keep a process alive; a server does, so the test stands in for one.
+  const alive = setInterval(() => {}, 1_000);
+  try {
+    const started = Date.now();
+    const result = await chain.chainId();
+    assert.equal(result.ok, false);
+    assert.equal(result.error.code, "RPC_UNREACHABLE");
+    assert.ok(Date.now() - started < 2_000);
+    assert.equal(calls, 1);
+  } finally {
+    clearInterval(alive);
+  }
+});
+
 test("the log scan is chunked, and each window is bounded", async () => {
   const windows: { from: number; to: number }[] = [];
   const chain = createChainReader({

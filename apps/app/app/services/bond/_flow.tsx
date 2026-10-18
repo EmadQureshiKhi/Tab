@@ -36,7 +36,7 @@ import { cn } from "../../../components/ui/cn";
 import { FOCUS_RING } from "../../../components/ui/focus-ring";
 import { Link } from "../../../components/ui/link";
 import { MON, MONAD_CHAINS } from "../../../components/wallet/eip1193";
-import { useWallet } from "../../../components/wallet/wallet-context";
+import { signingLabel, useWallet } from "../../../components/wallet/wallet-context";
 import { explorerTxUrl } from "../../../src/dashboard/network";
 import { encodeApprove, encodeDeposit } from "../../../src/dashboard/registration";
 
@@ -310,7 +310,7 @@ export function BondFlow({
               disabled={busy || wallet.account === undefined || asset === undefined}
               onClick={() => void approve()}
             >
-              {busy ? "Waiting for the wallet" : `Approve on ${chainName}`}
+              {busy ? signingLabel(wallet.kind) : `Approve on ${chainName}`}
             </Button>
           </>
         )}
@@ -348,7 +348,7 @@ export function BondFlow({
               disabled={busy || wallet.account === undefined || depositData === undefined}
               onClick={() => void deposit()}
             >
-              {busy ? "Waiting for the wallet" : `Deposit on ${chainName}`}
+              {busy ? signingLabel(wallet.kind) : `Deposit on ${chainName}`}
             </Button>
           </>
         )}
