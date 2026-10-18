@@ -38,6 +38,17 @@
  * the registry is an optimisation and not a dependency: with it unreachable
  * the first sight of an Agent scans from the deployment block, and every call
  * after that scans only the blocks since.
+ *
+ * ## A history held from long ago is refreshed, not scanned forward
+ *
+ * "Only the blocks since" is cheap the next minute and ruinous the next week.
+ * A gateway that held an Agent's history from a call days ago, and then saw a
+ * Settlement it did not relay land on chain, scanned the whole quiet spell a
+ * hundred blocks at a time: a million blocks on Testnet after five days, ten
+ * thousand requests, and every metered call timed out behind it. So a held
+ * history more than `MAX_CATCH_UP_BLOCKS` behind the head is re-read from the
+ * registry, which is complete to a block or two from the head, and only the
+ * gap past its horizon is scanned. Without a registry the scan runs as before.
  */
 
 import { err, ok, type Result, type TabError } from "@tabai/shared";
@@ -118,6 +129,9 @@ function recordFromBody(value: unknown, position: number): Result<CountedRecord>
   return ok({ count: position + 1, record });
 }
 
+/** How far behind the head a held history may be before it is re-read from the registry rather than scanned forward. */
+export const MAX_CATCH_UP_BLOCKS = 2_000;
+
 /**
  * Wraps a chain reader so the history is held between calls and read from
  * the registry on first sight.
@@ -192,22 +206,25 @@ export function createHistorySource(options: HistorySourceOptions): WitnessReade
    *
    * A base that reaches the head already asks the chain for nothing.
    */
-  const scanSince = async (agent: string, asset: string, base: HeldHistory | undefined): Promise<Result<HeldHistory>> => {
-    const to = await head();
-    if (!to.ok) return to;
+  const scanSince = async (agent: string, asset: string, base: HeldHistory | undefined, to: number): Promise<Result<HeldHistory>> => {
     const from = base === undefined ? fromBlock : base.completeTo + 1;
     const records = [...(base?.records ?? [])];
-    if (from <= to.value) {
-      const logs = await chain.historyLogs(agent, asset, { fromBlock: from, toBlock: to.value });
+    if (from <= to) {
+      const logs = await chain.historyLogs(agent, asset, { fromBlock: from, toBlock: to });
       if (!logs.ok) return logs;
+      // A record the base already holds (a registry copy whose horizon trailed one of its
+      // own records) is skipped by count, so the history never carries one twice.
+      const held = new Set(records.map((entry) => entry.count));
       for (const log of logs.value) {
         const one = recordFromLog(log);
         if (!one.ok) return one;
+        if (held.has(one.value.count)) continue;
+        held.add(one.value.count);
         records.push(one.value);
       }
     }
     records.sort((left, right) => left.count - right.count);
-    return ok({ records, completeTo: Math.max(to.value, base?.completeTo ?? fromBlock - 1) });
+    return ok({ records, completeTo: Math.max(to, base?.completeTo ?? fromBlock - 1) });
   };
 
   return {
@@ -227,8 +244,16 @@ export function createHistorySource(options: HistorySourceOptions): WitnessReade
       const have = held.get(key);
       if (have !== undefined && have.records.length === onChain.value.count) return ok(have.records);
 
-      const base = have ?? (await fromRegistry(agent, asset));
-      const scanned = await scanSince(agent, asset, base);
+      const to = await head();
+      if (!to.ok) return to;
+      // First sight, or held from so long ago that scanning forward would cost more than
+      // one registry read: start from the registry's copy when it is the newer of the two.
+      let base = have;
+      if (have === undefined || to.value - have.completeTo > MAX_CATCH_UP_BLOCKS) {
+        const fresh = await fromRegistry(agent, asset);
+        if (fresh !== undefined && (have === undefined || fresh.completeTo > have.completeTo)) base = fresh;
+      }
+      const scanned = await scanSince(agent, asset, base, to.value);
       if (!scanned.ok) return scanned;
       held.set(key, scanned.value);
       return ok(scanned.value.records);

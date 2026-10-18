@@ -226,3 +226,77 @@ test("histories are held per Agent and Asset, never shared across them", async (
   // first's entry.
   assert.equal(chain.state.reads.historyLogs, 2);
 });
+
+test("a history held from long ago is refreshed from the registry, not scanned across the whole quiet spell", async () => {
+  // The hosted Testnet gateway held this Agent from a call days before; a
+  // Settlement made outside it then landed a million blocks later. Scanning
+  // from the held block meant ten thousand requests before the call could
+  // answer, so every call timed out. The registry is complete to near the head.
+  const records = [record()];
+  const chain = fakeChain({ records, head: 1_000 });
+  const registryRecords = [...records];
+  const calls = [];
+  let horizon = 1_000;
+  const source = createHistorySource({
+    chain: chain.reader,
+    fromBlock: DEPLOYED_AT,
+    head: chain.head,
+    registryUrl: "http://registry.test",
+    fetchImpl: (url) => fakeRegistry({ records: registryRecords, lastBlock: horizon, calls })(url),
+    logger: silent,
+  });
+  await buildWitness(source, AGENT, ASSET);
+  const scannedBefore = chain.state.reads.scannedBlocks;
+
+  // A quiet spell, then a Settlement the gateway did not see.
+  chain.state.head = 1_000_000;
+  chain.commit(record({ amount: 9n }));
+  registryRecords.push(record({ amount: 9n }));
+  horizon = chain.state.head;
+
+  const after = await buildWitness(source, AGENT, ASSET);
+  assert.equal(after.ok, true);
+  assert.equal(after.value.witness.history.length, 2);
+  assert.equal(after.value.rebuilt.root, after.value.onChain.root, "the refreshed history still folds to the contract's root");
+  assert.ok(chain.state.reads.scannedBlocks - scannedBefore <= 10, `scanned ${chain.state.reads.scannedBlocks - scannedBefore} blocks, not the whole quiet spell`);
+  assert.equal(calls.length, 2, "the registry was read again for the refresh");
+});
+
+test("a registry copy that trails one of its own records never puts that record in the history twice", async () => {
+  const records = [record(), record({ amount: 2n })];
+  const chain = fakeChain({ records, head: 5_000 });
+  const source = createHistorySource({
+    chain: chain.reader,
+    fromBlock: DEPLOYED_AT,
+    head: chain.head,
+    registryUrl: "http://registry.test",
+    // Lists both records, but says it is complete only to a block before the second one's.
+    fetchImpl: fakeRegistry({ records, lastBlock: DEPLOYED_AT + 5 }),
+    logger: silent,
+  });
+  const built = await buildWitness(source, AGENT, ASSET);
+  assert.equal(built.ok, true);
+  assert.equal(built.value.witness.history.length, 2);
+  assert.equal(built.value.rebuilt.root, built.value.onChain.root);
+});
+
+test("a held history only a little behind is topped up from the chain without asking the registry again", async () => {
+  const records = [record()];
+  const chain = fakeChain({ records, head: 1_000 });
+  const calls = [];
+  const source = createHistorySource({
+    chain: chain.reader,
+    fromBlock: DEPLOYED_AT,
+    head: chain.head,
+    registryUrl: "http://registry.test",
+    fetchImpl: fakeRegistry({ records, lastBlock: 1_000, calls }),
+    logger: silent,
+  });
+  await buildWitness(source, AGENT, ASSET);
+  chain.state.head += 50;
+  chain.commit(record({ amount: 4n }));
+  const after = await buildWitness(source, AGENT, ASSET);
+  assert.equal(after.ok, true);
+  assert.equal(after.value.witness.history.length, 2);
+  assert.equal(calls.length, 1, "a short gap is cheaper to scan than to re-read");
+});
