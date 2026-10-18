@@ -17,7 +17,7 @@
     "@tabai/sdk": "workspace:^",
     "@tabai/shared": "workspace:*",
     "ethers": "6.17.0",
-    "hono": "4.13.5"
+    "hono": "4.13.13"
   },
   "devDependencies": {
     "@types/node": "22.20.1",
